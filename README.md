@@ -172,6 +172,14 @@ npm run test        # 118 smoke tests (server + modules, simulated song)
 npm run package     # build + package .ablx with the UI
 ```
 
+> **Packaging note.** `npm run package` does **not** use the default
+> `extensions-cli package` for the archive step. That command relies on the `archiver`
+> library, which writes ZIP entries in *streaming mode* with **data descriptors**
+> (local file headers carry `size=0`/`crc=0`). Ableton Live's archive reader (minizip)
+> does not extract those reliably, which surfaces at install time as
+> `No manifest.json file found`. Instead we package with **Info-ZIP** (`zip -X`),
+> which writes standard local headers with real sizes — minizip-compatible.
+
 ## 📚 Module catalog
 
 <details>
