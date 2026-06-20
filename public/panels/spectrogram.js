@@ -1,17 +1,17 @@
-// Panel rico: Spectrogram — barras de espectro a partir de los bins reales.
+// Rich panel: Spectrogram — spectrum bars from the real bins.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.spectrogram = function (panel, helpers) {
   const exec = helpers.execute;
   panel.innerHTML = `
-    <div class="panel-head"><h1>📈 Spectrogram</h1><p>Espectro en tiempo real y picos espectrales de una pista.</p></div>
+    <div class="panel-head"><h1>📈 Spectrogram</h1><p>Real-time spectrum and spectral peaks of a track.</p></div>
     <div class="ss-toolbar">
-      <label class="hint">Pista</label><input id="sp-track" type="number" value="0" style="width:80px" />
+      <label class="hint">Track</label><input id="sp-track" type="number" value="0" style="width:80px" />
       <label class="hint">FFT</label>
       <select id="sp-fft"><option>512</option><option selected>1024</option><option>2048</option></select>
-      <button class="btn" id="sp-go">Analizar</button>
+      <button class="btn" id="sp-go">Analyze</button>
     </div>
-    <div id="sp-bars" class="sp-bars"><span class="hint">Pulsa «Analizar».</span></div>
-    <h3 style="margin-top:14px">Picos / armónicos</h3>
+    <div id="sp-bars" class="sp-bars"><span class="hint">Click "Analyze".</span></div>
+    <h3 style="margin-top:14px">Peaks / harmonics</h3>
     <div id="sp-peaks" class="sp-peaks"><span class="hint">—</span></div>`;
 
   async function go() {

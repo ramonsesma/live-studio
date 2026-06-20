@@ -1,18 +1,18 @@
-// Panel rico: EQ & Análisis — perfil de frecuencias + sugerencias de EQ.
+// Rich panel: EQ & Analysis — frequency profile + EQ suggestions.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.eq = function (panel, helpers) {
   const exec = helpers.execute;
   panel.innerHTML = `
-    <div class="panel-head"><h1>🎚️ EQ & Análisis</h1><p>Perfil espectral por bandas y sugerencias de ecualización.</p></div>
+    <div class="panel-head"><h1>🎚️ EQ & Analysis</h1><p>Spectral profile by bands and EQ suggestions.</p></div>
     <div class="ss-toolbar">
-      <label class="hint">Pista</label><input id="eq-track" type="number" value="0" style="width:80px" />
-      <button class="btn" id="eq-go">Analizar</button>
+      <label class="hint">Track</label><input id="eq-track" type="number" value="0" style="width:80px" />
+      <button class="btn" id="eq-go">Analyze</button>
       <label class="hint">Preset</label>
       <select id="eq-preset"><option>clean</option><option>warm</option><option>bright</option><option>bass_cut</option><option>treble_boost</option><option>smile</option></select>
-      <button class="btn ghost" id="eq-apply">Aplicar preset</button>
+      <button class="btn ghost" id="eq-apply">Apply preset</button>
     </div>
-    <div id="eq-bands" class="eq-bands"><span class="hint">Pulsa «Analizar».</span></div>
-    <h3 style="margin-top:14px">Sugerencias</h3>
+    <div id="eq-bands" class="eq-bands"><span class="hint">Click "Analyze".</span></div>
+    <h3 style="margin-top:14px">Suggestions</h3>
     <ul id="eq-sugg" class="org-list"><li class="hint">—</li></ul>
     <div class="result" id="eq-out" style="display:none"></div>`;
 

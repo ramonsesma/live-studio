@@ -1,0 +1,81 @@
+<svg width="1100" height="640" viewBox="0 0 1100 640" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
+  <rect width="1100" height="640" fill="#1a1a1d" rx="12"/>
+  <!-- sidebar -->
+  <rect x="0" y="0" width="240" height="640" fill="#232327"/>
+  <line x1="240" y1="0" x2="240" y2="640" stroke="#38383f"/>
+  <g font-size="14">
+    <text x="22" y="36" fill="#e8e8ea" font-size="26">🎛️</text>
+    <text x="58" y="33" fill="#e8e8ea" font-size="15" font-weight="500">Live Studio</text>
+    <text x="58" y="50" fill="#9a9aa2" font-size="10" letter-spacing="1.5">SUPER-EXTENSION</text>
+    <line x1="14" y1="68" x2="226" y2="68" stroke="#38383f"/>
+
+    <text x="20" y="98" fill="#9a9aa2" font-size="10" letter-spacing="1.2">MODULES</text>
+    <g fill="#9a9aa2">
+      <text x="28" y="125">🗂️</text><text x="50" y="125">Session &amp; Tracks</text>
+      <text x="28" y="153">🎹</text><text x="50" y="153">Chords</text>
+      <text x="28" y="181">🥁</text><text x="50" y="181">Drums &amp; Patterns</text>
+      <text x="28" y="209">🎚️</text><text x="50" y="209">EQ &amp; Analysis</text>
+      <text x="28" y="237">⛓️</text><text x="50" y="237">FX Chains</text>
+      <text x="28" y="265">🧩</text><text x="50" y="265">Session Organizer</text>
+    </g>
+    <text x="20" y="305" fill="#9a9aa2" font-size="10" letter-spacing="1.2">ASSISTANT</text>
+    <rect x="14" y="318" width="212" height="36" rx="8" fill="#2c2c31"/>
+    <rect x="14" y="318" width="3" height="36" fill="#ffb347"/>
+    <text x="28" y="342" fill="#e8e8ea">🤖</text>
+    <text x="50" y="342" fill="#e8e8ea">AI Copilot</text>
+  </g>
+
+  <!-- main panel: copilot -->
+  <g transform="translate(264,22)">
+    <text x="0" y="22" fill="#e8e8ea" font-size="22">🤖 AI Copilot</text>
+    <text x="0" y="46" fill="#9a9aa2" font-size="14">Control any module via natural language. Uses your tools as functions.</text>
+
+    <!-- config row -->
+    <g transform="translate(0,72)">
+      <text x="0" y="14" fill="#9a9aa2" font-size="12">Provider</text>
+      <rect x="0" y="22" width="240" height="30" rx="6" fill="#1a1a1d" stroke="#38383f"/>
+      <text x="14" y="42" fill="#e8e8ea" font-size="13">OpenRouter</text>
+
+      <text x="260" y="14" fill="#9a9aa2" font-size="12">API key</text>
+      <rect x="260" y="22" width="240" height="30" rx="6" fill="#1a1a1d" stroke="#38383f"/>
+      <text x="274" y="42" fill="#e8e8ea" font-size="13">••••••••••</text>
+
+      <text x="520" y="14" fill="#9a9aa2" font-size="12">Model (optional)</text>
+      <rect x="520" y="22" width="280" height="30" rx="6" fill="#1a1a1d" stroke="#38383f"/>
+      <text x="534" y="42" fill="#e8e8ea" font-size="13">anthropic/claude-3.5-sonnet</text>
+    </g>
+
+    <!-- chat log -->
+    <g transform="translate(0,140)">
+      <!-- user msg -->
+      <rect x="200" y="0" width="600" height="50" rx="12" fill="#6cc6ff"/>
+      <text x="220" y="22" fill="#08283b" font-size="13">create a MIDI track named Bass, generate a pop progression in C minor,</text>
+      <text x="220" y="40" fill="#08283b" font-size="13">then a techno beat at 130 BPM</text>
+
+      <!-- tool calls -->
+      <rect x="0" y="64" width="640" height="28" rx="10" fill="#2c2c31"/>
+      <text x="14" y="83" fill="#9a9aa2" font-size="11" font-family="ui-monospace, monospace">🔧 session__create_midi_track → { "trackIndex": 8, "name": "Bass" }</text>
+
+      <rect x="0" y="100" width="640" height="28" rx="10" fill="#2c2c31"/>
+      <text x="14" y="119" fill="#9a9aa2" font-size="11" font-family="ui-monospace, monospace">🔧 chords__generate_chords → { "key":"C", "scale":"minor", "progression":["i","III","VII","iv"] }</text>
+
+      <rect x="0" y="136" width="640" height="28" rx="10" fill="#2c2c31"/>
+      <text x="14" y="155" fill="#9a9aa2" font-size="11" font-family="ui-monospace, monospace">🔧 drums__generate_pattern → { "genre":"techno", "clipName":"Techno Pattern" }</text>
+
+      <!-- assistant -->
+      <rect x="0" y="178" width="640" height="74" rx="12" fill="#232327" stroke="#38383f"/>
+      <text x="14" y="200" fill="#e8e8ea" font-size="13">Done ✅ Created track <tspan font-weight="500">Bass</tspan>, a <tspan font-weight="500">i–III–VII–iv</tspan> progression in C minor,</text>
+      <text x="14" y="220" fill="#e8e8ea" font-size="13">and a <tspan font-weight="500">techno</tspan> pattern at 130 BPM.</text>
+      <text x="14" y="240" fill="#9a9aa2" font-size="12">(3 tool calls executed)</text>
+    </g>
+
+    <!-- chat input -->
+    <g transform="translate(0,450)">
+      <line x1="0" y1="0" x2="800" y2="0" stroke="#38383f"/>
+      <rect x="0" y="14" width="690" height="44" rx="8" fill="#1a1a1d" stroke="#38383f"/>
+      <text x="14" y="40" fill="#9a9aa2" font-size="13">Type an instruction…</text>
+      <rect x="700" y="14" width="100" height="44" rx="8" fill="#ffb347"/>
+      <text x="750" y="42" fill="#1a1a1d" font-size="13" font-weight="500" text-anchor="middle">Send</text>
+    </g>
+  </g>
+</svg>

@@ -1,17 +1,17 @@
-// Panel rico: Takes & Comping — carriles de tomas con rating.
+// Rich panel: Takes & Comping — take lanes with rating.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.takes = function (panel, helpers) {
   const exec = helpers.execute;
   const RATING = { best: "var(--ok)", good: "var(--accent2)", okay: "var(--accent)", noisy: "var(--err)" };
   panel.innerHTML = `
-    <div class="panel-head"><h1>🎙️ Takes & Comping</h1><p>Tomas grabadas con su valoración. Selecciona las mejores secciones y haz el comp.</p></div>
+    <div class="panel-head"><h1>🎙️ Takes & Comping</h1><p>Recorded takes with their rating. Pick the best sections and build the comp.</p></div>
     <div class="ss-toolbar">
-      <label class="hint">Pista</label><input id="tk-track" type="number" value="0" style="width:70px" />
-      <button class="btn" id="tk-load">Listar tomas</button>
-      <button class="btn ghost" id="tk-best">Auto-seleccionar mejores</button>
-      <button class="btn ghost" id="tk-comp">Comp desde tomas</button>
+      <label class="hint">Track</label><input id="tk-track" type="number" value="0" style="width:70px" />
+      <button class="btn" id="tk-load">List takes</button>
+      <button class="btn ghost" id="tk-best">Auto-select best</button>
+      <button class="btn ghost" id="tk-comp">Comp from takes</button>
     </div>
-    <div id="tk-lanes" class="tk-lanes"><span class="hint">Pulsa «Listar tomas».</span></div>
+    <div id="tk-lanes" class="tk-lanes"><span class="hint">Click "List takes".</span></div>
     <div class="result" id="tk-out" style="display:none"></div>`;
 
   const out = panel.querySelector("#tk-out");
@@ -30,7 +30,7 @@ window.LiveStudioPanels.takes = function (panel, helpers) {
         <span class="tk-dot" style="background:${RATING[t.rating] || 'var(--muted)'}"></span>
         <span class="tk-name">${t.name}</span>
         <div class="tk-clip" style="background:${RATING[t.rating] || 'var(--bg3)'}33; border-color:${RATING[t.rating] || 'var(--line)'}"></div>
-        <span class="hint">${t.rating}${t.selected ? " · activa" : ""}</span>`;
+        <span class="hint">${t.rating}${t.selected ? " · active" : ""}</span>`;
       box.appendChild(lane);
     }
   }

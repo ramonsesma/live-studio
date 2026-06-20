@@ -1,11 +1,11 @@
-// Panel rico: Sidechain — grafo de routing (source → targets).
+// Rich panel: Sidechain — routing graph (source → targets).
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.sidechain = function (panel, helpers) {
   const exec = helpers.execute;
   panel.innerHTML = `
-    <div class="panel-head"><h1>🔗 Sidechain</h1><p>Rutas de sidechain del proyecto y detección de problemas.</p></div>
-    <div class="ss-toolbar"><button class="btn" id="sc-go">Visualizar routing</button><button class="btn ghost" id="sc-issues">Detectar problemas</button></div>
-    <div id="sc-svg" class="cg-svg"><span class="hint">Pulsa «Visualizar routing».</span></div>
+    <div class="panel-head"><h1>🔗 Sidechain</h1><p>Project sidechain routes and issue detection.</p></div>
+    <div class="ss-toolbar"><button class="btn" id="sc-go">Visualize routing</button><button class="btn ghost" id="sc-issues">Detect issues</button></div>
+    <div id="sc-svg" class="cg-svg"><span class="hint">Click "Visualize routing".</span></div>
     <div id="sc-issues-box" class="org-list-box" style="margin-top:10px"></div>`;
 
   async function go() {

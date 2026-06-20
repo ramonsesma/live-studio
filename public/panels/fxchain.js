@@ -1,16 +1,16 @@
-// Panel rico: Cadenas de Efectos (audio-effects-chain).
+// Rich panel: FX Chains (audio-effects-chain).
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.fxchain = function (panel, helpers) {
   const exec = helpers.execute;
   panel.innerHTML = `
-    <div class="panel-head"><h1>⛓️ Cadenas de Efectos</h1><p>Cadenas preconstruidas por género. Aplícalas a una pista o analiza el contenido.</p></div>
+    <div class="panel-head"><h1>⛓️ FX Chains</h1><p>Pre-built chains by genre. Apply to a track or analyze the content.</p></div>
     <div class="fx-toolbar">
-      <label class="hint">Pista destino</label>
+      <label class="hint">Target track</label>
       <input id="fx-track" type="number" value="0" style="width:80px" />
-      <button class="btn ghost" id="fx-analyze">Analizar pista</button>
+      <button class="btn ghost" id="fx-analyze">Analyze track</button>
     </div>
     <div id="fx-analysis" class="result" style="display:none"></div>
-    <div id="fx-chains" class="fx-grid"><span class="hint">Cargando cadenas…</span></div>
+    <div id="fx-chains" class="fx-grid"><span class="hint">Loading chains…</span></div>
     <div class="result" id="fx-out" style="display:none"></div>`;
 
   const out = panel.querySelector("#fx-out");
@@ -23,7 +23,7 @@ window.LiveStudioPanels.fxchain = function (panel, helpers) {
     a.style.display="block"; a.className="result "+(r.success?"ok":"err");
     if (r.success) {
       const d = r.data;
-      a.textContent = `Frecuencia: low=${d.frequencyProfile?.lowEnd} mid=${d.frequencyProfile?.midRange} high=${d.frequencyProfile?.highEnd}\nDinámica: ${d.dynamicProfile?.level} · compresión ${d.dynamicProfile?.compression}\nEstéreo: ${d.stereoProfile?.width} · ${d.stereoProfile?.phase}\nGéneros sugeridos: ${(d.genreSuggestions||[]).join(", ")}`;
+      a.textContent = `Frequency: low=${d.frequencyProfile?.lowEnd} mid=${d.frequencyProfile?.midRange} high=${d.frequencyProfile?.highEnd}\nDynamics: ${d.dynamicProfile?.level} · compression ${d.dynamicProfile?.compression}\nStereo: ${d.stereoProfile?.width} · ${d.stereoProfile?.phase}\nSuggested genres: ${(d.genreSuggestions||[]).join(", ")}`;
     } else a.textContent = r.error;
   };
 
@@ -37,7 +37,7 @@ window.LiveStudioPanels.fxchain = function (panel, helpers) {
       card.className = "fx-card";
       card.innerHTML = `<h3>${c.name}</h3><p class="hint">${c.description||""}</p>
         <div class="fx-effects">${(c.effects||[]).map(e=>`<span class="fx-pill">${e.type}</span>`).join("")}</div>
-        <button class="btn">Aplicar a pista</button>`;
+        <button class="btn">Apply to track</button>`;
       card.querySelector("button").onclick = async () => {
         show(await exec("apply_effects_chain", { chain_id: c.id, track_indices: [trackIdx()] }));
       };

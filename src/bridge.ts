@@ -1,13 +1,13 @@
 import { MasterRegistry } from "./core/registry.js";
 import type { LLMClient, LLMMessage } from "./core/llm.js";
 
-const SYSTEM_PROMPT = `Eres el copiloto de Live Studio, integrado en Ableton Live 12. Controlas Live usando las herramientas disponibles (organizadas por módulos: session__, chords__, drums__, eq__).
+const SYSTEM_PROMPT = `You are the Live Studio copilot, integrated into Ableton Live 12. You control Live using the available tools (organized by module: session__, chords__, drums__, eq__, …).
 
-REGLAS:
-- Para conocer el estado del set usa session__get_session_info y session__get_all_tracks.
-- Los índices de pistas/clips empiezan en 0.
-- Usa la herramienta más específica disponible. Si una falla, informa el error y sugiere alternativa.
-- Responde en el mismo idioma que el usuario y resume qué hiciste.`;
+RULES:
+- To know the state of the set use session__get_session_info and session__get_all_tracks.
+- Track/clip indices start at 0.
+- Use the most specific tool available. If one fails, report the error and suggest an alternative.
+- Reply in the same language the user is using and summarize what you did.`;
 
 const MAX_ITERATIONS = 10;
 
@@ -57,11 +57,11 @@ export class Bridge {
       }
     }
 
-    return { content: "Se alcanzó el máximo de iteraciones. Simplifica tu solicitud.", messages: this.trim(messages), toolCalls: totalToolCalls };
+    return { content: "Max iterations reached. Please simplify your request.", messages: this.trim(messages), toolCalls: totalToolCalls };
   }
 
   private trim(messages: LLMMessage[]): LLMMessage[] {
     if (messages.length <= 20) return messages;
-    return [messages[0], { role: "user", content: "[historial truncado]" }, ...messages.slice(-10)];
+    return [messages[0], { role: "user", content: "[history truncated]" }, ...messages.slice(-10)];
   }
 }

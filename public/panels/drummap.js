@@ -1,17 +1,17 @@
-// Panel rico: Drum Map Editor — rejilla de pads con color y nota.
+// Rich panel: Drum Map Editor — grid of pads con color y nota.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.drummap = function (panel, helpers) {
   const exec = helpers.execute;
   panel.innerHTML = `
-    <div class="panel-head"><h1>🥁 Drum Map Editor</h1><p>Pads del drum rack con su nota MIDI, nombre y color. Carga un preset o lee el rack.</p></div>
+    <div class="panel-head"><h1>🥁 Drum Map Editor</h1><p>Drum rack pads with their MIDI note, name and color. Load a preset or read the rack.</p></div>
     <div class="ss-toolbar">
-      <label class="hint">Pista</label><input id="dm-track" type="number" value="0" style="width:80px" />
-      <button class="btn" id="dm-load">Leer rack</button>
+      <label class="hint">Track</label><input id="dm-track" type="number" value="0" style="width:80px" />
+      <button class="btn" id="dm-load">Read rack</button>
       <label class="hint">Preset</label>
       <select id="dm-preset"><option>GM Standard</option><option>808 Kit</option><option>909 Kit</option><option>Acoustic</option><option>Electronic</option></select>
-      <button class="btn ghost" id="dm-loadpreset">Cargar preset</button>
+      <button class="btn ghost" id="dm-loadpreset">Load preset</button>
     </div>
-    <div id="dm-grid" class="dm-grid"><span class="hint">Pulsa «Leer rack».</span></div>
+    <div id="dm-grid" class="dm-grid"><span class="hint">Click "Read rack".</span></div>
     <div class="result" id="dm-out" style="display:none"></div>`;
 
   const out = panel.querySelector("#dm-out");

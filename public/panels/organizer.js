@@ -1,4 +1,4 @@
-// Panel rico para el módulo "organizer" (session-organizer, 7 tools de organización).
+// Panel rico para el module "organizer" (session-organizer, 7 tools de organización).
 // Se registra en window.LiveStudioPanels; shell.js lo invoca en vez del autoform.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 
@@ -8,56 +8,56 @@ window.LiveStudioPanels.organizer = function (panel, helpers) {
 
   panel.innerHTML = `
     <div class="panel-head">
-      <h1>🧩 Organizador de Sesión</h1>
-      <p>Dashboard de organización: score, análisis estructural, naming y plantillas.</p>
+      <h1>🧩 Session Organizer</h1>
+      <p>Organization dashboard: score, structural analysis, naming and templates.</p>
     </div>
 
     <div class="org-grid">
       <div class="org-card org-score">
         <div class="org-gauge"><div class="org-gauge-val" id="org-score">—</div><div class="org-gauge-lbl">/ 10 score</div></div>
-        <div class="org-eff"><span class="hint">Eficiencia</span><div class="org-bar"><div class="org-bar-fill" id="org-eff-fill" style="width:0%"></div></div><span id="org-eff-val" class="hint">—</span></div>
-        <button class="btn" id="org-refresh">↻ Analizar sesión</button>
+        <div class="org-eff"><span class="hint">Efficiency</span><div class="org-bar"><div class="org-bar-fill" id="org-eff-fill" style="width:0%"></div></div><span id="org-eff-val" class="hint">—</span></div>
+        <button class="btn" id="org-refresh">↻ Analyze session</button>
       </div>
 
       <div class="org-card">
-        <h3>📋 Recomendaciones</h3>
-        <ul class="org-list" id="org-recs"><li class="hint">Pulsa «Analizar sesión».</li></ul>
-        <h3 style="margin-top:14px">⚠️ Cuellos de botella</h3>
+        <h3>📋 Recommendations</h3>
+        <ul class="org-list" id="org-recs"><li class="hint">Click "Analyze session".</li></ul>
+        <h3 style="margin-top:14px">⚠️ Bottlenecks</h3>
         <ul class="org-list" id="org-bottlenecks"><li class="hint">—</li></ul>
       </div>
     </div>
 
     <div class="org-card">
-      <h3>🎚️ Categorías de pistas</h3>
+      <h3>🎚️ Track categories</h3>
       <div class="org-chips" id="org-cats"><span class="hint">—</span></div>
-      <h3 style="margin-top:14px">🎬 Grupos de escenas</h3>
+      <h3 style="margin-top:14px">🎬 Scene groups</h3>
       <div class="org-chips" id="org-scenes"><span class="hint">—</span></div>
     </div>
 
     <div class="org-actions">
       <div class="org-card">
-        <h3>⚡ Acciones rápidas</h3>
-        <button class="btn ghost org-act" data-tool="auto_organize_tracks">Auto-organizar pistas</button>
+        <h3>⚡ Quick actions</h3>
+        <button class="btn ghost org-act" data-tool="auto_organize_tracks">Auto-organize tracks</button>
         <div class="org-row">
           <input id="org-track-pat" placeholder="{index}_{type}_{category}" />
-          <button class="btn ghost org-act" data-tool="standardize_naming" data-arg="track_pattern:org-track-pat">Estandarizar naming</button>
+          <button class="btn ghost org-act" data-tool="standardize_naming" data-arg="track_pattern:org-track-pat">Standardize naming</button>
         </div>
         <div class="org-row">
-          <select id="org-group-strat"><option value="tempo">por tempo</option><option value="length">por duración</option><option value="name_pattern">por nombre</option></select>
-          <button class="btn ghost org-act" data-tool="group_scenes" data-arg="grouping_strategy:org-group-strat">Agrupar escenas</button>
+          <select id="org-group-strat"><option value="tempo">by tempo</option><option value="length">by duration</option><option value="name_pattern">by name</option></select>
+          <button class="btn ghost org-act" data-tool="group_scenes" data-arg="grouping_strategy:org-group-strat">Group scenes</button>
         </div>
       </div>
 
       <div class="org-card">
-        <h3>🎼 Plantilla por género</h3>
+        <h3>🎼 Genre template</h3>
         <div class="org-row">
           <select id="org-genre"><option>pop</option><option>rock</option><option>jazz</option><option>electronic</option><option>hiphop</option></select>
-          <button class="btn" id="org-tpl">Generar plantilla</button>
+          <button class="btn" id="org-tpl">Generate template</button>
         </div>
-        <h3 style="margin-top:14px">📤 Exportar</h3>
+        <h3 style="margin-top:14px">📤 Export</h3>
         <div class="org-row">
           <select id="org-fmt"><option>json</option><option>csv</option><option>txt</option></select>
-          <button class="btn ghost" id="org-export">Exportar info</button>
+          <button class="btn ghost" id="org-export">Export info</button>
         </div>
       </div>
     </div>
@@ -74,14 +74,14 @@ window.LiveStudioPanels.organizer = function (panel, helpers) {
 
   async function refresh() {
     const btn = panel.querySelector("#org-refresh");
-    btn.disabled = true; btn.textContent = "Analizando…";
+    btn.disabled = true; btn.textContent = "Analyzing…";
     try {
       const sum = await exec("get_session_summary", {});
       const ana = await exec("analyze_session_structure", {});
       if (sum.success) {
         const d = sum.data;
         panel.querySelector("#org-score").textContent = (Math.round(d.organizationScore * 10) / 10);
-        renderList("#org-recs", d.recommendations, "Sin recomendaciones ✓");
+        renderList("#org-recs", d.recommendations, "No recommendations ✓");
         renderChips("#org-cats", Object.entries(d.trackCategories || {}).filter(([, v]) => v.length).map(([k, v]) => `${k} · ${v.length}`));
         renderChips("#org-scenes", Object.entries(d.sceneGroups || {}).filter(([, v]) => v.length).map(([k, v]) => `${k} · ${v.length}`));
       }
@@ -89,9 +89,9 @@ window.LiveStudioPanels.organizer = function (panel, helpers) {
         const eff = ana.data.efficiencyScore || 0;
         panel.querySelector("#org-eff-fill").style.width = Math.round(eff) + "%";
         panel.querySelector("#org-eff-val").textContent = Math.round(eff) + "/100";
-        renderList("#org-bottlenecks", ana.data.bottlenecks, "Ninguno ✓");
+        renderList("#org-bottlenecks", ana.data.bottlenecks, "None ✓");
       }
-    } finally { btn.disabled = false; btn.textContent = "↻ Analizar sesión"; }
+    } finally { btn.disabled = false; btn.textContent = "↻ Analyze session"; }
   }
 
   function renderList(sel, items, empty) {

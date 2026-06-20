@@ -1,21 +1,21 @@
-// Panel rico: Automation & Curvas — curva de envolvente SVG.
+// Rich panel: Automation & Curves — SVG envelope curve.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.automation = function (panel, helpers) {
   const exec = helpers.execute;
   panel.innerHTML = `
-    <div class="panel-head"><h1>📈 Automatización & Curvas</h1><p>Visualiza la envolvente de un lane y aplica suavizado o transformaciones.</p></div>
+    <div class="panel-head"><h1>📈 Automation & Curves</h1><p>Visualize a lane's envelope and apply smoothing or transformations.</p></div>
     <div class="ss-toolbar">
-      <label class="hint">Pista</label><input id="au-track" type="number" value="0" style="width:70px" />
+      <label class="hint">Track</label><input id="au-track" type="number" value="0" style="width:70px" />
       <label class="hint">Lane</label><select id="au-lane"></select>
-      <button class="btn" id="au-load">Cargar curva</button>
+      <button class="btn" id="au-load">Load curve</button>
     </div>
-    <div id="au-svg" class="cg-svg"><span class="hint">Pulsa «Cargar curva».</span></div>
+    <div id="au-svg" class="cg-svg"><span class="hint">Click "Load curve".</span></div>
     <div class="ss-toolbar" style="margin-top:10px">
-      <label class="hint">Curva</label>
+      <label class="hint">Curve</label>
       <select id="au-curve"><option>smooth</option><option>ease-in</option><option>ease-out</option><option>linear</option><option>step</option></select>
-      <button class="btn ghost" id="au-smooth">Suavizar</button>
+      <button class="btn ghost" id="au-smooth">Smooth</button>
       <select id="au-op"><option>mirror</option><option>scale</option><option>offset</option><option>reverse</option><option>flatten</option></select>
-      <button class="btn ghost" id="au-transform">Transformar</button>
+      <button class="btn ghost" id="au-transform">Transform</button>
     </div>
     <div class="result" id="au-out" style="display:none"></div>`;
 

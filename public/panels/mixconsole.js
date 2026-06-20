@@ -1,11 +1,11 @@
-// Panel rico: Mix Console (mix-console-view) — tiras de canal con faders, pan, mute/solo y VU.
+// Rich panel: Mix Console (mix-console-view) — channel strips with faders, pan, mute/solo and VU.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.mixconsole = function (panel, helpers) {
   const exec = helpers.execute;
   panel.innerHTML = `
-    <div class="panel-head"><h1>🎛️ Mix Console</h1><p>Mixer visual: faders, pan, mute/solo y VU por canal.</p></div>
-    <button class="btn ghost" id="mc-refresh" style="margin-bottom:12px">↻ Refrescar</button>
-    <div id="mc-strips" class="mc-strips"><span class="hint">Cargando mixer…</span></div>`;
+    <div class="panel-head"><h1>🎛️ Mix Console</h1><p>Visual mixer: faders, pan, mute/solo and VU per channel.</p></div>
+    <button class="btn ghost" id="mc-refresh" style="margin-bottom:12px">↻ Refresh</button>
+    <div id="mc-strips" class="mc-strips"><span class="hint">Loading mixer…</span></div>`;
 
   async function refresh() {
     const r = await exec("get_mixer_state", {});

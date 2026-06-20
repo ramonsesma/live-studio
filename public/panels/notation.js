@@ -1,23 +1,23 @@
-// Panel rico: Notation Viewer — mini piano-roll de las notas del clip.
+// Rich panel: Notation Viewer — mini piano-roll of the clip notes.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.notation = function (panel, helpers) {
   const exec = helpers.execute;
   panel.innerHTML = `
-    <div class="panel-head"><h1>🎼 Notation Viewer</h1><p>Piano-roll de las notas del clip. Color = velocity, alto = pitch.</p></div>
+    <div class="panel-head"><h1>🎼 Notation Viewer</h1><p>Piano-roll of the clip's notes. Color = velocity, height = pitch.</p></div>
     <div class="ss-toolbar">
-      <label class="hint">Pista</label><input id="nt-track" type="number" value="0" style="width:70px" />
+      <label class="hint">Track</label><input id="nt-track" type="number" value="0" style="width:70px" />
       <label class="hint">Clip</label><input id="nt-clip" type="number" value="0" style="width:70px" />
-      <button class="btn" id="nt-load">Cargar notas</button>
+      <button class="btn" id="nt-load">Load notes</button>
       <span class="hint" id="nt-info"></span>
     </div>
-    <div id="nt-roll" class="cg-svg"><span class="hint">Pulsa «Cargar notas».</span></div>`;
+    <div id="nt-roll" class="cg-svg"><span class="hint">Click "Load notes".</span></div>`;
 
   async function load() {
     const r = await exec("get_clip_notes", { track_index: Number(panel.querySelector("#nt-track").value)||0, clip_index: Number(panel.querySelector("#nt-clip").value)||0 });
     const wrap = panel.querySelector("#nt-roll");
     if (!r.success) { wrap.innerHTML = `<span class="hint">${r.error}</span>`; return; }
     const notes = r.data.notes;
-    panel.querySelector("#nt-info").textContent = `${r.data.noteCount} notas · ${r.data.keySignature} · ${r.data.timeSignature}`;
+    panel.querySelector("#nt-info").textContent = `${r.data.noteCount} notes · ${r.data.keySignature} · ${r.data.timeSignature}`;
     const pitches = notes.map(n => n.pitch);
     const minP = Math.min(...pitches) - 1, maxP = Math.max(...pitches) + 1;
     const maxT = Math.max(...notes.map(n => n.start + n.duration), 1);

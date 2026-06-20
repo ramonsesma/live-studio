@@ -1,11 +1,11 @@
-// Panel rico: Modulation Matrix — matriz source→target con depth y enable.
+// Rich panel: Modulation Matrix — source→target matrix with depth and enable.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.modmatrix = function (panel, helpers) {
   const exec = helpers.execute;
   panel.innerHTML = `
-    <div class="panel-head"><h1>🕸️ Modulation Matrix</h1><p>Routings de modulación: fuente → destino, profundidad y on/off.</p></div>
-    <div class="ss-toolbar"><label class="hint">Pista</label><input id="mm-track" type="number" value="0" style="width:80px" /><button class="btn" id="mm-load">Cargar</button><span class="hint" id="mm-info"></span></div>
-    <div id="mm-rows" class="mm-rows"><span class="hint">Pulsa «Cargar».</span></div>`;
+    <div class="panel-head"><h1>🕸️ Modulation Matrix</h1><p>Modulation routings: source → target, depth and on/off.</p></div>
+    <div class="ss-toolbar"><label class="hint">Track</label><input id="mm-track" type="number" value="0" style="width:80px" /><button class="btn" id="mm-load">Load</button><span class="hint" id="mm-info"></span></div>
+    <div id="mm-rows" class="mm-rows"><span class="hint">Click "Load".</span></div>`;
 
   async function load() {
     const track_index = Number(panel.querySelector("#mm-track").value) || 0;
@@ -13,7 +13,7 @@ window.LiveStudioPanels.modmatrix = function (panel, helpers) {
     const box = panel.querySelector("#mm-rows");
     box.innerHTML = "";
     if (!r.success) { box.innerHTML = `<span class="hint">${r.error}</span>`; return; }
-    panel.querySelector("#mm-info").textContent = `${r.data.totalRoutings} routings · ${r.data.freeSlots} libres`;
+    panel.querySelector("#mm-info").textContent = `${r.data.totalRoutings} routings · ${r.data.freeSlots} free`;
     for (const rt of r.data.routings) {
       const row = document.createElement("div");
       row.className = "mm-row" + (rt.enabled ? "" : " off");

@@ -1,14 +1,14 @@
-// Panel rico: Chord Pads — rejilla 4x4 de pads asignables y disparables.
+// Rich panel: Chord Pads — 4×4 grid of assignable, triggerable pads.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.chordpads = function (panel, helpers) {
   const exec = helpers.execute;
   const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
   panel.innerHTML = `
-    <div class="panel-head"><h1>🎹 Chord Pads</h1><p>Asigna un acorde a cada pad (raíz + tipo) y dispáralo. 16 pads.</p></div>
+    <div class="panel-head"><h1>🎹 Chord Pads</h1><p>Assign a chord to each pad (root + type) and trigger it. 16 pads.</p></div>
     <div class="cp-toolbar">
-      <label class="hint">Raíz</label><select id="cp-root">${NOTES.map(n=>`<option>${n}</option>`).join("")}</select>
-      <label class="hint">Tipo</label><select id="cp-type"><option>major</option></select>
-      <span class="hint">Clic = asignar al último pad pulsado · Doble clic = disparar</span>
+      <label class="hint">Root</label><select id="cp-root">${NOTES.map(n=>`<option>${n}</option>`).join("")}</select>
+      <label class="hint">Type</label><select id="cp-type"><option>major</option></select>
+      <span class="hint">Click = assign to selected pad · Double-click = trigger</span>
     </div>
     <div id="cp-grid" class="cp-grid"></div>
     <div class="result" id="cp-out" style="display:none"></div>`;

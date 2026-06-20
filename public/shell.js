@@ -1,4 +1,4 @@
-// Live Studio — shell: router de pestañas + autoform genérico + copiloto.
+// Live Studio — shell: tab router + generic autoform + copilot.
 const api = {
   async get(p) { const r = await fetch(p); return r.json(); },
   async post(p, body) { const r = await fetch(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); return r.json(); },
@@ -8,13 +8,13 @@ const state = { modules: [], active: null, toolCache: {}, chat: [] };
 
 async function boot() {
   // health
-  try { await api.get("/health"); setStatus(true, "conectado"); }
-  catch { setStatus(false, "sin conexión"); }
+  try { await api.get("/health"); setStatus(true, "connected"); }
+  catch { setStatus(false, "offline"); }
 
   const data = await api.get("/api/modules");
   state.modules = data.modules || [];
   renderNav();
-  // abre el primer módulo
+  // open the first module
   if (state.modules.length) selectModule(state.modules[0].id);
   else selectCopilot();
 }
@@ -29,14 +29,14 @@ function renderNav() {
   const nav = document.getElementById("nav");
   nav.innerHTML = "";
 
-  // Lanzador de la paleta de comandos rápidos (Cmd/Ctrl+K)
+  // Quick command palette launcher (Cmd/Ctrl+K)
   const pal = document.createElement("div");
   pal.className = "nav-item nav-palette";
-  pal.innerHTML = `<span class="ico">⌘</span><span class="lbl">Comandos rápidos</span><span class="kbd">⌘K</span>`;
+  pal.innerHTML = `<span class="ico">⌘</span><span class="lbl">Quick commands</span><span class="kbd">⌘K</span>`;
   pal.onclick = () => openPalette();
   nav.appendChild(pal);
 
-  const sep1 = document.createElement("div"); sep1.className = "nav-sep"; sep1.textContent = "Módulos"; nav.appendChild(sep1);
+  const sep1 = document.createElement("div"); sep1.className = "nav-sep"; sep1.textContent = "Modules"; nav.appendChild(sep1);
   for (const m of state.modules) {
     if (m.hidden) continue;
     const el = document.createElement("div");
@@ -45,10 +45,10 @@ function renderNav() {
     el.onclick = () => selectModule(m.id);
     nav.appendChild(el);
   }
-  const sep2 = document.createElement("div"); sep2.className = "nav-sep"; sep2.textContent = "Asistente"; nav.appendChild(sep2);
+  const sep2 = document.createElement("div"); sep2.className = "nav-sep"; sep2.textContent = "Assistant"; nav.appendChild(sep2);
   const cop = document.createElement("div");
   cop.className = "nav-item"; cop.dataset.id = "__copilot";
-  cop.innerHTML = `<span class="ico">🤖</span><span class="lbl">Copiloto IA</span>`;
+  cop.innerHTML = `<span class="ico">🤖</span><span class="lbl">AI Copilot</span>`;
   cop.onclick = () => selectCopilot();
   nav.appendChild(cop);
 }
@@ -58,23 +58,23 @@ function markActive(id) {
   state.active = id;
 }
 
-// ---- Módulos (lazy-load + panel rico o autoform) ----
+// ---- Modules (lazy-load + rich panel or autoform) ----
 async function selectModule(id) {
   markActive(id);
   const mod = state.modules.find((m) => m.id === id);
   const panel = document.getElementById("panel");
 
-  // ¿Hay panel rico registrado para este módulo? → úsalo en vez del autoform.
+  // Is there a rich panel registered for this module? → use it instead of the autoform.
   const rich = window.LiveStudioPanels && window.LiveStudioPanels[id];
   if (rich) {
-    panel.innerHTML = `<div class="panel-empty">Cargando panel…</div>`;
+    panel.innerHTML = `<div class="panel-empty">Loading panel…</div>`;
     const execute = (toolName, args) => api.post("/api/execute", { name: id + "__" + toolName, args: args || {} });
     try { await rich(panel, { execute, api }); }
-    catch (e) { panel.innerHTML = `<div class="panel-empty">Error en el panel: ${e}</div>`; }
+    catch (e) { panel.innerHTML = `<div class="panel-empty">Panel error: ${e}</div>`; }
     return;
   }
 
-  panel.innerHTML = `<div class="panel-head"><h1>${mod.icon} ${mod.label}</h1><p>${mod.description || ""}</p></div><div class="panel-empty">Cargando herramientas…</div>`;
+  panel.innerHTML = `<div class="panel-head"><h1>${mod.icon} ${mod.label}</h1><p>${mod.description || ""}</p></div><div class="panel-empty">Loading tools…</div>`;
 
   if (!state.toolCache[id]) {
     const res = await api.get("/api/tools?module=" + encodeURIComponent(id));
@@ -109,14 +109,14 @@ function renderTool(tool) {
     } else {
       input = document.createElement("input");
       input.type = p.type === "number" ? "number" : "text";
-      input.placeholder = p.type === "number" ? "número" : "texto";
+      input.placeholder = p.type === "number" ? "number" : "text";
     }
     input.dataset.ptype = p.type;
     field.appendChild(input);
     inputs[name] = input;
     card.appendChild(field);
   }
-  const btn = document.createElement("button"); btn.className = "btn"; btn.textContent = "Ejecutar";
+  const btn = document.createElement("button"); btn.className = "btn"; btn.textContent = "Execute";
   const out = document.createElement("div"); out.className = "result"; out.style.display = "none";
   btn.onclick = async () => {
     const args = {};
@@ -126,7 +126,7 @@ function renderTool(tool) {
       const pt = input.dataset.ptype;
       args[name] = pt === "number" ? Number(raw) : pt === "boolean" ? raw === "true" : raw;
     }
-    btn.disabled = true; btn.textContent = "Ejecutando…";
+    btn.disabled = true; btn.textContent = "Running…";
     try {
       const result = await api.post("/api/execute", { name: tool.name, args });
       out.style.display = "block";
@@ -134,42 +134,42 @@ function renderTool(tool) {
       out.textContent = JSON.stringify(result, null, 2);
     } catch (e) {
       out.style.display = "block"; out.className = "result err"; out.textContent = String(e);
-    } finally { btn.disabled = false; btn.textContent = "Ejecutar"; }
+    } finally { btn.disabled = false; btn.textContent = "Execute"; }
   };
   card.appendChild(btn);
   card.appendChild(out);
   return card;
 }
 
-// ---- Copiloto IA ----
+// ---- AI Copilot ----
 async function selectCopilot() {
   markActive("__copilot");
   const cfg = (await api.get("/api/config")).config || {};
   const panel = document.getElementById("panel");
   panel.innerHTML = `
-    <div class="panel-head"><h1>🤖 Copiloto IA</h1><p>Controla cualquier módulo por lenguaje natural. Usa tus tools como funciones.</p></div>
+    <div class="panel-head"><h1>🤖 AI Copilot</h1><p>Control any module via natural language. Use your tools as functions.</p></div>
     <div class="config-grid">
-      <div><label class="hint">Proveedor</label>
+      <div><label class="hint">Provider</label>
         <select id="cfg-provider">
           <option value="openrouter">OpenRouter</option>
           <option value="openai">OpenAI</option>
           <option value="opencode-zen">OpenCode Zen</option>
         </select></div>
       <div><label class="hint">API key</label><input id="cfg-key" type="password" placeholder="sk-…" /></div>
-      <div><label class="hint">Modelo (opcional)</label><input id="cfg-model" placeholder="auto" /></div>
+      <div><label class="hint">Model (optional)</label><input id="cfg-model" placeholder="auto" /></div>
     </div>
-    <button class="btn ghost" id="cfg-save">Guardar config</button>
+    <button class="btn ghost" id="cfg-save">Save config</button>
     <span class="hint" id="cfg-status" style="margin-left:10px"></span>
     <div class="chat">
       <div class="chat-log" id="chat-log"></div>
       <div class="chat-input">
-        <textarea id="chat-text" placeholder="Ej: crea una pista MIDI llamada Bajo y genera una progresión pop en C menor"></textarea>
-        <button class="btn" id="chat-send">Enviar</button>
+        <textarea id="chat-text" placeholder="e.g. create a MIDI track named Bass and generate a pop progression in C minor"></textarea>
+        <button class="btn" id="chat-send">Send</button>
       </div>
     </div>`;
   document.getElementById("cfg-provider").value = cfg.provider || "openrouter";
   document.getElementById("cfg-model").value = cfg.model || "";
-  document.getElementById("cfg-status").textContent = cfg.hasKey ? "key configurada ✓" : "sin key";
+  document.getElementById("cfg-status").textContent = cfg.hasKey ? "key configured ✓" : "no key";
   document.getElementById("cfg-save").onclick = saveConfig;
   document.getElementById("chat-send").onclick = sendChat;
   document.getElementById("chat-text").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); } });
@@ -183,7 +183,7 @@ async function saveConfig() {
     model: document.getElementById("cfg-model").value,
   };
   const r = await api.post("/api/config", body);
-  document.getElementById("cfg-status").textContent = r.config && r.config.hasKey ? "key configurada ✓" : "guardado";
+  document.getElementById("cfg-status").textContent = r.config && r.config.hasKey ? "key configured ✓" : "saved";
 }
 
 function renderChat() {
@@ -219,7 +219,7 @@ async function sendChat() {
   } catch (e) {
     state.chat.push({ role: "assistant", content: "⚠️ " + String(e) });
   } finally {
-    sendBtn.disabled = false; sendBtn.textContent = "Enviar"; renderChat();
+    sendBtn.disabled = false; sendBtn.textContent = "Send"; renderChat();
   }
 }
 
@@ -233,7 +233,7 @@ function buildPalette() {
   ov.style.display = "none";
   ov.innerHTML = `
     <div id="palette">
-      <input id="palette-input" placeholder="Busca un tool o micro-acción…  (Esc para cerrar)" autocomplete="off" />
+      <input id="palette-input" placeholder="Search a tool or quick action…  (Esc to close)" autocomplete="off" />
       <div id="palette-meta"></div>
       <div id="palette-list"></div>
     </div>`;
@@ -270,7 +270,7 @@ async function openPalette() {
   ov.style.display = "flex";
   const input = ov.querySelector("#palette-input");
   input.value = ""; input.focus();
-  document.getElementById("palette-meta").textContent = "Cargando…";
+  document.getElementById("palette-meta").textContent = "Loading…";
   await ensurePaletteData();
   filterPalette("");
 }
