@@ -37,27 +37,26 @@
   <text x="214" y="258" fill="#9a9aa2" font-size="25" letter-spacing="5">SUPER-EXTENSION FOR ABLETON LIVE</text>
 
   <!-- tagline -->
-  <text x="98" y="370" fill="#e8e8ea" font-size="32" font-weight="500">94 modules · 456 tools · AI copilot · ⌘K palette</text>
-  <text x="98" y="410" fill="#9a9aa2" font-size="22">All your extensions assembled into a single tabbed app.</text>
+  <text x="98" y="380" fill="#e8e8ea" font-size="32" font-weight="500">94 modules · 456 tools · AI copilot · ⌘K palette</text>
 
   <!-- stat chips -->
   <g font-size="22" font-weight="500">
-    <g transform="translate(98,470)">
+    <g transform="translate(98,460)">
       <rect width="200" height="58" rx="12" fill="#232327" stroke="#38383f"/>
       <text x="20" y="26" fill="#ffb347" font-size="26" font-weight="700">94</text>
       <text x="20" y="46" fill="#9a9aa2" font-size="14">modules</text>
     </g>
-    <g transform="translate(316,470)">
+    <g transform="translate(316,460)">
       <rect width="200" height="58" rx="12" fill="#232327" stroke="#38383f"/>
       <text x="20" y="26" fill="#6cc6ff" font-size="26" font-weight="700">456</text>
       <text x="20" y="46" fill="#9a9aa2" font-size="14">real tools</text>
     </g>
-    <g transform="translate(534,470)">
+    <g transform="translate(534,460)">
       <rect width="220" height="58" rx="12" fill="#232327" stroke="#38383f"/>
       <text x="20" y="26" fill="#5ad17a" font-size="26" font-weight="700">1293</text>
       <text x="20" y="46" fill="#9a9aa2" font-size="14">quick actions</text>
     </g>
-    <g transform="translate(772,470)">
+    <g transform="translate(772,460)">
       <rect width="180" height="58" rx="12" fill="#232327" stroke="#38383f"/>
       <text x="20" y="26" fill="#e8e8ea" font-size="26" font-weight="700">19</text>
       <text x="20" y="46" fill="#9a9aa2" font-size="14">rich panels</text>
