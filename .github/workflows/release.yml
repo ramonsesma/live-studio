@@ -1,0 +1,57 @@
+name: Release
+
+# On every version tag (v1.0.0, v1.2.3-beta.1, …):
+#   build → smoke test → package a minizip-compatible .ablx (Info-ZIP) → attach to the GitHub Release.
+# This guarantees the published .ablx is always packaged with `zip -X` and never with
+# the default `archiver` (which writes data-descriptor entries Ableton Live can't extract).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write   # needed to create/update the release and upload assets
+
+jobs:
+  package-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Remove local-only SDK deps for CI
+        run: |
+          npm pkg delete dependencies.@ableton-extensions/sdk
+          npm pkg delete devDependencies.@ableton-extensions/cli
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Smoke tests
+        run: npm run test
+
+      # Build + package with Info-ZIP. `npm run package` runs the esbuild build, then
+      # zips manifest.json + dist (files only, no .DS_Store, no streaming data descriptors).
+      - name: Build & package .ablx (Info-ZIP)
+        run: npm run package
+
+      - name: Verify the .ablx is minizip-compatible
+        run: |
+          python3 - <<'PY'
+          import zipfile, sys
+          z = zipfile.ZipFile("live-studio.ablx")
+          bad = [i.filename for i in z.infolist() if i.flag_bits & 0x08]   # data-descriptor bit
+          assert "manifest.json" in z.namelist(), "manifest.json missing from archive root"
+          assert not bad, f"data-descriptor entries present (minizip-incompatible): {bad[:5]}"
+          print(f"OK: {len(z.infolist())} entries, manifest at root, no data descriptors")
+          PY
+
+      - name: Attach .ablx to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: live-studio.ablx
+          fail_on_unmatched_files: true
+          generate_release_notes: true

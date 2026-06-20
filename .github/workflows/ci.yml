@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The Ableton Extensions SDK + CLI are local-file (beta) deps that are not
+      # published to npm and don't exist on CI runners. We drop them before install:
+      #  - the build (esbuild) marks "@ableton-extensions/sdk" as `external`, so the
+      #    bundle compiles without the package present.
+      #  - the smoke tests import only the registry/bridge/server (no SDK at runtime).
+      - name: Remove local-only SDK deps for CI
+        run: |
+          npm pkg delete dependencies.@ableton-extensions/sdk
+          npm pkg delete devDependencies.@ableton-extensions/cli
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Build (esbuild, SDK external)
+        run: npm run build
+
+      - name: Smoke tests (server + 94 modules, simulated song)
+        run: npm run test
+
+      # Typecheck needs the real SDK types, which aren't available on CI — run it
+      # but don't fail the job (it's enforced locally before commits).
+      - name: Typecheck (best-effort, SDK types absent on CI)
+        run: npm run typecheck || true

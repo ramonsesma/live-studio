@@ -10,6 +10,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-94-ffb347" />
   <img alt="tools" src="https://img.shields.io/badge/tools-456-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-1293-5ad17a" />
