@@ -1,0 +1,63 @@
+// Módulo: Takes & Comping — reutilizado de examples/take-recorder
+export class ToolRegistry {
+  private handlers = new Map();
+  definitions: any[] = [];
+  register(def: any, handler: any) { this.definitions.push(def); this.handlers.set(def.name, handler); }
+  async execute(name: string, args: any, song: any) {
+    const h = this.handlers.get(name);
+    if (!h) return { success: false, error: `Unknown: ${name}` };
+    try { return await h(args, song); }
+    catch (err: any) { return { success: false, error: err.message || String(err) }; }
+  }
+  getDefinitionsJson() { return this.definitions; }
+}
+
+export function createToolRegistry() {
+  const reg = new ToolRegistry();
+
+  reg.register({ name:"prepare_recording", description:"Prepare track for multi-take recording", category:"take-recorder", parameters:{ track_index:{type:"number",description:"Track index",required:true}, count_in:{type:"string",description:"Count-in length",required:false,enum:["none","1-bar","2-bars","4-bars"]}, auto_punch:{type:"boolean",description:"Enable auto-punch",required:false}, punch_start:{type:"number",description:"Punch start bar",required:false}, punch_end:{type:"number",description:"Punch end bar",required:false} } },
+    async (args: any, song: any) => {
+      const track = song.tracks[args.track_index];
+      if (!track) return { success:false, error:"Track not found" };
+      return { success:true, data:{ prepared:true, trackName:track.name, trackIndex:args.track_index, countIn:args.count_in||"2-bars", autoPunch:!!args.auto_punch, status:"Armed for recording" } };
+    }
+  );
+
+  reg.register({ name:"record_take", description:"Record a single take", category:"take-recorder", parameters:{ track_index:{type:"number",description:"Track index",required:true}, take_name:{type:"string",description:"Take name (optional)",required:false}, duration:{type:"number",description:"Recording duration in bars",required:false} } },
+    async (args: any, song: any) => {
+      const track = song.tracks[args.track_index];
+      const takeNumber = Math.floor(Math.random()*3)+1;
+      return { success:true, data:{ recorded:true, trackName:track?.name||"Unknown", takeNumber, name:args.take_name||`Take ${takeNumber}`, duration:args.duration||16, status:"Recording complete", fileSize:`${Math.floor(Math.random()*20+10)} MB` } };
+    }
+  );
+
+  reg.register({ name:"list_takes", description:"List all recorded takes for a track", category:"take-recorder", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
+    async (args: any, song: any) => {
+      const track = song.tracks[args.track_index];
+      const takes = Array.from({length:4}, (_, i) => ({
+        take:i+1, name:`Take ${i+1}`, duration:"16 bars", date:new Date(Date.now()-i*60000).toISOString(),
+        rating:["best","good","okay","noisy"][i], selected:i===0
+      }));
+      return { success:true, data:{ trackName:track?.name||"Unknown", takeCount:takes.length, takes } };
+    }
+  );
+
+  reg.register({ name:"select_best_takes", description:"Auto-select best sections across takes", category:"take-recorder", parameters:{ track_index:{type:"number",description:"Track index",required:true}, algorithm:{type:"string",description:"Selection algorithm",required:false,enum:["loudest","cleanest","most-dynamic","balanced"]} } },
+    async (args: any) => ({ success:true, data:{ selected:true, trackIndex:args.track_index, algorithm:args.algorithm||"balanced", sections:[
+      { take:1, bars:"1-4", reason:"Best timing" },
+      { take:3, bars:"5-8", reason:"Best tone" },
+      { take:2, bars:"9-12", reason:"Best dynamics" },
+      { take:4, bars:"13-16", reason:"Best energy" }
+    ]}})
+  );
+
+  reg.register({ name:"comp_from_takes", description:"Build comp track from selected takes", category:"take-recorder", parameters:{ track_index:{type:"number",description:"Track index",required:true}, comp_name:{type:"string",description:"Comp track name",required:false} } },
+    async (args: any, song: any) => {
+      const compTrack = await song.createAudioTrack();
+      compTrack.name = args.comp_name || `COMP: ${song.tracks[args.track_index]?.name||"takes"}`;
+      return { success:true, data:{ compiled:true, compTrackIndex:song.tracks.indexOf(compTrack), takesUsed:3, totalDuration:"16 bars" } };
+    }
+  );
+
+  return reg;
+}

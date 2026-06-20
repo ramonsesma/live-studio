@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Studio</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="brand">
+        <span class="logo">🎛️</span>
+        <div>
+          <div class="brand-title">Live Studio</div>
+          <div class="brand-sub">super-extensión</div>
+        </div>
+      </div>
+      <nav id="nav"><!-- módulos inyectados --></nav>
+      <div class="sidebar-foot">
+        <span id="status-dot" class="dot"></span>
+        <span id="status-text">conectando…</span>
+      </div>
+    </aside>
+
+    <main id="panel">
+      <div class="panel-empty">Cargando módulos…</div>
+    </main>
+  </div>
+  <script src="/panels/organizer.js"></script>
+  <script src="/panels/fxchain.js"></script>
+  <script src="/panels/mixconsole.js"></script>
+  <script src="/panels/stepseq.js"></script>
+  <script src="/panels/spectrogram.js"></script>
+  <script src="/panels/chordpads.js"></script>
+  <script src="/panels/drums.js"></script>
+  <script src="/panels/modmatrix.js"></script>
+  <script src="/panels/drummap.js"></script>
+  <script src="/panels/harmonic.js"></script>
+  <script src="/panels/clipgraph.js"></script>
+  <script src="/panels/midimon.js"></script>
+  <script src="/panels/eq.js"></script>
+  <script src="/panels/automation.js"></script>
+  <script src="/panels/notation.js"></script>
+  <script src="/panels/genre.js"></script>
+  <script src="/panels/sidechain.js"></script>
+  <script src="/panels/stereo.js"></script>
+  <script src="/panels/takes.js"></script>
+  <script src="/shell.js"></script>
+</body>
+</html>

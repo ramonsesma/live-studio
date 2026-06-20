@@ -1,0 +1,9 @@
+{
+  "name": "live-studio",
+  "author": "DFS Holding",
+  "version": "1.0.0-beta.0",
+  "description": "Live Studio — super-extensión modular: acordes, drums, EQ, organización de sesión y copiloto IA, todo en un solo servidor con UI por pestañas y carga perezosa.",
+  "entry": "dist/extension.js",
+  "minimumApiVersion": "1.0.0",
+  "categories": ["music", "productivity", "utility", "workflow"]
+}

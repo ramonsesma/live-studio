@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# packaged extension (built artifact — attach to GitHub Releases instead)
+*.ablx
+
+# env / secrets
+.env
+.env.*
+
+# os / editor
+.DS_Store
+*.log
+.vscode/
+.idea/
