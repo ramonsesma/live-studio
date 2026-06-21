@@ -38,15 +38,22 @@ jobs:
       - name: Build & package .ablx (Info-ZIP)
         run: npm run package
 
-      - name: Verify the .ablx is minizip-compatible
+      - name: Verify the .ablx installs cleanly (structure + manifest)
         run: |
           python3 - <<'PY'
-          import zipfile, sys
+          import zipfile, json, re, sys
           z = zipfile.ZipFile("live-studio.ablx")
+          names = z.namelist()
           bad = [i.filename for i in z.infolist() if i.flag_bits & 0x08]   # data-descriptor bit
-          assert "manifest.json" in z.namelist(), "manifest.json missing from archive root"
+          assert "manifest.json" in names, "manifest.json missing from archive root"
           assert not bad, f"data-descriptor entries present (minizip-incompatible): {bad[:5]}"
-          print(f"OK: {len(z.infolist())} entries, manifest at root, no data descriptors")
+          m = json.loads(z.read("manifest.json"))
+          # Live's installer rejects pre-release versions (e.g. 1.0.0-beta.0) and then
+          # reports the generic "No manifest.json found". Enforce strict MAJOR.MINOR.PATCH.
+          assert re.fullmatch(r"\d+\.\d+\.\d+", m.get("version", "")), \
+              f"manifest version must be strict X.Y.Z, got {m.get('version')!r}"
+          assert m["entry"] in names, f"entry {m['entry']!r} not found inside the archive"
+          print(f"OK: {len(names)} entries, manifest@root, version {m['version']}, no data descriptors")
           PY
 
       - name: Attach .ablx to the GitHub Release

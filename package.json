@@ -1,8 +1,17 @@
 {
   "name": "live-studio",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0",
   "description": "Live Studio — modular super-extension for Ableton Live: 94 modules, 456 tools, 1293 quick-actions, AI copilot and a Cmd-K command palette in a single tabbed webview.",
-  "keywords": ["ableton", "ableton-live", "extension", "music-production", "midi", "audio", "daw", "ai"],
+  "keywords": [
+    "ableton",
+    "ableton-live",
+    "extension",
+    "music-production",
+    "midi",
+    "audio",
+    "daw",
+    "ai"
+  ],
   "license": "MIT",
   "main": "dist/extension.js",
   "type": "module",
@@ -24,5 +33,7 @@
     "tsx": "^4.19.0",
     "typescript": "^5.9.3"
   },
-  "engines": { "node": ">=22.11.0" }
+  "engines": {
+    "node": ">=22.11.0"
+  }
 }
