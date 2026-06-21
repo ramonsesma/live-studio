@@ -182,7 +182,11 @@ npm run package     # build + package .ablx with the UI
 >    validator rejects pre-release suffixes like `1.0.0-beta.0`, and the install then
 >    reports `No manifest.json found` even though the file is present. All of the SDK's
 >    own example manifests use plain `1.0.0`.
-> 2. **Package with Info-ZIP (`zip -X`)**, which `npm run package` does instead of the
+> 2. **Build the entry as CommonJS** (`format: "cjs"` in `build.ts`). The `.ablx` ships
+>    no `package.json`, so the Extension Host loads `dist/extension.js` as CJS; an ESM
+>    bundle fails at load time with `Cannot use import statement outside a module` (the
+>    extension installs but never shows up). The SDK's auto-generated build uses cjs.
+> 3. **Package with Info-ZIP (`zip -X`)**, which `npm run package` does instead of the
 >    default `extensions-cli package`. The default relies on `archiver`, which writes
 >    entries in *streaming mode* with data descriptors (`size=0`/`crc=0` in the local
 >    headers); `zip -X` writes standard local headers with real sizes, which Live's
