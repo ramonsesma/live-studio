@@ -11,8 +11,16 @@ await esbuild.build({
   outfile: join(__dirname, "dist/extension.js"),
   platform: "node",
   target: "es2022",
-  format: "esm",
+  // The Live Extension Host loads the entry as CommonJS (the .ablx ships no
+  // package.json, so there is no "type":"module" marker). An ESM bundle fails at
+  // load time with "Cannot use import statement outside a module". The SDK's own
+  // auto-generated build script uses cjs — match it.
+  format: "cjs",
   external: ["@ableton-extensions/sdk"],
+  // server.ts derives __dirname from import.meta.url, which is invalid in CJS.
+  // Shim it from __filename so the bundle resolves the UI folder at runtime.
+  define: { "import.meta.url": "importMetaUrl" },
+  banner: { js: "const importMetaUrl = require('url').pathToFileURL(__filename).href;" },
   sourcemap: true,
   minify: false,
 });

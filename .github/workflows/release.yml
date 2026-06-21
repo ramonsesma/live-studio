@@ -53,7 +53,13 @@ jobs:
           assert re.fullmatch(r"\d+\.\d+\.\d+", m.get("version", "")), \
               f"manifest version must be strict X.Y.Z, got {m.get('version')!r}"
           assert m["entry"] in names, f"entry {m['entry']!r} not found inside the archive"
-          print(f"OK: {len(names)} entries, manifest@root, version {m['version']}, no data descriptors")
+          # The host loads the entry as CommonJS (.ablx carries no package.json). An ESM
+          # bundle fails with "Cannot use import statement outside a module". Reject any
+          # top-level import/export in the bundled entry.
+          entry = z.read(m["entry"]).decode("utf-8", "replace")
+          esm = [l for l in entry.splitlines() if l.startswith("import ") or l.startswith("export ")]
+          assert not esm, f"entry has top-level ESM statements (must be CJS): {esm[:3]}"
+          print(f"OK: {len(names)} entries, manifest@root, version {m['version']}, CJS entry, no data descriptors")
           PY
 
       - name: Attach .ablx to the GitHub Release
