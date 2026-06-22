@@ -3,22 +3,46 @@ import { createMasterRegistry } from "../src/registry/index.js";
 import { Bridge } from "../src/bridge.js";
 import { startServer } from "../src/server.js";
 
-// ---- Mock mínimo del Song SDK ----
-function makeClip(name: string) {
-  const notes: any[] = [];
-  return { name, startTime: 0, duration: 4, async addNote(p: number, s: number, d: number, v: number, prob: number) { notes.push({ p, s, d, v }); }, get noteCount() { return notes.length; } };
+// ---- Mock del Song SDK ----
+// Refleja la forma REAL del SDK (clip.notes: NoteDescription[], mixer.volume.getValue/
+// setValue, clipSlots[].clip, cuePoints…) y además mantiene la API histórica
+// (addNote/noteCount) para los tools que aún no se han migrado, de modo que ambos pasan.
+function makeParam(name: string, value: number) {
+  let v = value;
+  return { name, min: 0, max: 1, defaultValue: value, async getValue() { return v; }, async setValue(x: number) { v = x; } };
 }
-function makeTrack(name: string) {
-  return { name, solo: false, mute: false, arm: false, devices: [], arrangementClips: [], clipSlots: [], constructor: { name: "MidiTrack" }, async createMidiClip(s: number, d: number) { return makeClip(name + " clip"); } };
+function makeClip(name: string, seed: any[] = []) {
+  let _notes: any[] = seed.slice();
+  return {
+    name, color: 0, looping: false, loopStart: 0, loopEnd: 4, muted: false, startTime: 0, duration: 4,
+    get notes() { return _notes; }, set notes(n: any[]) { _notes = n; },
+    async addNote(p: number, s: number, d: number, v: number) { _notes.push({ pitch: p, startTime: s, duration: d, velocity: v }); },
+    get noteCount() { return _notes.length; },
+  };
+}
+function makeTrack(name: string, kind = "MidiTrack") {
+  const clip = makeClip(name + " clip", [0, 1, 2, 3].map((i) => ({ pitch: 60 + i, startTime: i, duration: 1, velocity: 100 })));
+  return {
+    name, solo: false, mute: false, arm: false, mutedViaSolo: false,
+    devices: [] as any[], arrangementClips: [] as any[], takeLanes: [] as any[], groupTrack: null,
+    clipSlots: [{ clip, async createMidiClip() { return clip; }, async deleteClip() {} }],
+    mixer: { volume: makeParam("Volume", 0.85), panning: makeParam("Pan", 0.5), sends: [makeParam("Send A", 0)] },
+    constructor: { name: kind },
+    async createMidiClip(_s: number, _d: number) { return clip; },
+    async insertDevice(dn: string) { const d = { name: dn, parameters: [] as any[] }; this.devices.push(d); return d; },
+  };
 }
 const song: any = {
   tempo: 120, gridQuantization: "1/16", gridIsTriplet: false, rootNote: 0, scaleName: "Major", scaleMode: true,
   isPlaying: false, metronome: false, timeSignature: [4, 4], name: "Demo Set",
-  tracks: [makeTrack("Drum Bus"), makeTrack("Bass")], scenes: [{ name: "Intro", length: 4, tempo: 120 }, { name: "Chorus", length: 8, tempo: 120 }], returnTracks: [{ name: "A-Reverb" }],
+  tracks: [makeTrack("Drum Bus"), makeTrack("Bass")],
+  scenes: [{ name: "Intro", tempo: 120, signatureNumerator: 4, signatureDenominator: 4 }, { name: "Chorus", tempo: 120, signatureNumerator: 4, signatureDenominator: 4 }],
+  returnTracks: [{ name: "A-Reverb" }],
+  cuePoints: [{ time: 0, name: "Intro" }, { time: 16, name: "Drop" }],
   async createMidiTrack() { const t = makeTrack("New MIDI"); this.tracks.push(t); return t; },
-  async createAudioTrack() { const t = makeTrack("New Audio"); t.constructor = { name: "AudioTrack" } as any; this.tracks.push(t); return t; },
-  async createScene(_i: number) { const s = { name: "New Scene" }; this.scenes.push(s); return s; },
-  async createGroupTrack() { const t = makeTrack("Group"); (t as any).type = "group"; this.tracks.push(t); return t; },
+  async createAudioTrack() { const t = makeTrack("New Audio", "AudioTrack"); this.tracks.push(t); return t; },
+  async createScene(_i: number) { const s = { name: "New Scene", tempo: 120, signatureNumerator: 4, signatureDenominator: 4 }; this.scenes.push(s); return s; },
+  async createCuePoint(time: number) { const c = { time, name: "Cue" }; this.cuePoints.push(c); return c; },
 };
 
 const reg = createMasterRegistry();

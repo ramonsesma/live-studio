@@ -39,8 +39,17 @@ export function createToolRegistry() {
 
   reg.register({ name:"auto_gain_staging", description:"Auto-set gain staging across tracks", category:"mixing", parameters:{ target_level:{type:"number",description:"Target level dB",required:false} } },
     async (args: any, song: any) => {
-      const results = song.tracks.map((t: any, i: number) => ({ trackIndex:i, trackName:t.name, originalLevel:0, newLevel:-6 - Math.random()*6 }));
-      return { success:true, data:{ targetLevel:args.target_level||-6, tracks:results } };
+      // Set every track fader to a common unity-ish level (real mixer write).
+      const target = typeof args.target_level === "number" ? Math.max(0, Math.min(1, args.target_level)) : 0.85;
+      const tracks = song.tracks || [];
+      const results = [];
+      for (let i = 0; i < tracks.length; i++) {
+        const t = tracks[i];
+        const before = t.mixer?.volume ? await t.mixer.volume.getValue() : null;
+        if (t.mixer?.volume) await t.mixer.volume.setValue(target);
+        results.push({ trackIndex:i, trackName:t.name, before, after:target });
+      }
+      return { success:true, data:{ targetFader:target, tracksProcessed:results.length, tracks:results } };
     }
   );
 

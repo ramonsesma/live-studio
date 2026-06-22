@@ -15,10 +15,11 @@ import re
 
 # Markers that a handler does real SDK work (-> NOT a demo, regardless of random).
 REAL_OPS = re.compile(
-    r"""\.(createMidiTrack|createAudioTrack|createScene|createGroupTrack|insertDevice|"""
-    r"""createMidiClip|createAudioClip|createTakeLane|createCuePoint|setValue|deleteDevice|"""
-    r"""duplicateDevice|deleteTrack|deleteScene|deleteClip|fire|stop|setNotes|applyNotes|"""
-    r"""addNote|removeNotes)\("""
+    r"""\.(createMidiTrack|createAudioTrack|createScene|insertDevice|"""
+    r"""createMidiClip|createAudioClip|createTakeLane|createCuePoint|setValue|getValue|"""
+    r"""deleteDevice|duplicateDevice|deleteTrack|deleteScene|deleteClip)\("""
+    r"""|\.notes\s*[=)]|\bclip\.notes\b|\.(mute|solo|arm|name|color|tempo)\s*=|"""
+    r"""\bclipSlots\b|\bcuePoints\b|\.mixer\b|\bgroupTrack\b"""
 )
 RANDOM = re.compile(r"Math\.random\(")
 

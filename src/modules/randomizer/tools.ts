@@ -12,27 +12,91 @@ export class ToolRegistry {
   getDefinitionsJson() { return this.definitions; }
 }
 
+// Real MIDI access: a Session clip lives at track.clipSlots[i].clip (fallback to
+// arrangementClips). MidiClip.notes is a readable/writable NoteDescription[].
+function getClip(song: any, ti: number, ci: number) {
+  const t = song?.tracks?.[ti];
+  return t?.clipSlots?.[ci ?? 0]?.clip ?? t?.arrangementClips?.[ci ?? 0] ?? null;
+}
+const SCALES: Record<string, number[]> = {
+  chromatic:[0,1,2,3,4,5,6,7,8,9,10,11], major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10],
+  pentatonic:[0,2,4,7,9], blues:[0,3,5,6,7,10], "whole-tone":[0,2,4,6,8,10],
+};
+function snapToScale(pitch: number, scale: number[], root: number) {
+  const base = Math.floor((pitch - root) / 12) * 12 + root;
+  const pc = ((pitch - root) % 12 + 12) % 12;
+  let best = scale[0], bd = 99;
+  for (const s of scale) { const d = Math.min((s - pc + 12) % 12, (pc - s + 12) % 12); if (d < bd) { bd = d; best = s; } }
+  return Math.max(0, Math.min(127, base + best));
+}
+
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"randomize_pitch", description:"Randomize MIDI note pitches with constraints", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, min_pitch:{type:"number",description:"Minimum MIDI pitch (0-127)",required:false}, max_pitch:{type:"number",description:"Maximum MIDI pitch (0-127)",required:false}, scale:{type:"string",description:"Constrain to scale",required:false,enum:["chromatic","major","minor","pentatonic","blues","whole-tone"]}, probability:{type:"number",description:"Probability of change 0-100%",required:false}, seed:{type:"number",description:"Random seed for reproducibility",required:false} } },
-    async (args: any) => ({ success:true, data:{ randomized:true, mode:"pitch", affected:Math.floor(Math.random()*40)+10, minPitch:args.min_pitch||36, maxPitch:args.max_pitch||96, scale:args.scale||"chromatic", probability:args.probability||80, seed:args.seed||Date.now() } })
+  reg.register({ name:"randomize_pitch", description:"Randomize MIDI note pitches with constraints", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, min_pitch:{type:"number",description:"Minimum MIDI pitch (0-127)",required:false}, max_pitch:{type:"number",description:"Maximum MIDI pitch (0-127)",required:false}, scale:{type:"string",description:"Constrain to scale",required:false,enum:["chromatic","major","minor","pentatonic","blues","whole-tone"]}, probability:{type:"number",description:"Probability of change 0-100%",required:false} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const notes = (clip.notes || []).slice();
+      const lo = args.min_pitch ?? 36, hi = args.max_pitch ?? 96, prob = (args.probability ?? 80) / 100;
+      const scale = SCALES[args.scale || "chromatic"] || SCALES.chromatic;
+      let affected = 0;
+      for (const n of notes) { if (Math.random() > prob) continue; n.pitch = snapToScale(lo + Math.floor(Math.random() * (hi - lo + 1)), scale, song.rootNote || 0); affected++; }
+      clip.notes = notes;
+      return { success:true, data:{ randomized:true, mode:"pitch", affected, noteCount:notes.length, scale:args.scale||"chromatic" } };
+    }
   );
 
-  reg.register({ name:"randomize_velocity", description:"Randomize MIDI note velocities", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, min_velocity:{type:"number",description:"Minimum velocity 0-127",required:false}, max_velocity:{type:"number",description:"Maximum velocity 0-127",required:false}, curve:{type:"string",description:"Velocity distribution curve",required:false,enum:["uniform","gaussian","accent","humanize"]}, accent_rate:{type:"number",description:"Accent note rate 0-100%",required:false} } },
-    async (args: any) => ({ success:true, data:{ randomized:true, mode:"velocity", affected:Math.floor(Math.random()*60)+20, minVelocity:args.min_velocity||30, maxVelocity:args.max_velocity||127, curve:args.curve||"humanize", accentRate:args.accent_rate||25 } })
+  reg.register({ name:"randomize_velocity", description:"Randomize MIDI note velocities", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, min_velocity:{type:"number",description:"Minimum velocity 0-127",required:false}, max_velocity:{type:"number",description:"Maximum velocity 0-127",required:false} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const notes = (clip.notes || []).slice();
+      const lo = args.min_velocity ?? 30, hi = args.max_velocity ?? 127;
+      for (const n of notes) n.velocity = Math.round(lo + Math.random() * (hi - lo));
+      clip.notes = notes;
+      return { success:true, data:{ randomized:true, mode:"velocity", affected:notes.length, minVelocity:lo, maxVelocity:hi } };
+    }
   );
 
-  reg.register({ name:"randomize_timing", description:"Randomize MIDI note timing/position", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, amount:{type:"number",description:"Randomization amount in ticks",required:false}, grid:{type:"boolean",description:"Snap to grid after randomization",required:false} } },
-    async (args: any) => ({ success:true, data:{ randomized:true, mode:"timing", affected:Math.floor(Math.random()*60)+20, amount:args.amount||10, grid:args.grid!==false } })
+  reg.register({ name:"randomize_timing", description:"Randomize MIDI note timing/position", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, amount:{type:"number",description:"Max shift in beats",required:false} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const notes = (clip.notes || []).slice();
+      const amt = args.amount ?? 0.05;
+      for (const n of notes) n.startTime = Math.max(0, n.startTime + (Math.random() * 2 - 1) * amt);
+      clip.notes = notes;
+      return { success:true, data:{ randomized:true, mode:"timing", affected:notes.length, amount:amt } };
+    }
   );
 
-  reg.register({ name:"randomize_duration", description:"Randomize MIDI note durations", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, min_duration:{type:"number",description:"Minimum duration in beats",required:false}, max_duration:{type:"number",description:"Maximum duration in beats",required:false}, legacy_probability:{type:"number",description:"Probability of legato 0-100%",required:false} } },
-    async (args: any) => ({ success:true, data:{ randomized:true, mode:"duration", affected:Math.floor(Math.random()*60)+20, minDuration:args.min_duration||0.25, maxDuration:args.max_duration||4, legacyProb:args.legacy_probability||30 } })
+  reg.register({ name:"randomize_duration", description:"Randomize MIDI note durations", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, min_duration:{type:"number",description:"Minimum duration in beats",required:false}, max_duration:{type:"number",description:"Maximum duration in beats",required:false} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const notes = (clip.notes || []).slice();
+      const lo = args.min_duration ?? 0.25, hi = args.max_duration ?? 2;
+      for (const n of notes) n.duration = lo + Math.random() * (hi - lo);
+      clip.notes = notes;
+      return { success:true, data:{ randomized:true, mode:"duration", affected:notes.length, minDuration:lo, maxDuration:hi } };
+    }
   );
 
-  reg.register({ name:"randomize_all", description:"Randomize all note parameters at once", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, pitch_amount:{type:"number",description:"Pitch randomization amount",required:false}, velocity_amount:{type:"number",description:"Velocity randomization amount",required:false}, timing_amount:{type:"number",description:"Timing randomization amount",required:false}, duration_amount:{type:"number",description:"Duration randomization amount",required:false} } },
-    async (args: any) => ({ success:true, data:{ randomized:true, mode:"all", pitchAmount:args.pitch_amount||30, velocityAmount:args.velocity_amount||40, timingAmount:args.timing_amount||15, durationAmount:args.duration_amount||25 } })
+  reg.register({ name:"randomize_all", description:"Randomize pitch, velocity, timing and duration at once", category:"randomizer", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, timing_amount:{type:"number",description:"Timing shift in beats",required:false} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const notes = (clip.notes || []).slice();
+      const amt = args.timing_amount ?? 0.05;
+      for (const n of notes) {
+        n.velocity = Math.round(40 + Math.random() * 87);
+        n.startTime = Math.max(0, n.startTime + (Math.random() * 2 - 1) * amt);
+        n.duration = 0.25 + Math.random() * 1.75;
+      }
+      clip.notes = notes;
+      return { success:true, data:{ randomized:true, mode:"all", affected:notes.length } };
+    }
   );
 
   return reg;

@@ -18,15 +18,13 @@ export function createToolRegistry() {
   reg.register({ name:"analyze_gain_structure", description:"Analyze gain staging across all tracks and devices", category:"gain-staging", parameters:{} },
     async (_a: any, song: any) => {
       const tracks = song.tracks || [];
-      const stages = tracks.slice(0, Math.min(tracks.length, 6)).map((t: any, i: number) => {
-        const levels = [
-          { stage:"Source", level:Math.random()*0.3-12, clip:false },
-          { stage:"Device 1 (EQ)", level:Math.random()*0.3-12, clip:false },
-          { stage:"Device 2 (Comp)", level:Math.random()*0.3-14, clip:false },
-          { stage:"Fader", level:Math.random()*0.5-18, clip:false }
-        ];
-        return { trackIndex:i, trackName:t.name||`Track ${i+1}`, stages:levels, headroom:Math.floor(Math.random()*6+6) };
-      });
+      const stages = [];
+      for (let i = 0; i < tracks.length; i++) {
+        const t = tracks[i];
+        const fader = t.mixer?.volume ? await t.mixer.volume.getValue() : null;
+        const pan = t.mixer?.panning ? await t.mixer.panning.getValue() : null;
+        stages.push({ trackIndex:i, trackName:t.name||`Track ${i+1}`, fader, pan, deviceCount:(t.devices||[]).length, muted:!!t.mute });
+      }
       return { success:true, data:{ totalTracks:tracks.length, analyzedTracks:stages.length, stages } };
     }
   );
@@ -43,9 +41,17 @@ export function createToolRegistry() {
   );
 
   reg.register({ name:"match_levels", description:"Match volume levels across selected tracks", category:"gain-staging", parameters:{ track_indices:{type:"string",description:"Comma-separated track indices",required:true}, match_to:{type:"string",description:"Match strategy",required:false,enum:["loudest","quietest","average","first"]} } },
-    async (args: any) => {
-      const indices = String(args.track_indices).split(",").map(Number);
-      return { success:true, data:{ matched:true, strategy:args.match_to||"average", tracksProcessed:indices.length, levelSpreadBefore:`${Math.round(Math.random()*6+2)}dB`, levelSpreadAfter:`0.5dB` } };
+    async (args: any, song: any) => {
+      const indices = String(args.track_indices).split(",").map((s: string)=>parseInt(s.trim())).filter((n: number)=>!isNaN(n));
+      const tracks = indices.map((i: number)=>song.tracks?.[i]).filter((t: any)=>t?.mixer?.volume);
+      if (!tracks.length) return { success:false, error:"No valid tracks with a mixer" };
+      const vols: number[] = await Promise.all(tracks.map((t: any)=>t.mixer.volume.getValue()));
+      let target = vols.reduce((a,b)=>a+b,0)/vols.length;
+      if (args.match_to === "loudest") target = Math.max(...vols);
+      else if (args.match_to === "quietest") target = Math.min(...vols);
+      else if (args.match_to === "first") target = vols[0];
+      for (const t of tracks) await t.mixer.volume.setValue(target);
+      return { success:true, data:{ matched:true, strategy:args.match_to||"average", tracksProcessed:tracks.length, targetFader:target } };
     }
   );
 
