@@ -6,37 +6,42 @@ import { startServer, type AppServer } from "./server.js";
 
 let currentServer: AppServer | null = null;
 
-async function cleanup() {
-  if (currentServer) {
-    await currentServer.close();
-    currentServer = null;
-    console.error("[LiveStudio] Server shut down");
-  }
-}
+// Right-click targets where the "Live Studio" action appears.
+const MENU_SCOPES = ["MidiTrack", "AudioTrack", "MidiClip", "AudioClip", "Scene"] as const;
 
 // The Live Extension Host loads the entry and calls a *named* export `activate`
-// (the SDK contract — see the canonical key-detector/cadence-generator examples).
-// A default export fails with "does not export an 'activate' function". activate()
-// also returns promptly: the host awaits it during activation, so we kick off the
-// server + UI as fire-and-forget instead of blocking on the dialog until it closes.
+// (the SDK contract). activate() returns promptly — the host awaits it during
+// activation — and does NOT open any window: opening a modal on every Live launch is
+// intrusive. Instead we register a command + context-menu actions, and the UI opens
+// on demand (right-click a track / clip / scene → "Live Studio"). The local server is
+// started lazily on first open so nothing runs visibly at startup.
 export function activate(context: ActivationContext) {
   const ctx = initialize(context, "1.0.0");
   const song = ctx.application.song;
-  console.error("[LiveStudio] Loaded — starting unified server...");
 
   const registry = createMasterRegistry();
   const bridge = new Bridge(registry, song);
 
-  void (async () => {
-    await cleanup();
+  let opening = false;
+  async function openUI() {
+    if (opening) return;
+    opening = true;
     try {
-      currentServer = await startServer(bridge);
+      if (!currentServer) {
+        currentServer = await startServer(bridge);
+        console.error("[LiveStudio] Server started for this session.");
+      }
       await ctx.ui.showModalDialog(`${currentServer.url}/`, 1100, 820);
-      console.error("[LiveStudio] Dialog closed by user");
     } catch (err) {
       console.error("[LiveStudio] Dialog error:", err);
     } finally {
-      await cleanup();
+      opening = false; // keep the server alive so re-opening is instant
     }
-  })();
+  }
+
+  ctx.commands.registerCommand("livestudio.open", () => { void openUI(); });
+  for (const scope of MENU_SCOPES) {
+    void ctx.ui.registerContextMenuAction(scope as any, "Live Studio", "livestudio.open").catch(() => {});
+  }
+  console.error("[LiveStudio] Ready — right-click a track, clip or scene → “Live Studio” to open.");
 }
