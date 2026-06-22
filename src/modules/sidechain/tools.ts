@@ -16,16 +16,7 @@ export function createToolRegistry() {
   const reg = new ToolRegistry();
 
   
-  reg.register({ name:"detect_issues", description:"Detect sidechain routing issues (loops, orphans)", category:"sidechain", parameters:{} },
-    async () => {
-      const issues = [
-        { type:"warning", message:"Kick sidechain on bass with 0 attack - may click", severity:"low", trackIndex:1 },
-        { type:"info", message:"Sidechain depth on pads is subtle (<3dB)", severity:"info", trackIndex:3 }
-      ];
-      return { success:true, data:{ issueCount:issues.length, issues } };
-    }
-  );
-
+  
   reg.register({ name:"visualize_routing", description:"Get sidechain routing as a graph/connections array", category:"sidechain", parameters:{} },
     async (_args: any, song: any) => {
       const tracks = song.tracks || [];

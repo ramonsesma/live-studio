@@ -29,10 +29,7 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ format:args.format||"json", report:`Health report (${args.format||"json"})`, score:92, issuesResolved:0, issuesPending:6 } })
   );
 
-  reg.register({ name:"export_report", description:"Export health report to file", category:"health", parameters:{ file_name:{type:"string",description:"File name",required:false}, format:{type:"string",description:"Export format",required:false,enum:["json","csv","html"]} } },
-    async (args: any) => ({ success:true, data:{ exported:true, file:args.file_name||"health_report.json", format:args.format||"json" } })
-  );
-
+  
   reg.register({ name:"list_issues", description:"List all detected issues", category:"health", parameters:{ severity:{type:"string",description:"Filter by severity",required:false,enum:["info","warning","error"]} } },
     async (args: any) => {
       const issues = [

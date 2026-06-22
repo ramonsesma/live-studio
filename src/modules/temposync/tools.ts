@@ -32,14 +32,8 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"set_time_signature", description:"Set time signature", category:"tempo", parameters:{ numerator:{type:"number",description:"Numerator",required:true}, denominator:{type:"number",description:"Denominator",required:true} } },
-    async (args: any, song: any) => { song.timeSignature = [args.numerator, args.denominator]; return { success:true, data:{ timeSignature:[args.numerator, args.denominator] } }; }
-  );
-
   
-  reg.register({ name:"warp_clips", description:"Warp clips to tempo", category:"sync", parameters:{ track_index:{type:"number",description:"Track",required:true}, mode:{type:"string",description:"Warp mode",required:false,enum:["beats","tones","texture","re-pitch","complex","complex_pro"]} } },
-    async (args: any) => ({ success:true, data:{ warped:true, mode:args.mode||"beats", trackIndex:args.track_index } })
-  );
-
+  
+  
   return reg;
 }

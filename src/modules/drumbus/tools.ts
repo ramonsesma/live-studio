@@ -39,10 +39,7 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"add_transient_shaper", description:"Add transient shaper to drum bus", category:"drum-bus", parameters:{ track_indices:{type:"string",description:"Comma-separated track indices",required:true}, attack:{type:"number",description:"Attack boost/cut dB (-24 to +24)",required:false}, sustain:{type:"number",description:"Sustain boost/cut dB (-24 to +24)",required:false} } },
-    async (args: any) => ({ success:true, data:{ transientShaperAdded:true, attack:args.attack||3, sustain:args.sustain||0 } })
-  );
-
+  
   reg.register({ name:"analyze_drum_bus", description:"Analyze drum bus frequency and dynamics", category:"drum-bus", parameters:{ track_indices:{type:"string",description:"Comma-separated track indices",required:true} } },
     async () => ({ success:true, data:{ peakLevel:"-2.3 dBFS", rmsLevel:"-14.1 dBFS", dynamicRange:11.8, freqAnalysis:{ sub:"+3.2dB", lowMid:"-1.1dB", highMid:"+0.4dB", high:"-2.8dB" }, punchFactor:7.3, transientCount:124 } })
   );

@@ -363,43 +363,6 @@ export function createToolRegistry(): ToolRegistry {
     }
   );
 
-  reg.register(
-    { name: "get_track_analysis", description: "Analyze a track for optimal effects chain", category: "effects", parameters: { track_index: { type: "number", description: "Track index", required: true } } },
-    async (args, song) => {
-      const track = trackOrThrow(song, args.track_index as number);
-
-      if (track.constructor.name !== "AudioTrack") {
-        return { success: false, error: "Track is not an audio track" };
-      }
-
-      const analysis = {
-        frequencyProfile: {
-          lowEnd: "strong",
-          midRange: "balanced",
-          highEnd: "weak"
-        },
-        dynamicProfile: {
-          level: "moderate",
-          compression: "none",
-          transients: "present"
-        },
-        stereoProfile: {
-          width: "narrow",
-          phase: "coherent"
-        },
-        genreSuggestions: ["pop", "rock", "electronic"],
-        recommendedChain: "rock",
-        parameters: {
-          eq: { lowGain: 3, midGain: 2, highGain: 1 },
-          compress: { threshold: -15, ratio: 3 },
-          reverb: { decay: 2.0, mix: 0.2 },
-          limiter: { threshold: -0.1 }
-        }
-      };
-
-      return { success: true, data: analysis };
-    }
-  );
-
+  
   return reg;
 }

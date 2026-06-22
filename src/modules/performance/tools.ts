@@ -37,10 +37,7 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ mode:args.mode, autoQuantize:args.auto_quantize||true } })
   );
 
-  reg.register({ name:"assign_to_midi", description:"Assign a parameter to MIDI controller", category:"performance", parameters:{ track_index:{type:"number",description:"Track",required:true}, device_index:{type:"number",description:"Device index",required:true}, parameter_name:{type:"string",description:"Parameter name",required:true}, midi_cc:{type:"number",description:"MIDI CC number",required:true} } },
-    async (args: any) => ({ success:true, data:{ assigned:true, trackIndex:args.track_index, deviceIndex:args.device_index, parameter:args.parameter_name, cc:args.midi_cc } })
-  );
-
+  
   reg.register({ name:"create_performance_scene", description:"Create a scene optimized for performance", category:"performance", parameters:{ name:{type:"string",description:"Scene name",required:true}, includes:{type:"array",description:"Tracks to include",required:false} } },
     async (args: any, song: any) => {
       const scene = await song.createScene(-1);

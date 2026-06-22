@@ -39,10 +39,7 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"crossfade_edges", description:"Apply crossfades at edit points", category:"comp", parameters:{ comp_track:{type:"number",description:"Comp track index",required:true}, crossfade_ms:{type:"number",description:"Crossfade duration ms",required:false}, curve:{type:"string",description:"Crossfade curve",required:false,enum:["equal_power","linear","log"]} } },
-    async (args: any) => ({ success:true, data:{ crossfaded:true, points:8, duration:args.crossfade_ms||10, curve:args.curve||"equal_power" } })
-  );
-
+  
   reg.register({ name:"flatten_comp", description:"Flatten comp track to single clip", category:"comp", parameters:{ comp_track:{type:"number",description:"Comp track index",required:true}, render_fades:{type:"boolean",description:"Render crossfades",required:false} } },
     async (args: any, song: any) => {
       const comp = song.tracks[args.comp_track];

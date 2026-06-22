@@ -27,14 +27,7 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ setlistId:args.setlist_id, movedFrom:args.song_index, movedTo:args.new_position, reordered:true } })
   );
 
-  reg.register({ name:"export_setlist", description:"Export setlist as text/PDF/printable format", category:"setlist", parameters:{ setlist_id:{type:"string",description:"Setlist ID",required:true}, format:{type:"string",description:"Export format",required:false,enum:["text","json","csv"]} } },
-    async (args: any) => {
-      const format = args.format || "text";
-      const now = new Date();
-      return { success:true, data:{ setlistId:args.setlist_id, format, exportedAt:now.toISOString(), content:`Setlist Export\n=============\nDate: ${now.toLocaleDateString()}\nSongs: 8\nTotal Duration: 45:00\n---` } };
-    }
-  );
-
+  
   reg.register({ name:"get_current_session", description:"Capture current session as a setlist entry", category:"setlist", parameters:{} },
     async (_a: any, song: any) => {
       const tracks = song.tracks || [];

@@ -38,9 +38,6 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ previewing:true, sidechainId:args.sidechain_id, duration:args.duration||5 } })
   );
 
-  reg.register({ name:"export_sidechain", description:"Export sidechain config as JSON", category:"sidechain", parameters:{ sidechain_id:{type:"number",description:"Sidechain ID",required:true}, file_name:{type:"string",description:"File name",required:false} } },
-    async (args: any) => ({ success:true, data:{ exported:true, sidechainId:args.sidechain_id, file:args.file_name||"sidechain.json" } })
-  );
-
+  
   return reg;
 }

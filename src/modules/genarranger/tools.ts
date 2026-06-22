@@ -46,9 +46,6 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"export_arrangement", description:"Export arrangement as text/midi", category:"arranger", parameters:{ format:{type:"string",description:"Export format",required:false,enum:["text","midi","csv"]} } },
-    async (args: any) => ({ success:true, data:{ exported:true, format:args.format||"text", sections:8 } })
-  );
-
+  
   return reg;
 }

@@ -16,13 +16,15 @@ export function createToolRegistry() {
   const reg = new ToolRegistry();
 
   reg.register({ name:"get_time_signature", description:"Get current time signature info", category:"time-sig", parameters:{} },
-    async (_a: any, song: any) => ({ success:true, data:{ timeSignature:song.signature||"4/4", numerator:4, denominator:4, globalMapping:"entire arrangement" } })
+    async (_a: any, song: any) => {
+      // Time signature lives on scenes (signatureNumerator/Denominator).
+      const sc = (song.scenes || [])[0];
+      const num = sc?.signatureNumerator ?? 4, den = sc?.signatureDenominator ?? 4;
+      return { success:true, data:{ timeSignature:`${num}/${den}`, numerator:num, denominator:den, perScene:(song.scenes||[]).map((s: any, i: number) => ({ scene:i, name:s.name, sig:`${s.signatureNumerator ?? 4}/${s.signatureDenominator ?? 4}` })) } };
+    }
   );
 
-  reg.register({ name:"set_time_signature", description:"Set time signature at a specific position", category:"time-sig", parameters:{ bar:{type:"number",description:"Bar position for change",required:true}, numerator:{type:"number",description:"Beat count (2,3,4,5,6,7,9,12)",required:true,enum:[2,3,4,5,6,7,9,12]}, denominator:{type:"number",description:"Beat unit (2,4,8)",required:false,enum:[2,4,8]} } },
-    async (args: any) => ({ success:true, data:{ set:true, bar:args.bar, timeSig:`${args.numerator}/${args.denominator||4}` } })
-  );
-
+  
   reg.register({ name:"add_sig_change", description:"Add a time signature change marker", category:"time-sig", parameters:{ bar:{type:"number",description:"Bar position",required:true}, time_sig:{type:"string",description:"New time signature (e.g. 3/4)",required:true}, name:{type:"string",description:"Change marker name",required:false} } },
     async (args: any) => ({ success:true, data:{ added:true, bar:args.bar, timeSig:args.time_sig, name:args.name||`Sig: ${args.time_sig}`, changeId:`sig_${Date.now()}` } })
   );

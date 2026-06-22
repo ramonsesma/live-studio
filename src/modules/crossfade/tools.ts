@@ -25,23 +25,9 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"apply_crossfade", description:"Apply crossfade between two clips", category:"crossfade", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_a:{type:"number",description:"First clip index",required:true}, clip_b:{type:"number",description:"Second clip index",required:true}, length:{type:"number",description:"Crossfade length in beats",required:false}, curve:{type:"string",description:"Fade curve",required:false,enum:["linear","equal-power","equal-gain","slow","fast","exponential","logarithmic"]}, symmetric:{type:"boolean",description:"Symmetric fade",required:false} } },
-    async (args: any) => ({ success:true, data:{ applied:true, length:args.length||2, curve:args.curve||"equal-power", symmetric:args.symmetric!==false, trackIndex:args.track_index } })
-  );
-
   
   
-  reg.register({ name:"get_fade_curves", description:"Get available fade curve types", category:"crossfade", parameters:{} },
-    async () => ({ success:true, data:{ curves:[
-      { name:"linear", desc:"Constant rate of change" },
-      { name:"equal-power", desc:"Constant perceived loudness" },
-      { name:"equal-gain", desc:"Constant sum of amplitudes" },
-      { name:"slow", desc:"Slow start, fast end" },
-      { name:"fast", desc:"Fast start, slow end" },
-      { name:"exponential", desc:"Exponential curve" },
-      { name:"logarithmic", desc:"Logarithmic curve" }
-    ]}})
-  );
-
+  
+  
   return reg;
 }

@@ -28,14 +28,8 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ connected:true, from:`${args.from_module}.${args.from_port}`, to:`${args.to_module}.${args.to_port}`, color:args.cable_color||"#FF6B6B" } })
   );
 
-  reg.register({ name:"save_patch", description:"Save current patch", category:"patchbay", parameters:{ name:{type:"string",description:"Patch name",required:true}, description:{type:"string",description:"Description",required:false}, tags:{type:"string",description:"Comma-separated tags",required:false} } },
-    async (args: any) => ({ success:true, data:{ saved:true, patch:args.name, modules:modules.length, tags:args.tags?.split(",")||[] } })
-  );
-
-  reg.register({ name:"load_patch", description:"Load a saved patch", category:"patchbay", parameters:{ patch_name:{type:"string",description:"Patch name",required:true} } },
-    async (args: any) => ({ success:true, data:{ loaded:true, patch:args.patch_name, modulesRestored:4, connectionsRestored:6 } })
-  );
-
+  
+  
   reg.register({ name:"signal_flow_visual", description:"Get signal flow for visualization", category:"patchbay", parameters:{} },
     async () => ({
       success:true, data:{

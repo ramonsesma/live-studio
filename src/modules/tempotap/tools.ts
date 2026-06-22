@@ -34,16 +34,16 @@ export function createToolRegistry() {
   );
 
   reg.register({ name:"set_from_taps", description:"Set project tempo from recorded taps", category:"tempo", parameters:{ tap_tempo:{type:"number",description:"Detected BPM to apply",required:false}, allow_override:{type:"boolean",description:"Override existing tempo",required:false} } },
-    async (args: any) => ({ success:true, data:{ tempoSet:true, newTempo:args.tap_tempo||120, wasOverridden:true } })
-  );
-
-  reg.register({ name:"detect_auto", description:"Auto-detect BPM from audio clip", category:"tempo", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true} } },
     async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      return { success:true, data:{ detected:true, trackName:track?.name||"Unknown", detectedBpm:128, confidence:0.85, method:"transient analysis" } };
+      const t = Number(args.tap_tempo);
+      if (!(t >= 20 && t <= 300)) return { success:false, error:"tap_tempo must be 20-300 BPM" };
+      const prev = song.tempo;
+      song.tempo = t;
+      return { success:true, data:{ tempoSet:true, newTempo:t, previousTempo:prev } };
     }
   );
 
+  
   reg.register({ name:"tap_history", description:"Get recent tap history", category:"tempo", parameters:{} },
     async () => {
       const intervals = []; for (let i = 1; i < taps.length; i++) intervals.push(taps[i] - taps[i - 1]);

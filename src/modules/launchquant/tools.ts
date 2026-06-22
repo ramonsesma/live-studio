@@ -16,7 +16,7 @@ export function createToolRegistry() {
   const reg = new ToolRegistry();
 
   reg.register({ name:"get_global_quant", description:"Get global launch quantization setting", category:"launch-quant", parameters:{} },
-    async (_a: any, song: any) => ({ success:true, data:{ globalQuantization:song.launchQuantization||"1/16", clipCount:0 } })
+    async (_a: any, song: any) => ({ success:true, data:{ globalQuantization:song.gridQuantization ?? "1/16", triplet: !!song.gridIsTriplet } })
   );
 
   reg.register({ name:"set_global_quant", description:"Set global launch quantization", category:"launch-quant", parameters:{ value:{type:"string",description:"Quantization value",required:true,enum:["none","1/4","1/8","1/16","1/32","1/2","1/1"]} } },

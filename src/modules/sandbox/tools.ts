@@ -28,10 +28,7 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"load_script", description:"Load and execute a script file", category:"sandbox", parameters:{ file_path:{type:"string",description:"Path to .ts script",required:true}, args:{type:"string",description:"JSON args for script",required:false} } },
-    async (args: any) => ({ success:true, data:{ loaded:true, file:args.file_path, args:args.args||"{}" } })
-  );
-
+  
   reg.register({ name:"get_api_autocomplete", description:"Get SDK API autocomplete suggestions", category:"sandbox", parameters:{ prefix:{type:"string",description:"Type prefix",required:true} } },
     async (args: any) => {
       const apis = ["song.tracks","song.tempo","song.createMidiTrack","track.createMidiClip","clip.addNote","device.setParameter"];
@@ -43,13 +40,6 @@ export function createToolRegistry() {
     async () => ({ success:true, data:{ globals:["song","console","setTimeout","fetch","JSON","Math","Date"] } })
   );
 
-  reg.register({ name:"save_script", description:"Save a script with version", category:"sandbox", parameters:{ name:{type:"string",description:"Script name",required:true}, code:{type:"string",description:"Script code",required:true}, version:{type:"string",description:"Version string",required:false} } },
-    async (args: any) => {
-      const ver = args.version || `v${scripts.size+1}.0.0`;
-      scripts.set(args.name, { code:args.code, version:ver, updated:new Date().toISOString() });
-      return { success:true, data:{ saved:true, name:args.name, version:ver, totalScripts:scripts.size } };
-    }
-  );
-
+  
   return reg;
 }

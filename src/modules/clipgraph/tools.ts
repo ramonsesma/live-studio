@@ -59,17 +59,8 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"detect_patterns", description:"Detect recurring clip patterns", category:"graph", parameters:{ min_occurrences:{type:"number",description:"Minimum occurrences",required:false}, pattern_length:{type:"number",description:"Pattern length in bars",required:false} } },
-    async (args: any) => {
-      const patterns = Array.from({length:3},(_, i)=>({ id:`pat_${i}`, occurrences:3+i, length:args.pattern_length||4, clips:[`clip_${i}`,`clip_${i+5}`,`clip_${i+10}`], type:["rhythmic","melodic","harmonic"][i] }));
-      return { success:true, data:{ patterns, totalPatterns:patterns.length } };
-    }
-  );
-
-  reg.register({ name:"visualize_graph", description:"Export graph for visualization", category:"graph", parameters:{ format:{type:"string",description:"Output format",required:false,enum:["graphml","json","dot"]}, layout:{type:"string",description:"Layout algorithm",required:false,enum:["force","hierarchical","circular"]} } },
-    async (args: any) => ({ success:true, data:{ exported:true, format:args.format||"json", layout:args.layout||"force", nodeCount:24, edgeCount:31 } })
-  );
-
+  
+  
   reg.register({ name:"suggest_arrangement", description:"Suggest arrangement based on clip relationships", category:"graph", parameters:{ seed_clip:{type:"string",description:"Starting clip",required:true}, target_length:{type:"number",description:"Target bars",required:false} } },
     async (args: any) => {
       const suggestion = Array.from({length:8},(_, i)=>({ section:`Section ${i+1}`, clips:[`clip_${i}`,`clip_${i+1}`], bars:4, rationale:"Harmonic progression" }));

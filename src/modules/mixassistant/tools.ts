@@ -15,17 +15,7 @@ export class ToolRegistry {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"analyze_mix", description:"Analyze full mix and return issues", category:"mixing", parameters:{ reference_track:{type:"number",description:"Reference track index",required:false}, target_lufs:{type:"number",description:"Target LUFS",required:false} } },
-    async (args: any) => {
-      const issues = [
-        { type:"frequency_masking", severity:"high", tracks:[0,1], freqRange:"200-500Hz", suggestion:"Cut 3dB at 300Hz on track 1" },
-        { type:"dynamic_range", severity:"medium", track:2, dr:4, suggestion:"Reduce compression on track 2" },
-        { type:"stereo_balance", severity:"low", track:3, imbalance:"L +2.3dB", suggestion:"Pan slightly right" }
-      ];
-      return { success:true, data:{ analyzed:true, issues, score:78, targetLUFS:args.target_lufs||-14 } };
-    }
-  );
-
+  
   reg.register({ name:"suggest_eq", description:"Get EQ suggestions for a track", category:"mixing", parameters:{ track_index:{type:"number",description:"Track index",required:true}, style:{type:"string",description:"Mix style",required:false,enum:["clean","warm","bright","vintage"]} } },
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];

@@ -47,10 +47,7 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"export_pdf", description:"Export notation score as PDF", category:"notation", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, title:{type:"string",description:"Score title",required:false}, include_metadata:{type:"boolean",description:"Include project metadata",required:false} } },
-    async (args: any) => ({ success:true, data:{ exported:true, format:"PDF", pages:2, title:args.title||"Untitled Score", filename:`score_${args.track_index}_${args.clip_index}.pdf` } })
-  );
-
+  
   reg.register({ name:"transpose_score", description:"Transpose displayed notation", category:"notation", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, semitones:{type:"number",description:"Semitones to transpose",required:true} } },
     async (args: any) => ({ success:true, data:{ transposed:true, by:args.semitones, newKey:`${NOTE_NAMES[(NOTE_NAMES.indexOf("C")+args.semitones+1200)%12]} major` } })
   );

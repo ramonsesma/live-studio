@@ -45,9 +45,6 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ loaded:true, preset:args.preset, pads:12, mappingType:"note-to-slot" } })
   );
 
-  reg.register({ name:"export_drum_map", description:"Export drum map as JSON/CSV", category:"drum-map", parameters:{ format:{type:"string",description:"Export format",required:false,enum:["json","csv","ableton"]} } },
-    async (args: any) => ({ success:true, data:{ exported:true, format:args.format||"json", map:GM_DRUM_MAP } })
-  );
-
+  
   return reg;
 }

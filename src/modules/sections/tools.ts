@@ -35,10 +35,7 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ created:true, name:args.name, startBar:args.start_bar, duration:args.duration, color:args.color||"#667eea", tempo:args.tempo||null, sectionId:`sec_${Date.now()}` } })
   );
 
-  reg.register({ name:"move_section", description:"Move/rearrange a section to a new position", category:"sections", parameters:{ section_index:{type:"number",description:"Section index to move",required:true}, new_start:{type:"number",description:"New start position in bars",required:true}, ripple:{type:"boolean",description:"Ripple edit following sections",required:false} } },
-    async (args: any) => ({ success:true, data:{ moved:true, sectionIndex:args.section_index, newStart:args.new_start, ripple:args.ripple!==false } })
-  );
-
+  
   reg.register({ name:"duplicate_section", description:"Duplicate a section", category:"sections", parameters:{ section_index:{type:"number",description:"Section index to duplicate",required:true}, times:{type:"number",description:"Number of copies",required:false} } },
     async (args: any) => {
       const copies = args.times || 1;
@@ -50,9 +47,6 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ deleted:true, sectionIndex:args.section_index, ripple:args.ripple!==false } })
   );
 
-  reg.register({ name:"export_arrangement", description:"Export arrangement structure as text/diagram", category:"sections", parameters:{ format:{type:"string",description:"Export format",required:false,enum:["text","bars","time","diagram"]} } },
-    async () => ({ success:true, data:{ format:"text", arrangementLayout:"| Intro (8) | Verse (16) | Chorus (16) | Bridge (8) | Chorus (16) | Outro (8) |", totalBars:72, totalDuration:"96 seconds at 120 BPM" } })
-  );
-
+  
   return reg;
 }

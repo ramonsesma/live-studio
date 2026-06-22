@@ -26,14 +26,8 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"export_map", description:"Export MIDI map to JSON file", category:"midi-map", parameters:{ file_name:{type:"string",description:"Output file name",required:false} } },
-    async (args: any) => ({ success:true, data:{ exported:true, file:args.file_name||"midi_map.json", format:"JSON" } })
-  );
-
-  reg.register({ name:"import_map", description:"Import MIDI map from JSON file", category:"midi-map", parameters:{ file_path:{type:"string",description:"JSON file path",required:true} } },
-    async (args: any) => ({ success:true, data:{ imported:true, file:args.file_path, mappingsLoaded:12 } })
-  );
-
+  
+  
   reg.register({ name:"filter_by_device", description:"Filter MIDI map by device", category:"midi-map", parameters:{ device_name:{type:"string",description:"Device name to filter",required:true} } },
     async (args: any) => ({ success:true, data:{ filtered:true, device:args.device_name, matchCount:5 } })
   );
