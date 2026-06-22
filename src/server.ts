@@ -1,7 +1,10 @@
 import * as http from "node:http";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+// Import URL/URLSearchParams explicitly: the Live Extension Host runs the extension
+// in a context that does NOT expose Node's WHATWG globals (URL was "not defined" at
+// runtime), so we must pull them from node:url rather than rely on the global.
+import { fileURLToPath, URL } from "node:url";
 import { Bridge } from "./bridge.js";
 import { createLLMClient, type LLMClient } from "./core/llm.js";
 
@@ -49,8 +52,8 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
     const method = req.method || "GET";
     if (method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
-    const url = new URL(req.url || "/", "http://localhost");
     try {
+      const url = new URL(req.url || "/", "http://localhost");
       // ---- API ----
       if (url.pathname === "/api/modules" && method === "GET") {
         sendJson(res, 200, { modules: bridge.getModules() });

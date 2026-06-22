@@ -1,6 +1,42 @@
 // Cliente LLM compatible OpenAI (OpenRouter / OpenAI / OpenCode Zen).
 // Portado de ableton-live-ai sin cambios de comportamiento.
 
+import * as nodeHttp from "node:http";
+import * as nodeHttps from "node:https";
+import { URL } from "node:url";
+
+// The Live Extension Host context does not expose WHATWG globals like `fetch`
+// (same reason `URL` had to be imported), so we POST JSON via node:http(s) directly.
+function postJson(
+  endpoint: string,
+  headers: Record<string, string>,
+  payload: unknown,
+): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    let u: URL;
+    try { u = new URL(endpoint); } catch (e) { reject(e); return; }
+    const data = JSON.stringify(payload);
+    const lib = u.protocol === "http:" ? nodeHttp : nodeHttps;
+    const req = lib.request(
+      {
+        hostname: u.hostname,
+        port: u.port || (u.protocol === "http:" ? 80 : 443),
+        path: u.pathname + u.search,
+        method: "POST",
+        headers: { ...headers, "Content-Length": Buffer.byteLength(data) },
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c) => chunks.push(c as Buffer));
+        res.on("end", () => resolve({ status: res.statusCode || 0, body: Buffer.concat(chunks).toString("utf8") }));
+      },
+    );
+    req.on("error", reject);
+    req.write(data);
+    req.end();
+  });
+}
+
 export interface LLMMessage {
   role: "system" | "user" | "assistant" | "tool";
   content: string;
@@ -73,24 +109,23 @@ class OpenAICompatibleClient implements LLMClient {
       body.tool_choice = "auto";
     }
 
-    const res = await fetch(`${this.config.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
+    const res = await postJson(
+      `${this.config.baseUrl}/chat/completions`,
+      {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.config.apiKey}`,
         ...(this.config.baseUrl.includes("openrouter.ai")
           ? { "HTTP-Referer": "https://live-studio.local", "X-Title": "Live Studio" }
           : {}),
       },
-      body: JSON.stringify(body),
-    });
+      body,
+    );
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`LLM API error ${res.status}: ${text}`);
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(`LLM API error ${res.status}: ${res.body}`);
     }
 
-    const json: any = await res.json();
+    const json: any = JSON.parse(res.body);
     const choice = json.choices?.[0];
     if (!choice) throw new Error("No choices in LLM response");
     const msg = choice.message;
