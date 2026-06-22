@@ -5,43 +5,39 @@ import { Bridge } from "./bridge.js";
 import { startServer, type AppServer } from "./server.js";
 
 let currentServer: AppServer | null = null;
+let bridge: Bridge | null = null;
 
-// Right-click targets where the "Live Studio" action appears.
-const MENU_SCOPES = ["MidiTrack", "AudioTrack", "MidiClip", "AudioClip", "Scene"] as const;
+// Right-click targets where the "Live Studio" action appears. ClipSlot covers the
+// (empty) Session-view grid cells, the most common right-click target.
+const MENU_SCOPES = ["AudioTrack", "MidiTrack", "ClipSlot", "AudioClip", "MidiClip", "Scene"] as const;
 
-// The Live Extension Host loads the entry and calls a *named* export `activate`
-// (the SDK contract). activate() returns promptly — the host awaits it during
-// activation — and does NOT open any window: opening a modal on every Live launch is
-// intrusive. Instead we register a command + context-menu actions, and the UI opens
-// on demand (right-click a track / clip / scene → "Live Studio"). The local server is
-// started lazily on first open so nothing runs visibly at startup.
+// The host calls the named export `activate` and awaits it, so it returns promptly and
+// opens NO window — auto-opening a modal on every Live launch is intrusive. We register
+// a command + context-menu actions FIRST (so the menu entry always appears even if the
+// registry/server were to fail), and build the registry + start the local server lazily
+// the first time the user opens the UI (right-click a track / clip / scene → "Live Studio").
 export function activate(context: ActivationContext) {
   const ctx = initialize(context, "1.0.0");
-  const song = ctx.application.song;
 
-  const registry = createMasterRegistry();
-  const bridge = new Bridge(registry, song);
-
-  let opening = false;
-  async function openUI() {
-    if (opening) return;
-    opening = true;
-    try {
-      if (!currentServer) {
-        currentServer = await startServer(bridge);
-        console.error("[LiveStudio] Server started for this session.");
+  const openUI = () => {
+    void (async () => {
+      try {
+        if (!bridge) bridge = new Bridge(createMasterRegistry(), ctx.application.song);
+        if (!currentServer) currentServer = await startServer(bridge);
+        await ctx.ui.showModalDialog(`${currentServer.url}/`, 1100, 820);
+      } catch (err) {
+        console.error("[LiveStudio] Failed to open:", err);
       }
-      await ctx.ui.showModalDialog(`${currentServer.url}/`, 1100, 820);
-    } catch (err) {
-      console.error("[LiveStudio] Dialog error:", err);
-    } finally {
-      opening = false; // keep the server alive so re-opening is instant
-    }
-  }
+    })();
+  };
 
-  ctx.commands.registerCommand("livestudio.open", () => { void openUI(); });
+  ctx.commands.registerCommand("livestudio.open", openUI);
+
   for (const scope of MENU_SCOPES) {
-    void ctx.ui.registerContextMenuAction(scope as any, "Live Studio", "livestudio.open").catch(() => {});
+    ctx.ui
+      .registerContextMenuAction(scope as never, "Live Studio", "livestudio.open")
+      .then(() => console.error(`[LiveStudio] context action registered: ${scope}`))
+      .catch((e: unknown) => console.error(`[LiveStudio] context action FAILED (${scope}):`, e));
   }
-  console.error("[LiveStudio] Ready — right-click a track, clip or scene → “Live Studio” to open.");
+  console.error("[LiveStudio] Ready — right-click a track, clip slot, clip or scene → “Live Studio”.");
 }
