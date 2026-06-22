@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 """Verify live-studio.ablx is installable by Ableton Live before it is shipped.
 
-Catches the three install/load failures we hit during the beta:
+Catches the load/install failures we hit during the beta:
   1. Non-strict manifest `version` (e.g. 1.0.0-beta.0) -> "No manifest.json found".
   2. ESM entry (top-level import/export) -> "Cannot use import statement outside a module".
   3. SDK left external (require of @ableton-extensions/sdk) -> "Cannot find module".
+  4. Entry doesn't export a named `activate` -> "does not export an 'activate' function".
 Plus: manifest at archive root, entry present, and no zip data descriptors (minizip).
+
+The `activate` check loads the entry exactly like the host does: from a directory with
+NO package.json, so node treats it as CommonJS (the dev project is "type":"module",
+which would otherwise mis-parse the bundle as ESM — a false negative).
 """
 import json
+import os
 import re
+import subprocess
 import sys
+import tempfile
 import zipfile
 
 ABLX = sys.argv[1] if len(sys.argv) > 1 else "live-studio.ablx"
@@ -46,7 +54,24 @@ data_desc = [i.filename for i in z.infolist() if i.flag_bits & 0x08]
 if data_desc:
     fail(f"zip has data-descriptor entries (minizip can't read): {data_desc[:3]}")
 
+# Functional check: load the entry the way the host does (CJS, no package.json) and
+# assert it exports a callable `activate`.
+with tempfile.TemporaryDirectory() as tmp:
+    entry_path = os.path.join(tmp, "extension.js")
+    with open(entry_path, "w", encoding="utf-8") as f:
+        f.write(entry)
+    probe = (
+        "try{const m=require(process.argv[1]);"
+        "process.exit(typeof m.activate==='function'?0:3);}"
+        "catch(e){console.error(e.message.split('\\n')[0]);process.exit(4);}"
+    )
+    r = subprocess.run(["node", "-e", probe, entry_path], capture_output=True, text=True)
+    if r.returncode == 3:
+        fail("entry does not export a named `activate` function (use `export function activate`, not default)")
+    elif r.returncode != 0:
+        fail(f"entry failed to load as CommonJS: {r.stderr.strip() or r.stdout.strip()}")
+
 print(
     f"verify-ablx: OK — {len(names)} entries, version {m['version']}, "
-    f"manifest@root, CJS entry, SDK bundled, no data descriptors"
+    f"manifest@root, CJS entry, SDK bundled, exports activate(), no data descriptors"
 )
