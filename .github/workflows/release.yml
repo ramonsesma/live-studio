@@ -1,19 +1,28 @@
 name: Release
 
-# On every version tag (v1.0.0, v1.2.3-beta.1, …):
-#   build → smoke test → package a minizip-compatible .ablx (Info-ZIP) → attach to the GitHub Release.
-# This guarantees the published .ablx is always packaged with `zip -X` and never with
-# the default `archiver` (which writes data-descriptor entries Ableton Live can't extract).
+# On every version tag (v1.0.0, v1.2.3, …): run the smoke tests as a gate and
+# create the GitHub Release with auto-generated notes.
+#
+# NOTE: the `.ablx` itself is NOT built here. `src/extension.ts` value-imports the
+# Ableton Extensions SDK, which is a local-only beta dependency (not on npm) and must
+# be bundled into the entry. So the distributable is built on a machine that has the
+# SDK installed and attached to the release:
+#
+#     npm run package            # build (esbuild, SDK bundled) + Info-ZIP .ablx
+#     gh release upload <tag> live-studio.ablx --clobber
+#
+# `npm run package` self-checks the result (strict X.Y.Z version, manifest at root,
+# CJS entry, no zip data descriptors) before it is uploaded.
 
 on:
   push:
     tags: ["v*"]
 
 permissions:
-  contents: write   # needed to create/update the release and upload assets
+  contents: write
 
 jobs:
-  package-and-release:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,38 +42,7 @@ jobs:
       - name: Smoke tests
         run: npm run test
 
-      # Build + package with Info-ZIP. `npm run package` runs the esbuild build, then
-      # zips manifest.json + dist (files only, no .DS_Store, no streaming data descriptors).
-      - name: Build & package .ablx (Info-ZIP)
-        run: npm run package
-
-      - name: Verify the .ablx installs cleanly (structure + manifest)
-        run: |
-          python3 - <<'PY'
-          import zipfile, json, re, sys
-          z = zipfile.ZipFile("live-studio.ablx")
-          names = z.namelist()
-          bad = [i.filename for i in z.infolist() if i.flag_bits & 0x08]   # data-descriptor bit
-          assert "manifest.json" in names, "manifest.json missing from archive root"
-          assert not bad, f"data-descriptor entries present (minizip-incompatible): {bad[:5]}"
-          m = json.loads(z.read("manifest.json"))
-          # Live's installer rejects pre-release versions (e.g. 1.0.0-beta.0) and then
-          # reports the generic "No manifest.json found". Enforce strict MAJOR.MINOR.PATCH.
-          assert re.fullmatch(r"\d+\.\d+\.\d+", m.get("version", "")), \
-              f"manifest version must be strict X.Y.Z, got {m.get('version')!r}"
-          assert m["entry"] in names, f"entry {m['entry']!r} not found inside the archive"
-          # The host loads the entry as CommonJS (.ablx carries no package.json). An ESM
-          # bundle fails with "Cannot use import statement outside a module". Reject any
-          # top-level import/export in the bundled entry.
-          entry = z.read(m["entry"]).decode("utf-8", "replace")
-          esm = [l for l in entry.splitlines() if l.startswith("import ") or l.startswith("export ")]
-          assert not esm, f"entry has top-level ESM statements (must be CJS): {esm[:3]}"
-          print(f"OK: {len(names)} entries, manifest@root, version {m['version']}, CJS entry, no data descriptors")
-          PY
-
-      - name: Attach .ablx to the GitHub Release
+      - name: Create / update the GitHub Release (notes only; .ablx uploaded locally)
         uses: softprops/action-gh-release@v2
         with:
-          files: live-studio.ablx
-          fail_on_unmatched_files: true
           generate_release_notes: true

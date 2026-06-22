@@ -16,7 +16,10 @@ await esbuild.build({
   // load time with "Cannot use import statement outside a module". The SDK's own
   // auto-generated build script uses cjs — match it.
   format: "cjs",
-  external: ["@ableton-extensions/sdk"],
+  // Do NOT mark @ableton-extensions/sdk external: the Live Extension Host does not
+  // resolve node_modules at runtime, so the SDK must be bundled into the entry.
+  // Leaving it external produced "Cannot find module '@ableton-extensions/sdk'" at
+  // load time. The SDK is pure JS, so esbuild inlines it cleanly.
   // server.ts derives __dirname from import.meta.url, which is invalid in CJS.
   // Shim it from __filename so the bundle resolves the UI folder at runtime.
   define: { "import.meta.url": "importMetaUrl" },

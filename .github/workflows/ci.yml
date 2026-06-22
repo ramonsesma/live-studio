@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,10 +17,13 @@ jobs:
           node-version: 22
 
       # The Ableton Extensions SDK + CLI are local-file (beta) deps that are not
-      # published to npm and don't exist on CI runners. We drop them before install:
-      #  - the build (esbuild) marks "@ableton-extensions/sdk" as `external`, so the
-      #    bundle compiles without the package present.
-      #  - the smoke tests import only the registry/bridge/server (no SDK at runtime).
+      # published to npm and don't exist on CI runners, so we drop them before install.
+      #  - The smoke tests reach the SDK only through type-only imports (e.g.
+      #    `import { type Song } from "@ableton-extensions/sdk"`), which are erased at
+      #    runtime by tsx — so the tests run fine without the package.
+      #  - We do NOT build the bundle here: `src/extension.ts` does a *value* import of
+      #    the SDK (`import { initialize }`), which must be bundled in, so the real
+      #    `.ablx` can only be built where the SDK is installed (locally / on release).
       - name: Remove local-only SDK deps for CI
         run: |
           npm pkg delete dependencies.@ableton-extensions/sdk
@@ -28,9 +31,6 @@ jobs:
 
       - name: Install
         run: npm install --no-audit --no-fund
-
-      - name: Build (esbuild, SDK external)
-        run: npm run build
 
       - name: Smoke tests (server + 94 modules, simulated song)
         run: npm run test
