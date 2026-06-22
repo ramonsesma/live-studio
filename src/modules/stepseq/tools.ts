@@ -24,8 +24,20 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"toggle_step", description:"Toggle a single step on/off", category:"step-seq", parameters:{ track_index:{type:"number",description:"Track index",required:true}, step:{type:"number",description:"Step index (0-based)",required:true} } },
-    async (args: any) => ({ success:true, data:{ toggled:true, step:args.step, nowActive:Math.random()>0.5 } })
+  reg.register({ name:"toggle_step", description:"Toggle a single step on/off in a clip's grid", category:"step-seq", parameters:{ track_index:{type:"number",description:"Track index",required:true}, step:{type:"number",description:"Step index (0-based, 1/16 grid)",required:true}, pitch:{type:"number",description:"MIDI pitch for the step (default 60)",required:false}, clip_index:{type:"number",description:"Clip index (default 0)",required:false} } },
+    async (args: any, song: any) => {
+      const t = song.tracks?.[args.track_index];
+      const clip = t?.clipSlots?.[args.clip_index ?? 0]?.clip ?? t?.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const g = 0.25, pitch = args.pitch ?? 60, time = args.step * g;
+      const notes = (clip.notes || []).slice();
+      const idx = notes.findIndex((n: any) => n.pitch === pitch && Math.abs(n.startTime - time) < g / 2);
+      let nowActive: boolean;
+      if (idx >= 0) { notes.splice(idx, 1); nowActive = false; }
+      else { notes.push({ pitch, startTime: time, duration: g, velocity: 100 }); nowActive = true; }
+      clip.notes = notes;
+      return { success:true, data:{ toggled:true, step:args.step, pitch, nowActive, noteCount:notes.length } };
+    }
   );
 
   reg.register({ name:"set_step_param", description:"Set velocity/accent/flam for a step", category:"step-seq", parameters:{ track_index:{type:"number",description:"Track index",required:true}, step:{type:"number",description:"Step index",required:true}, param:{type:"string",description:"Parameter",required:true,enum:["velocity","accent","flam","prob"]}, value:{type:"number",description:"Parameter value",required:true} } },

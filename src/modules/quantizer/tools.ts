@@ -20,24 +20,57 @@ const SWING_PRESETS: any = {
   "jazz":{amount:50,grid:"swing 8th",feel:"relaxed"}
 };
 
+const GRID: Record<string, number> = { "1/4":1, "1/8":0.5, "1/8t":1/3, "1/16":0.25, "1/16t":1/6, "1/32":0.125 };
+function getClip(song: any, ti: number, ci: number) {
+  const t = song?.tracks?.[ti];
+  return t?.clipSlots?.[ci ?? 0]?.clip ?? t?.arrangementClips?.[ci ?? 0] ?? null;
+}
+
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
   reg.register({ name:"get_clip_info", description:"Get MIDI clip timing info", category:"quantize", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true} } },
     async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      return { success:true, data:{ trackName:track?.name||"Unknown", noteCount:Math.floor(Math.random()*80)+20, averageVelocity:Math.floor(Math.random()*40)+60, timingAccuracy:(Math.random()*30+60).toFixed(1), hasSwing:Math.random()>0.5 } };
+      const clip = getClip(song, args.track_index, args.clip_index);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const notes = clip.notes || [];
+      const vels = notes.map((n: any) => n.velocity ?? 100);
+      return { success:true, data:{ clipName:clip.name, noteCount:notes.length, duration:clip.duration, looping:!!clip.looping,
+        averageVelocity: vels.length ? Math.round(vels.reduce((a: number, b: number) => a + b, 0) / vels.length) : 0 } };
     }
   );
 
   reg.register({ name:"quantize", description:"Quantize MIDI clip with strength and swing", category:"quantize", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, grid:{type:"string",description:"Grid resolution",required:false,enum:["1/4","1/8","1/8t","1/16","1/16t","1/32"]}, strength:{type:"number",description:"Quantize strength 0-100%",required:false}, swing:{type:"number",description:"Swing amount 0-100%",required:false}, apply_to_ends:{type:"boolean",description:"Quantize note ends too",required:false} } },
-    async (args: any) => ({ success:true, data:{ quantized:true, trackIndex:args.track_index, clipIndex:args.clip_index, grid:args.grid||"1/16", strength:args.strength||80, swing:args.swing||0, notesAffected:Math.floor(Math.random()*60)+10 } })
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const g = GRID[args.grid || "1/16"] ?? 0.25;
+      const strength = (args.strength ?? 100) / 100, swing = (args.swing ?? 0) / 100;
+      const notes = (clip.notes || []).slice();
+      for (const n of notes) {
+        const slot = Math.round(n.startTime / g);
+        let target = n.startTime + (slot * g - n.startTime) * strength;
+        if (swing > 0 && slot % 2 === 1) target += g * 0.5 * swing;
+        n.startTime = Math.max(0, target);
+        if (args.apply_to_ends) n.duration = Math.max(g, Math.round(n.duration / g) * g);
+      }
+      clip.notes = notes;
+      return { success:true, data:{ quantized:true, grid:args.grid || "1/16", strength:args.strength ?? 100, swing:args.swing ?? 0, notesAffected:notes.length } };
+    }
   );
 
-  reg.register({ name:"apply_swing", description:"Apply swing template to clip", category:"quantize", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, preset:{type:"string",description:"Swing preset",required:false,enum:["hip-hop","house","latin","shuffle","jazz","custom"]}, amount:{type:"number",description:"Custom swing amount",required:false}, randomize:{type:"number",description:"Randomize amount 0-100",required:false} } },
-    async (args: any) => {
+  reg.register({ name:"apply_swing", description:"Apply swing template to clip", category:"quantize", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, preset:{type:"string",description:"Swing preset",required:false,enum:["hip-hop","house","latin","shuffle","jazz","custom"]}, amount:{type:"number",description:"Custom swing amount",required:false} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
       const preset = SWING_PRESETS[args.preset];
-      return { success:true, data:{ applied:true, preset:args.preset||"custom", amount:args.amount||preset?.amount||50, feel:preset?.feel||"custom", notesModified:Math.floor(Math.random()*50)+10 } };
+      const amount = (args.amount ?? preset?.amount ?? 50) / 100;
+      const g = 0.25;
+      const notes = (clip.notes || []).slice();
+      let mod = 0;
+      for (const n of notes) { if (Math.round(n.startTime / g) % 2 === 1) { n.startTime += g * 0.5 * amount; mod++; } }
+      clip.notes = notes;
+      return { success:true, data:{ applied:true, preset:args.preset || "custom", amount:Math.round(amount * 100), feel:preset?.feel || "custom", notesModified:mod } };
     }
   );
 
@@ -46,7 +79,19 @@ export function createToolRegistry() {
   );
 
   reg.register({ name:"groove_extract", description:"Extract groove from one clip and apply to another", category:"quantize", parameters:{ source_track:{type:"number",description:"Source track index",required:true}, source_clip:{type:"number",description:"Source clip index",required:true}, target_track:{type:"number",description:"Target track index",required:true}, target_clip:{type:"number",description:"Target clip index",required:true}, amount:{type:"number",description:"Groove amount 0-100%",required:false} } },
-    async (args: any) => ({ success:true, data:{ extracted:true, amount:args.amount||80, grooveProfile:"16th_note_offset", timingChanges:Math.floor(Math.random()*30)+5 } })
+    async (args: any, song: any) => {
+      const src = getClip(song, args.source_track, args.source_clip);
+      const tgt = getClip(song, args.target_track, args.target_clip);
+      if (!src || !tgt) return { success:false, error:"Source or target MIDI clip not found" };
+      const g = 0.25, amount = (args.amount ?? 80) / 100;
+      const offsets = new Map<number, number>();
+      for (const n of (src.notes || [])) { const slot = Math.round(n.startTime / g); offsets.set(slot, n.startTime - slot * g); }
+      const notes = (tgt.notes || []).slice();
+      let changes = 0;
+      for (const n of notes) { const slot = Math.round(n.startTime / g); const off = offsets.get(slot); if (off !== undefined) { n.startTime = Math.max(0, slot * g + off * amount); changes++; } }
+      tgt.notes = notes;
+      return { success:true, data:{ extracted:true, applied:true, amount:args.amount ?? 80, timingChanges:changes } };
+    }
   );
 
   return reg;

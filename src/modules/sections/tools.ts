@@ -17,17 +17,16 @@ export function createToolRegistry() {
 
   reg.register({ name:"get_sections", description:"Detect and list arrangement sections", category:"sections", parameters:{} },
     async (_a: any, song: any) => {
-      const markers = song.markers || [];
-      const sections = markers.length > 0 ? markers.map((m: any, i: number) => ({
-        name:m.name||`Section ${i+1}`, startTime:m.time||i*16, duration:16, color:["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4"][i%4],
-        tempo:Math.floor(Math.random()*30+110), energy:`${Math.floor(Math.random()*60+30)}%`
-      })) : [
-        { name:"Intro", startTime:0, duration:8, color:"#FF6B6B", tempo:120, energy:"30%" },
-        { name:"Verse", startTime:8, duration:16, color:"#4ECDC4", tempo:120, energy:"50%" },
-        { name:"Chorus", startTime:24, duration:16, color:"#45B7D1", tempo:120, energy:"80%" },
-        { name:"Bridge", startTime:40, duration:8, color:"#96CEB4", tempo:120, energy:"40%" },
-        { name:"Outro", startTime:48, duration:8, color:"#FFEAA7", tempo:120, energy:"20%" }
-      ];
+      // Real arrangement markers are the Set's cue points (locators).
+      const cues = (song.cuePoints || []).slice().sort((a: any, b: any) => a.time - b.time);
+      const sections = cues.map((c: any, i: number) => {
+        const next = cues[i + 1];
+        return {
+          index:i, name:c.name || `Section ${i + 1}`, startTime:c.time,
+          endTime: next ? next.time : null, duration: next ? next.time - c.time : null,
+          color:["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFEAA7"][i % 5],
+        };
+      });
       return { success:true, data:{ sectionCount:sections.length, sections } };
     }
   );

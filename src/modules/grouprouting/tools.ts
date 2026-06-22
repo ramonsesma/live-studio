@@ -17,10 +17,18 @@ export function createToolRegistry() {
 
   reg.register({ name:"list_groups", description:"List all group tracks and their members", category:"group-routing", parameters:{} },
     async (_a: any, song: any) => {
-      const groups = (song.tracks||[]).filter((t: any) => t.type === "group").map((t: any, i: number) => ({
-        index:song.tracks.indexOf(t), name:t.name||`Group ${i+1}`, memberCount:Math.floor(Math.random()*4+2), members:Array.from({length:3},(_,j)=>`Track ${i*4+j+1}`)
-      }));
-      return { success:true, data:{ groups, totalGroups:groups.length, totalTracks:song.tracks?.length||0 } };
+      // Real grouping: each track exposes its parent via track.groupTrack.
+      const tracks = song.tracks || [];
+      const byGroup = new Map<number, any>();
+      tracks.forEach((t: any, i: number) => {
+        const g = t.groupTrack;
+        if (!g) return;
+        const gi = tracks.indexOf(g);
+        if (!byGroup.has(gi)) byGroup.set(gi, { index:gi, name:g.name || `Group ${gi}`, members:[] });
+        byGroup.get(gi).members.push({ index:i, name:t.name || `Track ${i+1}` });
+      });
+      const groups = [...byGroup.values()].map((g: any) => ({ ...g, memberCount:g.members.length }));
+      return { success:true, data:{ groups, totalGroups:groups.length, totalTracks:tracks.length } };
     }
   );
 

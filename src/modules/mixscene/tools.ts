@@ -18,12 +18,23 @@ export function createToolRegistry() {
 
   reg.register({ name:"save_scene", description:"Save current mixer state as a scene", category:"mix-scene", parameters:{ name:{type:"string",description:"Scene name",required:true}, snapshot_tracks:{type:"string",description:"Comma-separated track indices, or 'all'",required:false}, include_volume:{type:"boolean",description:"Snapshot volume",required:false}, include_pan:{type:"boolean",description:"Snapshot pan",required:false}, include_mute:{type:"boolean",description:"Snapshot mute/solo",required:false}, include_sends:{type:"boolean",description:"Snapshot send levels",required:false}, include_devices:{type:"boolean",description:"Snapshot device params",required:false} } },
     async (args: any, song: any) => {
-      const snapshot = {
-        id:scenes.length+1, name:args.name, timestamp:new Date().toISOString(),
-        tracks:(song.tracks||[]).slice(0,5).map((t: any, i: number) => ({ index:i, name:t.name||`Track ${i+1}`, volume:-6+Math.random()*12, pan:Math.random()*2-1, muted:false, solo:false, sends:[0.5,0.3] }))
-      };
+      const which = args.snapshot_tracks && args.snapshot_tracks !== "all"
+        ? String(args.snapshot_tracks).split(",").map((s: string)=>parseInt(s.trim())).filter((n: number)=>!isNaN(n))
+        : (song.tracks||[]).map((_: any, i: number) => i);
+      const tracks = [];
+      for (const i of which) {
+        const t = song.tracks?.[i]; if (!t) continue;
+        tracks.push({
+          index:i, name:t.name||`Track ${i+1}`,
+          volume: t.mixer?.volume ? await t.mixer.volume.getValue() : null,
+          pan: t.mixer?.panning ? await t.mixer.panning.getValue() : null,
+          muted: !!t.mute, solo: !!t.solo,
+          sends: t.mixer?.sends ? await Promise.all(t.mixer.sends.map((s: any) => s.getValue())) : [],
+        });
+      }
+      const snapshot = { id:scenes.length+1, name:args.name, timestamp:new Date().toISOString(), tracks };
       scenes.push(snapshot);
-      return { success:true, data:{ sceneSaved:true, sceneId:snapshot.id, sceneName:args.name, trackCount:(song.tracks||[]).length } };
+      return { success:true, data:{ sceneSaved:true, sceneId:snapshot.id, sceneName:args.name, trackCount:tracks.length } };
     }
   );
 

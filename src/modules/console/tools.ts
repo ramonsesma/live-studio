@@ -37,9 +37,14 @@ export function createToolRegistry() {
   );
 
   reg.register({ name:"run_script", description:"Run a multi-line script", category:"console", parameters:{ script:{type:"string",description:"Script content (multi-line)",required:true}, timeout:{type:"number",description:"Execution timeout ms",required:false} } },
-    async (args: any) => {
-      const lines = String(args.script).split("\n").length;
-      return { success:true, data:{ executed:true, lines, duration:`${Math.floor(Math.random()*50)+10}ms`, log:["> Script started","✓ All commands executed"] } };
+    async (args: any, song: any) => {
+      const t0 = Date.now();
+      try {
+        const result = await new Function("song", "console", `return (async () => {\n${args.script}\n})();`)(song, console);
+        return { success:true, data:{ executed:true, lines:String(args.script).split("\n").length, durationMs:Date.now()-t0, result: result === undefined ? null : result } };
+      } catch (e: any) {
+        return { success:false, error: e?.message || String(e) };
+      }
     }
   );
 

@@ -6,15 +6,15 @@
 
 <p align="center">
   <b>Una super-extensión modular para Ableton Live.</b><br/>
-  94 módulos · 456 tools · 1293 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
+  94 módulos · 409 tools · 1293 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-94-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-456-6cc6ff" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-409-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-1293-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-19-9370db" />
+  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-12-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-118%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue" />
@@ -38,16 +38,16 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 
 ## ✨ Características
 
-- **94 módulos** (93 visibles + 1 oculto) con **456 tools reales** repartidos por categorías:
+- **94 módulos** (93 visibles + 1 oculto) con **409 tools reales** repartidos por categorías:
   generación musical, drums, mezcla/mastering, EQ/análisis, síntesis, sampling, arreglo,
   performance/live, MIDI, hardware/control, gestión de proyectos, conversión audio↔MIDI y más.
 - **Copiloto IA** (OpenRouter / OpenAI / OpenCode Zen) con loop de *tool-calling*: recibe las
-  definiciones de los 456 tools y orquesta los módulos por lenguaje natural.
-- **Paleta de comandos rápidos** (`⌘K`): indexa los **456 tools** + **1293 micro-acciones**
+  definiciones de los 409 tools y orquesta los módulos por lenguaje natural.
+- **Paleta de comandos rápidos** (`⌘K`): indexa los **409 tools** + **1293 micro-acciones**
   (extraídas de 215 micro-extensiones) y las ejecuta con teclado.
-- **19 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
-  rueda Camelot, grafos, curvas de automatización, matriz de modulación, mixer con faders/VU,
-  rejillas de pasos y pads, medidores de estéreo, espectrograma…
+- **12 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
+  grafo de clips, matriz de modulación, mixer con faders/VU, rejillas de pasos y pads,
+  mapa de drums, comping…
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
 - **Ligero**: bundle de ~468 KB, sin frameworks de frontend.
@@ -121,7 +121,7 @@ src/
 └── modules/<id>/tools.ts # cada módulo = su toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + paleta
-└── panels/<id>.js                        # 19 paneles ricos
+└── panels/<id>.js                        # 12 paneles ricos
 ```
 
 ### Añadir un módulo (3 pasos)
@@ -134,10 +134,9 @@ public/
 
 ### Paneles ricos
 Crea `public/panels/<id>.js` que registre `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`
-y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 19: `organizer`, `fxchain`,
-`mixconsole`, `stepseq`, `spectrogram`, `chordpads`, `drums`, `modmatrix`, `drummap`, `harmonic`
-(rueda Camelot), `clipgraph` (grafo), `midimon`, `eq`, `automation` (curva), `notation` (piano-roll),
-`genre`, `sidechain`, `stereo`, `takes`.
+y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 12: `organizer`, `fxchain`,
+`mixconsole`, `stepseq`, `chordpads`, `drums`, `modmatrix`, `drummap`, `clipgraph` (grafo),
+`midimon`, `notation` (piano-roll), `takes`.
 
 ## 🛠️ Desarrollo
 

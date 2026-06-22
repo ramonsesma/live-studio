@@ -18,7 +18,12 @@ export function createToolRegistry() {
 
   reg.register({ name:"save_snapshot", description:"Save current set state", category:"snapshot", parameters:{ name:{type:"string",description:"Snapshot name",required:true}, description:{type:"string",description:"Short description",required:false} } },
     async (args: any, song: any) => {
-      const snap = { id:snapshots.length+1, name:args.name, description:args.description||"", tracks:(song.tracks||[]).slice(0,5).map((t: any, i: number)=>({ index:i, name:t.name||`Track ${i+1}`, volume:Math.random()*100 })), timestamp:new Date().toISOString() };
+      const tracks = [];
+      for (let i = 0; i < (song.tracks||[]).length; i++) {
+        const t = song.tracks[i];
+        tracks.push({ index:i, name:t.name||`Track ${i+1}`, volume: t.mixer?.volume ? await t.mixer.volume.getValue() : null, muted: !!t.mute });
+      }
+      const snap = { id:snapshots.length+1, name:args.name, description:args.description||"", tempo:song.tempo, trackCount:tracks.length, tracks, timestamp:new Date().toISOString() };
       snapshots.push(snap);
       return { success:true, data:{ snapshot:snap, total:snapshots.length } };
     }

@@ -26,11 +26,20 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
       if (!track) return { success:false, error:"Track not found" };
-      const clips = Array.from({length:5}, (_, i) => ({
-        index:i, name:`${track.name||"Track"} Clip ${i+1}`, start:i*4, duration:4,
-        color:CLIP_COLORS[i%CLIP_COLORS.length].hex, velocityAvg:Math.floor(Math.random()*40)+60,
-        pitchRange:`${Math.floor(Math.random()*24+48)}-${Math.floor(Math.random()*24+72)}`
-      }));
+      const slots = track.clipSlots || [];
+      const clips = [];
+      for (let i = 0; i < slots.length; i++) {
+        const c = slots[i]?.clip;
+        if (!c) continue;
+        const notes = c.notes || [];
+        const pitches = notes.map((n: any) => n.pitch);
+        clips.push({
+          index:i, name:c.name, start:c.startTime, duration:c.duration, color:c.color,
+          noteCount:notes.length,
+          velocityAvg: notes.length ? Math.round(notes.reduce((a: number, n: any) => a + (n.velocity ?? 100), 0) / notes.length) : null,
+          pitchRange: pitches.length ? `${Math.min(...pitches)}-${Math.max(...pitches)}` : null,
+        });
+      }
       return { success:true, data:{ trackIndex:args.track_index, trackName:track.name, clipCount:clips.length, clips } };
     }
   );

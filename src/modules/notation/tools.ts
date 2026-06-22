@@ -21,11 +21,15 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
       if (!track) return { success:false, error:"Track not found" };
-      const notes = Array.from({length:20}, (_, i) => {
-        const pitch = Math.floor(Math.random()*24)+60;
-        return { note:NOTE_NAMES[pitch%12]+Math.floor(pitch/12-1), pitch, start:i*0.5, duration:Math.random()>0.5?0.5:1, velocity:Math.floor(Math.random()*40)+60 };
-      });
-      return { success:true, data:{ trackName:track.name, noteCount:notes.length, timeSignature:"4/4", keySignature:"C major", clef:"treble", notes } };
+      const clip = track.clipSlots?.[args.clip_index ?? 0]?.clip ?? track.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip) return { success:false, error:"Clip not found" };
+      const notes = (clip.notes || [])
+        .slice()
+        .sort((a: any, b: any) => a.startTime - b.startTime)
+        .map((n: any) => ({ note:NOTE_NAMES[n.pitch % 12] + Math.floor(n.pitch / 12 - 1), pitch:n.pitch, start:n.startTime, duration:n.duration, velocity:n.velocity ?? 100 }));
+      const key = `${NOTE_NAMES[(song.rootNote || 0) % 12]} ${song.scaleName || "Major"}`;
+      const ts = Array.isArray(song.timeSignature) ? song.timeSignature.join("/") : "4/4";
+      return { success:true, data:{ trackName:track.name, noteCount:notes.length, timeSignature:ts, keySignature:key, clef:"treble", notes } };
     }
   );
 

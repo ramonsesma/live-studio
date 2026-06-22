@@ -38,7 +38,23 @@ export function createToolRegistry() {
   );
 
   reg.register({ name:"apply_voice_leading", description:"Apply voice leading to a chord progression clip", category:"harmony", parameters:{ track_index:{type:"number",description:"Track index",required:true}, voicing:{type:"string",description:"Voicing type",required:false,enum:Object.keys(VOICINGS)}, smooth:{type:"boolean",description:"Use smooth voice leading",required:false} } },
-    async (args: any) => ({ success:true, data:{ applied:true, trackIndex:args.track_index, voicing:args.voicing||"close", smooth:args.smooth!==false, voiceLeadingScore:Math.floor(Math.random()*30)+70 } })
+    async (args: any, song: any) => {
+      const clip = song.tracks?.[args.track_index]?.clipSlots?.[0]?.clip ?? song.tracks?.[args.track_index]?.arrangementClips?.[0];
+      if (!clip) return { success:false, error:"MIDI clip not found on this track" };
+      const notes = (clip.notes || []).slice();
+      // Group simultaneous notes into chords and collapse each into close (within-octave) voicing.
+      const groups = new Map<number, any[]>();
+      for (const n of notes) { const k = Math.round(n.startTime * 1000); if (!groups.has(k)) groups.set(k, []); groups.get(k)!.push(n); }
+      let chords = 0;
+      for (const g of groups.values()) {
+        if (g.length < 2) continue;
+        const lo = Math.min(...g.map((n: any) => n.pitch));
+        for (const n of g) { while (n.pitch - lo >= 12) n.pitch -= 12; }
+        chords++;
+      }
+      clip.notes = notes;
+      return { success:true, data:{ applied:true, trackIndex:args.track_index, voicing:args.voicing || "close", chordsRevoiced:chords, noteCount:notes.length } };
+    }
   );
 
   reg.register({ name:"generate_chord_clip", description:"Generate a chord progression MIDI clip from scale degrees", category:"harmony", parameters:{ key:{type:"string",description:"Root key (C, D, E, etc)",required:true}, scale:{type:"string",description:"Scale type",required:true,enum:["major","minor","dorian","phrygian","lydian","mixolydian"]}, degrees:{type:"string",description:"Comma-separated scale degrees (e.g. I,IV,V)",required:true}, track_index:{type:"number",description:"Target track",required:false} } },

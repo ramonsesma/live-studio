@@ -33,22 +33,11 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ tuned:true, note:args.note, noteName:NOTE_NAMES[args.note%12], cents:args.cents, scale:args.scale||"custom" } })
   );
 
-  reg.register({ name:"apply_scale", description:"Apply a microtonal scale to a MIDI clip", category:"microtonal", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, scale_name:{type:"string",description:"Scale to apply",required:true,enum:["12-tet","quarter-tone","just","slendro","bohlen-pierce","pelog","custom"]}, root_freq:{type:"number",description:"Root frequency in Hz",required:false} } },
-    async (args: any) => {
-      const scale = SCALES.find((s: any)=>s.name.toLowerCase().includes(String(args.scale_name).toLowerCase().substring(0,3)));
-      return { success:true, data:{ applied:true, scale:args.scale_name, rootFreq:args.root_freq||261.63, notesRetuned:Math.floor(Math.random()*40)+10, centsPerNote:scale?.centsPerNote||"variable" } };
-    }
-  );
-
   reg.register({ name:"import_scl", description:"Import tuning from .scl file format", category:"microtonal", parameters:{ scl_data:{type:"string",description:"SCL file content",required:true} } },
     async (args: any) => {
       const lines = String(args.scl_data).split("\n").filter((l: string)=>l.trim()&&!l.startsWith("!"));
       return { success:true, data:{ imported:true, description:lines[0]||"Imported Scale", noteCount:lines.length-1, format:"SCL" } };
     }
-  );
-
-  reg.register({ name:"retune_clip", description:"Retune entire MIDI clip by cents offset", category:"microtonal", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, cents:{type:"number",description:"Global cents offset",required:true}, preserve_notation:{type:"boolean",description:"Preserve displayed note names",required:false} } },
-    async (args: any) => ({ success:true, data:{ retuned:true, cents:args.cents, notesAffected:Math.floor(Math.random()*50)+10, preserveNotation:args.preserve_notation!==false } })
   );
 
   return reg;

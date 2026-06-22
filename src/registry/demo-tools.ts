@@ -4,27 +4,4 @@
 // Regenerate with: npm run gen:demo
 
 export const DEMO_TOOLS: ReadonlySet<string> = new Set([
-  "clipgraph__build_graph",
-  "clipgraph__find_related",
-  "colorizer__get_track_clips",
-  "console__run_script",
-  "drummap__get_drum_rack",
-  "groove__apply_groove",
-  "groove__extract_groove",
-  "groove__extract_velocity",
-  "grouprouting__list_groups",
-  "harmonizer__apply_voice_leading",
-  "microtonal__apply_scale",
-  "microtonal__retune_clip",
-  "mixscene__save_scene",
-  "notation__get_clip_notes",
-  "quantizer__apply_swing",
-  "quantizer__get_clip_info",
-  "quantizer__groove_extract",
-  "quantizer__quantize",
-  "sections__get_sections",
-  "snapshots__save_snapshot",
-  "stepseq__toggle_step",
-  "tempotap__tap",
-  "tempotap__tap_history",
 ]);

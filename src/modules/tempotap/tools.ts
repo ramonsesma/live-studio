@@ -14,11 +14,22 @@ export class ToolRegistry {
 
 export function createToolRegistry() {
   const reg = new ToolRegistry();
+  const taps: number[] = []; // real tap timestamps (ms), server-side
 
-  reg.register({ name:"tap", description:"Record a tap for BPM detection", category:"tempo", parameters:{} },
-    async () => {
-      const bpm = Math.round(100 + Math.random() * 60);
-      return { success:true, data:{ tapRecorded:true, currentBpm:bpm, confidence:0.92, tapCount:5, suggestedTempo:bpm } };
+  reg.register({ name:"tap", description:"Record a tap; computes BPM from real intervals and sets the tempo", category:"tempo", parameters:{ apply:{type:"boolean",description:"Apply the detected tempo to the Set (default true)",required:false} } },
+    async (args: any, song: any) => {
+      const now = Date.now();
+      if (taps.length && now - taps[taps.length - 1] > 3000) taps.length = 0; // reset after a pause
+      taps.push(now);
+      if (taps.length > 8) taps.shift();
+      let bpm: number | null = null;
+      if (taps.length >= 2) {
+        const intervals = []; for (let i = 1; i < taps.length; i++) intervals.push(taps[i] - taps[i - 1]);
+        const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+        bpm = Math.round(60000 / avg);
+        if (args.apply !== false && bpm >= 20 && bpm <= 300 && song) song.tempo = bpm;
+      }
+      return { success:true, data:{ tapRecorded:true, tapCount:taps.length, currentBpm:bpm, appliedTempo: (args.apply !== false && bpm) ? bpm : null } };
     }
   );
 
@@ -35,10 +46,9 @@ export function createToolRegistry() {
 
   reg.register({ name:"tap_history", description:"Get recent tap history", category:"tempo", parameters:{} },
     async () => {
-      const taps = Array.from({length:5}, (_, i) => ({ id:i+1, time:`${(6-i)*0.5}s ago`, interval:1000/(120+(i-2)*2)+Math.random()*50 }));
-      const intervals = taps.map((t: any)=>t.interval);
-      const avg = intervals.reduce((a: number,b: number)=>a+b,0)/intervals.length;
-      return { success:true, data:{ taps, averageBpm:Math.round(60000/avg), lastTaps:taps.length } };
+      const intervals = []; for (let i = 1; i < taps.length; i++) intervals.push(taps[i] - taps[i - 1]);
+      const avg = intervals.length ? intervals.reduce((a, b) => a + b, 0) / intervals.length : 0;
+      return { success:true, data:{ tapCount:taps.length, intervals, averageBpm: avg ? Math.round(60000 / avg) : null } };
     }
   );
 

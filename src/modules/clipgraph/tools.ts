@@ -17,16 +17,44 @@ export function createToolRegistry() {
 
   reg.register({ name:"build_graph", description:"Build clip relationship graph", category:"graph", parameters:{ track_indices:{type:"string",description:"Comma-separated track indices or 'all'",required:false}, relationship_types:{type:"string",description:"Comma-separated: follows,similar,derived,copied,harmonic",required:false} } },
     async (args: any, song: any) => {
-      const tracks = (args.track_indices||"").split(",").map((s: string)=>parseInt(s.trim())).filter((n: number)=>!isNaN(n));
-      const nodes = (tracks.length?tracks:(song.tracks||[]).slice(0,4).map((_: any, i: number)=>i)).map((i: number)=>({ id:`clip_${i}`, label:`Clip ${i}`, track:i, x:Math.random()*800, y:Math.random()*600 }));
-      const edges = nodes.slice(0,-1).map((n: any, i: number)=>({ source:n.id, target:nodes[i+1].id, type:["follows","similar","harmonic"][i%3], weight:0.5+Math.random()*0.5 }));
+      const sel = String(args.track_indices||"").split(",").map((s: string)=>parseInt(s.trim())).filter((n: number)=>!isNaN(n));
+      const trackIdx = sel.length ? sel : (song.tracks||[]).map((_: any, i: number)=>i);
+      const nodes: any[] = [];
+      for (const ti of trackIdx) {
+        const t = song.tracks?.[ti]; if (!t) continue;
+        (t.clipSlots||[]).forEach((s: any, si: number) => {
+          if (!s?.clip) return;
+          nodes.push({ id:`t${ti}_c${si}`, label:s.clip.name||`Clip ${si}`, track:ti, slot:si, color:s.clip.color, noteCount:(s.clip.notes||[]).length });
+        });
+      }
+      // Real edges: clips on the same track (sequence) or sharing a clip color.
+      const edges: any[] = [];
+      for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+        if (nodes[i].track === nodes[j].track) edges.push({ source:nodes[i].id, target:nodes[j].id, type:"same-track", weight:0.6 });
+        else if (nodes[i].color != null && nodes[i].color === nodes[j].color) edges.push({ source:nodes[i].id, target:nodes[j].id, type:"same-color", weight:0.4 });
+      }
+      // Deterministic radial layout for the panel.
+      nodes.forEach((n, i) => { const a = (i / Math.max(1, nodes.length)) * Math.PI * 2; n.x = 400 + Math.cos(a) * 250; n.y = 300 + Math.sin(a) * 200; });
       return { success:true, data:{ nodes, edges, nodeCount:nodes.length, edgeCount:edges.length } };
     }
   );
 
-  reg.register({ name:"find_related", description:"Find clips related to a source clip", category:"graph", parameters:{ clip_id:{type:"string",description:"Source clip ID",required:true}, max_distance:{type:"number",description:"Max graph distance",required:false}, relationship_filter:{type:"string",description:"Filter by relationship",required:false} } },
-    async (args: any) => {
-      const related = Array.from({length:5},(_, i)=>({ clipId:`clip_${i+10}`, relationship:["follows","similar","harmonic","derived","copied"][i], strength:0.5+Math.random()*0.5 }));
+  reg.register({ name:"find_related", description:"Find clips related to a source clip", category:"graph", parameters:{ clip_id:{type:"string",description:"Source clip ID (t<track>_c<slot>)",required:true}, relationship_filter:{type:"string",description:"Filter by relationship",required:false} } },
+    async (args: any, song: any) => {
+      const m = String(args.clip_id).match(/t(\d+)_c(\d+)/);
+      const related: any[] = [];
+      if (m) {
+        const ti = +m[1], si = +m[2];
+        const src = song.tracks?.[ti]?.clipSlots?.[si]?.clip;
+        if (src) {
+          (song.tracks||[]).forEach((t: any, tj: number) => (t.clipSlots||[]).forEach((s: any, sj: number) => {
+            if (!s?.clip || (tj === ti && sj === si)) return;
+            let rel: string | null = null;
+            if (tj === ti) rel = "same-track"; else if (s.clip.color != null && s.clip.color === src.color) rel = "same-color";
+            if (rel && (!args.relationship_filter || args.relationship_filter === rel)) related.push({ clipId:`t${tj}_c${sj}`, name:s.clip.name, relationship:rel });
+          }));
+        }
+      }
       return { success:true, data:{ source:args.clip_id, related, count:related.length } };
     }
   );

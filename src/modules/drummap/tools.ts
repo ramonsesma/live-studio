@@ -22,11 +22,14 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
       if (!track) return { success:false, error:"Track not found" };
-      const pads = Object.entries(GM_DRUM_MAP).slice(0,8).map(([note,name]: any) => ({
-        note:Number(note), noteName:NOTE_NAMES[Number(note)%12], name,
-        color:`hsl(${Math.random()*360},70%,60%)`, output:"Master", mute:false, solo:false
+      // Find a Drum Rack among the track's real devices and read its pad chains.
+      const rack = (track.devices || []).find((d: any) => d?.constructor?.name === "DrumRack" || /drum\s*rack/i.test(d?.name || ""));
+      if (!rack) return { success:false, error:"No Drum Rack on this track" };
+      const chains = rack.chains || [];
+      const pads = chains.map((c: any, i: number) => ({
+        index:i, name:c?.name || `Pad ${i+1}`, deviceCount:(c?.devices || []).length,
       }));
-      return { success:true, data:{ trackName:track.name, padCount:pads.length, pads } };
+      return { success:true, data:{ trackName:track.name, deviceName:rack.name, padCount:pads.length, pads } };
     }
   );
 
