@@ -31,21 +31,8 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ mapped:true, controller:args.controller, element:args.element, parameter:args.parameter, midiLearn:`${args.controller}:${args.element} → Track ${args.track_index}:${args.parameter}`, curve:args.curve||"linear" } })
   );
 
-  reg.register({ name:"get_controller_layout", description:"Get layout/matrix of a controller", category:"controller", parameters:{ controller:{type:"string",description:"Controller name",required:true} } },
-    async (args: any) => {
-      const ctrl = CONTROLLERS.find((c: any)=>c.name===args.controller);
-      if (!ctrl) return { success:false, error:"Controller not found" };
-      const grid = ctrl.type.includes("grid") ? Array.from({length:ctrl.width||8}, (_, x) => Array.from({length:ctrl.height||8}, (_, y) => ({
-        id:`pad_${x+1}_${y+1}`, x, y, color:"#333", assigned:Math.random()>0.5, parameter:Math.random()>0.5?`Track ${Math.floor(Math.random()*4+1)}:Volume`:null
-      }))) : [];
-      return { success:true, data:{ controller:ctrl, grid, knobs:ctrl.type.includes("knobs")?8:0, faders:ctrl.type.includes("faders")?9:0 } };
-    }
-  );
-
-  reg.register({ name:"save_mapping", description:"Save current controller mapping as a preset", category:"controller", parameters:{ name:{type:"string",description:"Mapping preset name",required:true}, controller:{type:"string",description:"Controller name",required:true} } },
-    async (args: any) => ({ success:true, data:{ saved:true, name:args.name, controller:args.controller, mappingCount:Math.floor(Math.random()*16+8), timestamp:new Date().toISOString() } })
-  );
-
+  
+  
   reg.register({ name:"set_feedback", description:"Configure LED feedback for a controller", category:"controller", parameters:{ controller:{type:"string",description:"Controller name",required:true}, mode:{type:"string",description:"Feedback mode",required:false,enum:["off","on","value","velocity","rainbow","custom"]} } },
     async (args: any) => ({ success:true, data:{ feedbackSet:true, controller:args.controller, mode:args.mode||"value", ledsUpdated:64 } })
   );

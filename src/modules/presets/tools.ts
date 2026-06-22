@@ -22,16 +22,7 @@ const PRESET_CATEGORIES: any = {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"browse_presets", description:"Browse Live's built-in device presets", category:"presets", parameters:{ device_type:{type:"string",description:"Device type",required:false,enum:["synth","fx","instrument","drums"]}, query:{type:"string",description:"Search text",required:false}, category:{type:"string",description:"Category filter",required:false} } },
-    async (args: any) => {
-      const cats = PRESET_CATEGORIES[args.device_type||"synth"]||PRESET_CATEGORIES.synth;
-      const presets = cats.slice(0,5).flatMap((cat: string, i: number) =>
-        Array.from({length:4}, (_, j) => ({ id:i*4+j+1, name:`${cat} ${["Classic","Warm","Bright","Modern"][j]}`, category:cat, deviceType:args.device_type||"synth", author:"Built-in", rating:Math.floor(Math.random()*2+3) }))
-      );
-      return { success:true, data:{ presets, totalPresets:342, deviceType:args.device_type||"all", searchQuery:args.query||"" } };
-    }
-  );
-
+  
   reg.register({ name:"load_preset", description:"Load a device preset onto a track", category:"presets", parameters:{ preset_id:{type:"number",description:"Preset ID",required:true}, track_index:{type:"number",description:"Track index",required:true}, device_index:{type:"number",description:"Target device index",required:false} } },
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];

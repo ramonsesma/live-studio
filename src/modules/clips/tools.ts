@@ -27,10 +27,7 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"organize_clips_by_mood", description:"Organize clips by mood/tag", category:"organization", parameters:{ mood:{type:"string",description:"Mood tag",required:false,enum:["energy","calm","dark","bright","ambient","rhythmic"]} } },
-    async (args: any) => ({ success:true, data:{ organized:true, mood:args.mood||"all", clipsCount:Math.floor(Math.random()*20)+5 } })
-  );
-
+  
   reg.register({ name:"create_launch_group", description:"Create a clip launch group", category:"launch", parameters:{ name:{type:"string",description:"Group name",required:true}, clip_indices:{type:"array",description:"Clip indices to include",required:true}, launch_mode:{type:"string",description:"Launch mode",required:false,enum:["toggle","trigger","gate","repeat"]} } },
     async (args: any) => ({ success:true, data:{ name:args.name, launchMode:args.launch_mode||"toggle", clips:args.clip_indices } })
   );

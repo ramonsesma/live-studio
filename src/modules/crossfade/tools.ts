@@ -29,14 +29,8 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ applied:true, length:args.length||2, curve:args.curve||"equal-power", symmetric:args.symmetric!==false, trackIndex:args.track_index } })
   );
 
-  reg.register({ name:"auto_crossfade", description:"Auto-create crossfades for all overlapping clips on track", category:"crossfade", parameters:{ track_index:{type:"number",description:"Track index",required:true}, default_length:{type:"number",description:"Default fade length in beats",required:false}, curve:{type:"string",description:"Default curve",required:false,enum:["linear","equal-power","equal-gain"]} } },
-    async (args: any) => ({ success:true, data:{ autoApplied:true, trackIndex:args.track_index, fadesCreated:Math.floor(Math.random()*4)+2, defaultLength:args.default_length||2, curve:args.curve||"equal-power" } })
-  );
-
-  reg.register({ name:"remove_crossfades", description:"Remove all crossfades on a track", category:"crossfade", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
-    async (args: any) => ({ success:true, data:{ removed:true, trackIndex:args.track_index, fadesRemoved:Math.floor(Math.random()*5)+1 } })
-  );
-
+  
+  
   reg.register({ name:"get_fade_curves", description:"Get available fade curve types", category:"crossfade", parameters:{} },
     async () => ({ success:true, data:{ curves:[
       { name:"linear", desc:"Constant rate of change" },

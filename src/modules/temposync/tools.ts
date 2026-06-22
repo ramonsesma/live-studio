@@ -36,14 +36,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => { song.timeSignature = [args.numerator, args.denominator]; return { success:true, data:{ timeSignature:[args.numerator, args.denominator] } }; }
   );
 
-  reg.register({ name:"detect_tempo", description:"Detect tempo from audio clips", category:"analysis", parameters:{ track_index:{type:"number",description:"Track to analyze",required:true} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      if (!track) return { success:false, error:`Track ${args.track_index} not found` };
-      return { success:true, data:{ detectedTempo:110 + Math.floor(Math.random()*30), confidence:0.85 + Math.random()*0.1, trackIndex:args.track_index } };
-    }
-  );
-
+  
   reg.register({ name:"warp_clips", description:"Warp clips to tempo", category:"sync", parameters:{ track_index:{type:"number",description:"Track",required:true}, mode:{type:"string",description:"Warp mode",required:false,enum:["beats","tones","texture","re-pitch","complex","complex_pro"]} } },
     async (args: any) => ({ success:true, data:{ warped:true, mode:args.mode||"beats", trackIndex:args.track_index } })
   );

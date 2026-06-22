@@ -22,17 +22,8 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"overdub", description:"Overdub a new layer onto the current loop", category:"looper", parameters:{ track_index:{type:"number",description:"Track index",required:true}, mode:{type:"string",description:"Overdub mode",required:false,enum:["add","replace","multiply"]} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      return { success:true, data:{ overdubbed:true, mode:args.mode||"add", trackName:track?.name||"Unknown", layersCount:Math.floor(Math.random()*3)+2 } };
-    }
-  );
-
-  reg.register({ name:"multiply_loop", description:"Multiply (duplicate and layer) the current loop", category:"looper", parameters:{ track_index:{type:"number",description:"Track index",required:true}, times:{type:"number",description:"Number of multiplications",required:false} } },
-    async (args: any) => ({ success:true, data:{ multiplied:true, times:args.times||2, newLength:(args.times||2)*4, layers:Math.floor(Math.random()*3)+1 } })
-  );
-
+  
+  
   reg.register({ name:"undo_layer", description:"Undo the last loop recording layer", category:"looper", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
     async () => ({ success:true, data:{ undone:true, previousLayers:3, remainingLayers:2 } })
   );
@@ -41,12 +32,6 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ lengthChanged:true, newLength:args.bars, timeStretched:true } })
   );
 
-  reg.register({ name:"toggle_play", description:"Toggle loop playback for a track", category:"looper", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
-    async (args: any) => {
-      const isPlaying = Math.random() > 0.5;
-      return { success:true, data:{ trackIndex:args.track_index, wasPlaying:isPlaying, nowPlaying:!isPlaying } };
-    }
-  );
-
+  
   return reg;
 }

@@ -15,13 +15,7 @@ export class ToolRegistry {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"get_tracks_for_cue", description:"Get tracks available for cue mixing", category:"headphone", parameters:{} },
-    async (_a: any, song: any) => {
-      const tracks = song.tracks || [];
-      return { success:true, data:{ trackCount:tracks.length, tracks:tracks.map((t: any, i: number)=>({ index:i, name:t.name||`Track ${i+1}`, cueLevel:Math.random()*0.8, cuePan:Math.random()*2-1, muteInCue:i>2 })) } };
-    }
-  );
-
+  
   reg.register({ name:"set_cue_mix", description:"Set cue mix level for a track", category:"headphone", parameters:{ track_index:{type:"number",description:"Track index",required:true}, level:{type:"number",description:"Cue level 0-1",required:true}, pan:{type:"number",description:"Cue pan -1 to 1",required:false} } },
     async (args: any) => ({ success:true, data:{ set:true, trackIndex:args.track_index, level:args.level, pan:args.pan||0 } })
   );

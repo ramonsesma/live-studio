@@ -23,10 +23,7 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"stop_recording", description:"Stop recording and keep clips", category:"performance", parameters:{ quantize:{type:"boolean",description:"Quantize to grid",required:false} } },
-    async () => ({ success:true, data:{ stopped:true, quantized:false, clipsCreated:Math.floor(Math.random()*4)+1 } })
-  );
-
+  
   reg.register({ name:"toggle_mute", description:"Toggle track mute for performance", category:"performance", parameters:{ track_index:{type:"number",description:"Track",required:true} } },
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];

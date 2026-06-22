@@ -30,40 +30,8 @@ export function createToolRegistry() {
     async () => ({ success:true, data:{ genres:GENRE_PROFILES } })
   );
 
-  reg.register({ name:"classify_track", description:"Classify a track by genre", category:"classification", parameters:{ track_index:{type:"number",description:"Track to classify",required:true}, method:{type:"string",description:"Classification method",required:false,enum:["analysis","tempo","name","device"]} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      if (!track) return { success:false, error:`Track ${args.track_index} not found` };
-      const scores: any = {};
-      for (const [genre, profile] of Object.entries(GENRE_PROFILES) as any) {
-        let score = 50 + Math.random() * 50;
-        if (track.name && profile.instruments.some((i: string) => track.name.toLowerCase().includes(i))) score += 20;
-        scores[genre] = Math.min(score, 100);
-      }
-      const sorted = Object.entries(scores).sort(([,a]: any, [,b]: any) => b - a);
-      return { success:true, data:{ trackIndex:args.track_index, trackName:track.name, primaryGenre:sorted[0][0], confidence:sorted[0][1], secondaryGenre:sorted[1][0], allScores:scores } };
-    }
-  );
-
-  reg.register({ name:"classify_all_tracks", description:"Classify all tracks in session", category:"classification", parameters:{} },
-    async (_a: any, song: any) => {
-      const results = song.tracks.map((t: any, i: number) => {
-        const scores: any = {};
-        for (const [genre] of Object.entries(GENRE_PROFILES)) scores[genre] = 50 + Math.random() * 50;
-        const sorted = Object.entries(scores).sort(([,a]: any, [,b]: any) => b - a);
-        return { trackIndex:i, trackName:t.name, primaryGenre:sorted[0][0], confidence:sorted[0][1] };
-      });
-      return { success:true, data:{ tracks:results } };
-    }
-  );
-
-  reg.register({ name:"get_track_recommendations", description:"Get genre-based track recommendations", category:"recommendations", parameters:{ track_index:{type:"number",description:"Track",required:true} } },
-    async () => {
-      const genres = Object.keys(GENRE_PROFILES);
-      const recs = genres.map((g: string) => ({ genre:g, suggestion:`Try ${GENRE_PROFILES[g].instruments[0]} for a ${GENRE_PROFILES[g].name} feel`, confidence:Math.random()*100 }));
-      return { success:true, data:{ recommendations:recs.sort((a: any,b: any)=>b.confidence-a.confidence).slice(0,3) } };
-    }
-  );
-
+  
+  
+  
   return reg;
 }

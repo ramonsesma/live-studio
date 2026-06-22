@@ -15,19 +15,7 @@ export class ToolRegistry {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"get_sidechain_routes", description:"List all sidechain routing in the project", category:"sidechain", parameters:{} },
-    async (_args: any, song: any) => {
-      const tracks = song.tracks || [];
-      const routes = tracks.slice(0, Math.min(tracks.length, 6)).map((t: any, i: number) => ({
-        trackIndex:i, trackName:t.name||`Track ${i+1}`,
-        sidechainEnabled:i > 0 && i < 3,
-        sourceTrack:i > 0 && i < 3 ? Math.floor(Math.random()*(i-1)) : null,
-        sourceName:i > 0 && i < 3 ? tracks[Math.floor(Math.random()*(i-1))]?.name||"kick" : null
-      }));
-      return { success:true, data:{ totalTracks:tracks.length, sidechainCount:routes.filter((r: any)=>r.sidechainEnabled).length, routes } };
-    }
-  );
-
+  
   reg.register({ name:"detect_issues", description:"Detect sidechain routing issues (loops, orphans)", category:"sidechain", parameters:{} },
     async () => {
       const issues = [

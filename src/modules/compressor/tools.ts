@@ -15,23 +15,7 @@ export class ToolRegistry {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"analyze_dynamics", description:"Analyze dynamic range of a track", category:"analysis", parameters:{ track_index:{type:"number",description:"Track",required:true} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      if (!track) return { success:false, error:`Track ${args.track_index} not found` };
-      return { success:true, data:{
-        trackIndex:args.track_index, trackName:track.name,
-        peakLevel:Math.random()*-3, rmsLevel:Math.random()*-12,
-        dynamicRange:8 + Math.random()*12, crestFactor:3 + Math.random()*6,
-        transients:{ count:Math.floor(Math.random()*50), averageStrength:Math.random()*0.7 },
-        recommendations:[
-          { type:"compression", threshold:-18, ratio:3, attack:5, release:100, reason:"Reduce dynamic range" },
-          { type:"limiting", threshold:-0.5, release:50, reason:"Catch peaks" }
-        ]
-      }};
-    }
-  );
-
+  
   reg.register({ name:"apply_compression_preset", description:"Apply compression preset to track", category:"compression", parameters:{ track_index:{type:"number",description:"Track",required:true}, preset:{type:"string",description:"Preset",required:true,enum:["vocal","drum_bus","master","guitar","bass","gentle","heavy"]} } },
     async (args: any) => {
       const presets: any = {

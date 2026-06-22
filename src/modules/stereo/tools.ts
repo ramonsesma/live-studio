@@ -15,24 +15,7 @@ export class ToolRegistry {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"analyze_stereo_field", description:"Analyze stereo field of a track", category:"analysis", parameters:{ track_index:{type:"number",description:"Track",required:true} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      if (!track) return { success:false, error:`Track ${args.track_index} not found` };
-      return { success:true, data:{
-        trackIndex:args.track_index, trackName:track.name,
-        stereoWidth:Math.random()*0.8, correlation:Math.random()*0.9,
-        leftLevel:Math.random()*-6, rightLevel:Math.random()*-6,
-        midSide:{ mid:Math.random()*-6, side:Math.random()*-12 },
-        panInfo:{ pan:0, imbalance:"balanced" },
-        suggestions:[
-          { type:"widen", amount:0.3, method:"ms", reason:"Increase width" },
-          { type:"narrow", amount:0.2, method:"eq", reason:"Tighten low end" }
-        ]
-      }};
-    }
-  );
-
+  
   reg.register({ name:"apply_width_preset", description:"Apply stereo width preset", category:"width", parameters:{ track_index:{type:"number",description:"Track",required:true}, preset:{type:"string",description:"Preset",required:true,enum:["wide","narrow","mono","stereo","ms_enhance","center_focus"]} } },
     async (args: any) => {
       const presets: any = {

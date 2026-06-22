@@ -52,13 +52,7 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"loudness_target", description:"Set loudness target and auto-adjust", category:"mixing", parameters:{ target_lufs:{type:"number",description:"Target LUFS",required:true}, track_indices:{type:"string",description:"Tracks to adjust",required:false} } },
-    async (args: any) => {
-      const tracks = args.track_indices ? String(args.track_indices).split(",").map((s: string)=>parseInt(s.trim())).filter((n: number)=>!isNaN(n)) : [0,1,2,3];
-      return { success:true, data:{ targetLUFS:args.target_lufs, tracksAdjusted:tracks.length, gainApplied:tracks.map(()=>(Math.random()-0.5)*6) } };
-    }
-  );
-
+  
   reg.register({ name:"reference_match", description:"Match mix to reference track", category:"mixing", parameters:{ reference_track:{type:"number",description:"Reference track index",required:true}, target_tracks:{type:"string",description:"Tracks to match",required:false}, match_type:{type:"string",description:"Match type",required:false,enum:["tonal","loudness","both"]} } },
     async (args: any, song: any) => {
       const ref = song.tracks[args.reference_track];

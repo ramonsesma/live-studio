@@ -30,38 +30,9 @@ const CAMELOT_WHEEL: any = {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"get_camelot", description:"Get Camelot wheel info for a track", category:"harmonic", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      const keys = Object.keys(CAMELOT_WHEEL);
-      const code = keys[Math.floor(Math.random()*keys.length)];
-      const info = CAMELOT_WHEEL[code];
-      return { success:true, data:{ trackName:track?.name||"Unknown", detectedKey:info.key, camelotCode:code, confidence:(Math.random()*0.2+0.8).toFixed(2) } };
-    }
-  );
-
-  reg.register({ name:"find_compatible", description:"Find harmonically compatible tracks", category:"harmonic", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
-    async (args: any, song: any) => {
-      const keys = Object.keys(CAMELOT_WHEEL);
-      const code = keys[Math.floor(Math.random()*keys.length)];
-      const info = CAMELOT_WHEEL[code];
-      const compatibles = song.tracks?.map((t: any, i: number) => i !== args.track_index ? { trackIndex:i, name:t.name||`Track ${i+1}`, compatible:Math.random()>0.5, camelotCode:keys[Math.floor(Math.random()*keys.length)], energyChange:Math.random()*2-1 } : null).filter(Boolean) || [];
-      return { success:true, data:{ sourceTrack:args.track_index, sourceKey:info.key, sourceCamelot:code, compatibleTracks:compatibles } };
-    }
-  );
-
-  reg.register({ name:"suggest_transition", description:"Suggest harmonic transition between two tracks", category:"harmonic", parameters:{ from_track:{type:"number",description:"From track index",required:true}, to_track:{type:"number",description:"To track index",required:true} } },
-    async (args: any) => {
-      const transitions = [
-        { type:"Direct", compatibility:"Perfect", description:"Same key, direct transition" },
-        { type:"Energy Boost", compatibility:"Good", description:"Move +1 Camelot for energy rise" },
-        { type:"Energy Drop", compatibility:"Good", description:"Move -1 Camelot for energy drop" },
-        { type:"Key Change", compatibility:"Fair", description:"Use a breakdown/bridge for key change" }
-      ];
-      return { success:true, data:{ from:args.from_track, to:args.to_track, suggestion:transitions[Math.floor(Math.random()*transitions.length)] } };
-    }
-  );
-
+  
+  
+  
   reg.register({ name:"analyze_project_harmony", description:"Analyze harmonic compatibility across all tracks", category:"harmonic", parameters:{} },
     async (_a: any, song: any) => {
       const tracks = song.tracks || [];

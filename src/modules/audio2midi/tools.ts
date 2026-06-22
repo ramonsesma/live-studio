@@ -15,15 +15,7 @@ export class ToolRegistry {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"get_audio_clips", description:"List audio clips available for conversion", category:"audio2midi", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      if (!track) return { success:false, error:"Track not found" };
-      const clips = Array.from({length:3}, (_, i) => ({ index:i, name:`${track.name||"Track"} Clip ${i+1}`, duration:Math.floor(Math.random()*16)+4, sampleRate:44100 }));
-      return { success:true, data:{ trackName:track.name, clipCount:clips.length, clips } };
-    }
-  );
-
+  
   reg.register({ name:"convert_to_midi", description:"Convert audio to MIDI notes", category:"audio2midi", parameters:{ track_index:{type:"number",description:"Audio track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, mode:{type:"string",description:"Conversion mode",required:false,enum:["melody","bass","harmony","full"]}, sensitivity:{type:"number",description:"Pitch detection sensitivity 0-100",required:false}, min_note:{type:"number",description:"Minimum MIDI note",required:false}, max_note:{type:"number",description:"Maximum MIDI note",required:false} } },
     async (args: any, song: any) => {
       const midiTrack = await song.createMidiTrack();

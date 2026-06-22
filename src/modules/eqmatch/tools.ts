@@ -15,14 +15,7 @@ export class ToolRegistry {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"analyze_spectrum", description:"Analyze frequency spectrum of a track", category:"eq-match", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:false}, resolution:{type:"number",description:"FFT resolution (128/256/512/1024)",required:false} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      const bands = Array.from({length:32}, (_, i) => ({ freq:Math.round(20 * Math.pow(2, i*10/32)), level:Math.random()*0.8+0.2, peak:Math.random()>0.7 }));
-      return { success:true, data:{ trackName:track?.name||"Unknown", bands, spectralCentroid:Math.floor(Math.random()*2000+800), dynamicRange:Math.floor(Math.random()*20+10) } };
-    }
-  );
-
+  
   reg.register({ name:"capture_reference", description:"Capture frequency spectrum from a reference track", category:"eq-match", parameters:{ track_index:{type:"number",description:"Reference track index",required:true}, clip_index:{type:"number",description:"Clip index",required:false}, name:{type:"string",description:"Reference profile name",required:false} } },
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
@@ -36,10 +29,7 @@ export function createToolRegistry() {
     ]}})
   );
 
-  reg.register({ name:"match_to_library", description:"Match EQ to a reference from the library", category:"eq-match", parameters:{ target_track:{type:"number",description:"Target track index",required:true}, profile_name:{type:"string",description:"Reference profile name",required:true} } },
-    async (args: any) => ({ success:true, data:{ matched:true, profile:args.profile_name, targetTrack:args.target_track, similarity:Math.floor(Math.random()*20+75) } })
-  );
-
+  
   reg.register({ name:"list_profiles", description:"List saved EQ reference profiles", category:"eq-match", parameters:{} },
     async () => ({ success:true, data:{ profiles:[
       { name:"Pop Master (Reference)", source:"Billie Eilish - Happier", date:"2025-04-15", bands:6 },

@@ -15,21 +15,7 @@ export class ToolRegistry {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"get_macro_mappings", description:"List all macro mappings on a track's devices", category:"macros", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      if (!track) return { success:false, error:"Track not found" };
-      const macros = Array.from({length:8}, (_, i) => ({
-        index:i, name:["Cutoff","Resonance","Env Amount","Decay","LFO Rate","LFO Depth","Wet/Dry","Volume"][i],
-        value:Math.random()*127, min:0, max:127, mappings:[
-          { deviceParam:"Filter Cutoff", range:[0,1], curve:"linear" },
-          { deviceParam:"Filter Resonance", range:[0,0.8], curve:"exponential" }
-        ]
-      }));
-      return { success:true, data:{ trackIndex:args.track_index, trackName:track.name, macroCount:macros.length, macros } };
-    }
-  );
-
+  
   reg.register({ name:"create_macro_map", description:"Create a custom macro mapping with curve and range", category:"macros", parameters:{ track_index:{type:"number",description:"Track index",required:true}, device_index:{type:"number",description:"Device index",required:true}, parameter_name:{type:"string",description:"Parameter name",required:true}, macro_index:{type:"number",description:"Target macro index 0-7",required:true}, min:{type:"number",description:"Min value",required:false}, max:{type:"number",description:"Max value",required:false}, curve:{type:"string",description:"Mapping curve",required:false,enum:["linear","exponential","logarithmic","s-curve","step"]} } },
     async (args: any) => ({ success:true, data:{ created:true, trackIndex:args.track_index, macroIndex:args.macro_index, parameter:args.parameter_name, curve:args.curve||"linear", min:args.min||0, max:args.max||1 } })
   );

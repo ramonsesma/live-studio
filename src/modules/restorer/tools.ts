@@ -26,17 +26,11 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ applied:true, trackIndex:args.track_index, clipIndex:args.clip_index, reduction:args.reduction_amount||60, noiseFloorReduction:`-${Math.round((args.reduction_amount||60)*0.4)}dB`, artifacts:0 } })
   );
 
-  reg.register({ name:"remove_clicks", description:"Detect and remove clicks/pops", category:"restore", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, sensitivity:{type:"number",description:"Detection sensitivity 0-100%",required:false}, interpolation:{type:"string",description:"Interpolation method",required:false,enum:["linear","cubic","smooth"]} } },
-    async (args: any) => ({ success:true, data:{ applied:true, sensitivity:args.sensitivity||70, interpolation:args.interpolation||"cubic", clicksRemoved:Math.floor(Math.random()*20)+5, artifactsIntroduced:0 } })
-  );
-
+  
   reg.register({ name:"de_esser", description:"Apply de-essing to reduce sibilance", category:"restore", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, frequency:{type:"number",description:"Sibilant frequency center Hz",required:false}, reduction:{type:"number",description:"Reduction amount dB",required:false} } },
     async (args: any) => ({ success:true, data:{ applied:true, frequency:args.frequency||6500, reduction:args.reduction||-6, sibilanceReduced:"4.2dB", naturalness:92 } })
   );
 
-  reg.register({ name:"de_clip", description:"Repair clipped/warped audio", category:"restore", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, threshold:{type:"number",description:"Clip threshold dB",required:false}, interpolation:{type:"string",description:"Reconstruction method",required:false,enum:["reconstruct","smooth","interpolate"]} } },
-    async (args: any) => ({ success:true, data:{ applied:true, threshold:args.threshold||-0.5, interpolation:args.interpolation||"reconstruct", samplesRepaired:Math.floor(Math.random()*200)+50 } })
-  );
-
+  
   return reg;
 }

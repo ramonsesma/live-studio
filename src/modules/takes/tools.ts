@@ -23,14 +23,7 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"record_take", description:"Record a single take", category:"take-recorder", parameters:{ track_index:{type:"number",description:"Track index",required:true}, take_name:{type:"string",description:"Take name (optional)",required:false}, duration:{type:"number",description:"Recording duration in bars",required:false} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      const takeNumber = Math.floor(Math.random()*3)+1;
-      return { success:true, data:{ recorded:true, trackName:track?.name||"Unknown", takeNumber, name:args.take_name||`Take ${takeNumber}`, duration:args.duration||16, status:"Recording complete", fileSize:`${Math.floor(Math.random()*20+10)} MB` } };
-    }
-  );
-
+  
   reg.register({ name:"list_takes", description:"List all recorded takes for a track", category:"take-recorder", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];

@@ -37,12 +37,6 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ previewToggled:true, trackIndex:args.track_index, preFader:true } })
   );
 
-  reg.register({ name:"get_cue_status", description:"Get cue mix status for all tracks", category:"cue-mix", parameters:{} },
-    async (_a: any, song: any) => {
-      const tracks = (song.tracks||[]).slice(0,8).map((t: any, i: number) => ({ index:i, name:t.name||`Track ${i+1}`, cueLevel:Math.round((Math.random()*100)), preFader:Math.random()>0.5, solo:Math.random()>0.8 }));
-      return { success:true, data:{ masterCueVolume:0, mainMuted:false, trackCues:tracks } };
-    }
-  );
-
+  
   return reg;
 }

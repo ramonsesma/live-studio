@@ -15,31 +15,7 @@ export class ToolRegistry {
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"analyze_track_frequency", description:"Analyze frequency content of a track", category:"analysis", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      if (!track) return { success:false, error:`Track ${args.track_index} not found` };
-      const analysis = {
-        trackIndex:args.track_index, trackName:track.name, trackType:track.constructor.name,
-        frequencyProfile: {
-          subBass: { range:"20-60Hz", level:Math.random()*0.5, description:"Sub bass content" },
-          bass: { range:"60-250Hz", level:Math.random()*0.7, description:"Bass content" },
-          lowMid: { range:"250-500Hz", level:Math.random()*0.6, description:"Low mids" },
-          mid: { range:"500-2kHz", level:Math.random()*0.5, description:"Mid content" },
-          highMid: { range:"2-4kHz", level:Math.random()*0.4, description:"High mids" },
-          presence: { range:"4-8kHz", level:Math.random()*0.3, description:"Presence" },
-          brilliance: { range:"8-20kHz", level:Math.random()*0.2, description:"Brilliance" }
-        },
-        suggestions: [
-          { action:"cut", freq:250, gain:-2, q:1.0, reason:"Reduce muddiness" },
-          { action:"boost", freq:5000, gain:1.5, q:0.7, reason:"Add presence" },
-          { action:"cut", freq:80, gain:-1, q:0.5, reason:"Clean up sub bass" }
-        ]
-      };
-      return { success:true, data:analysis };
-    }
-  );
-
+  
   reg.register({ name:"apply_eq_preset", description:"Apply EQ preset to a track", category:"eq", parameters:{ track_index:{type:"number",description:"Track",required:true}, preset:{type:"string",description:"Preset",required:true,enum:["clean","warm","bright","bass_cut","treble_boost","smile"]}, create_eq:{type:"boolean",description:"Create EQ device",required:false} } },
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
