@@ -4,6 +4,7 @@
 import * as nodeHttp from "node:http";
 import * as nodeHttps from "node:https";
 import { URL } from "node:url";
+import { Buffer } from "node:buffer";
 
 // The Live Extension Host context does not expose WHATWG globals like `fetch`
 // (same reason `URL` had to be imported), so we POST JSON via node:http(s) directly.
@@ -148,7 +149,7 @@ export function createLLMClient(provider: string, apiKey: string, model: string)
     : provider === "openrouter"
       ? "https://openrouter.ai/api/v1"
       : provider === "opencode-zen"
-        ? (process.env.OPENCODE_ZEN_URL || "http://localhost:8080/v1")
+        ? ((typeof process !== "undefined" ? process.env?.OPENCODE_ZEN_URL : undefined) || "http://localhost:8080/v1")
         : provider;
 
   const defaultModel = provider === "openai" ? "gpt-4o"
