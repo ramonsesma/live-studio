@@ -1,3 +1,5 @@
+import { DEMO_TOOLS } from "../registry/demo-tools.js";
+
 // MasterRegistry: fusiona los toolRegistry de cada módulo SIN tocar sus internals.
 // Cada módulo expone { definitions: ToolDefinition[], execute(name,args,song) }.
 // Aquí los "absorbemos" delegando la ejecución y namespaceando nombre/categoría,
@@ -16,6 +18,7 @@ export interface ToolDefinition {
   // metadatos añadidos por el master:
   module?: string;
   originalName?: string;
+  demo?: boolean; // handler devuelve datos simulados (ver registry/demo-tools.ts)
 }
 
 export interface ToolResult {
@@ -63,6 +66,7 @@ export class MasterRegistry {
         category: mod.id,
         module: mod.id,
         originalName: def.name,
+        demo: DEMO_TOOLS.has(fqName),
       };
       this.definitions.push(namespaced);
       const original = def.name;

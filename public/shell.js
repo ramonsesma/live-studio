@@ -90,7 +90,8 @@ function renderTool(tool) {
   const card = document.createElement("div");
   card.className = "tool";
   const title = tool.originalName || tool.name;
-  card.innerHTML = `<h3>${title}</h3><p class="desc">${tool.description || ""}</p>`;
+  const demoBadge = tool.demo ? ` <span class="badge-demo" title="Returns simulated data — not yet wired to the live Set">demo</span>` : "";
+  card.innerHTML = `<h3>${title}${demoBadge}</h3><p class="desc">${tool.description || ""}</p>`;
   const params = tool.parameters || {};
   const inputs = {};
   for (const [name, p] of Object.entries(params)) {
@@ -250,7 +251,7 @@ async function ensurePaletteData() {
   // 1) tools reales (todos los módulos)
   const tools = (await api.get("/api/tools")).tools || [];
   const toolItems = tools.map((t) => ({
-    kind: "tool", id: t.name, module: t.module,
+    kind: "tool", id: t.name, module: t.module, demo: !!t.demo,
     title: (t.originalName || t.name), subtitle: t.description || "",
     badge: t.module, required: Object.entries(t.parameters || {}).filter(([, v]) => v.required).map(([k]) => k),
   }));
@@ -296,8 +297,9 @@ function renderPaletteList() {
     const row = document.createElement("div");
     row.className = "palette-row" + (i === palette.sel ? " sel" : "");
     const tag = it.kind === "tool" ? "tool" : "acción";
+    const demoBadge = it.demo ? ` <span class="badge-demo" title="Returns simulated data">demo</span>` : "";
     row.innerHTML = `<span class="palette-tag ${it.kind}">${tag}</span>
-      <span class="palette-title">${it.title}</span>
+      <span class="palette-title">${it.title}${demoBadge}</span>
       <span class="palette-sub">${it.subtitle || ""}</span>
       <span class="palette-badge">${it.badge || ""}</span>`;
     row.onmouseenter = () => { palette.sel = i; updatePaletteSel(); };
