@@ -54,7 +54,8 @@ export function createToolRegistry() {
       };
       const preset = presets[args.preset];
       if (!preset) return { success:false, error:`Unknown preset: ${args.preset}` };
-      try { if (args.create_eq !== false && track.createEq) await track.createEq(); } catch(e) {}
+      // Built-in Live devices are inserted by name (there is no track.createEq()).
+      try { if (args.create_eq !== false && track.insertDevice) await track.insertDevice("EQ Eight", track.devices?.length ?? 0); } catch(e) {}
       return { success:true, data:{ applied:true, preset:args.preset, values:preset, trackIndex:args.track_index } };
     }
   );

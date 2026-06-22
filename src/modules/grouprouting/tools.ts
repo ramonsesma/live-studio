@@ -27,7 +27,8 @@ export function createToolRegistry() {
   reg.register({ name:"create_group", description:"Create a new group track from selected tracks", category:"group-routing", parameters:{ name:{type:"string",description:"Group name",required:true}, track_indices:{type:"string",description:"Comma-separated track indices to group",required:true}, return_group:{type:"boolean",description:"Create as return track group",required:false} } },
     async (args: any, song: any) => {
       const indices = String(args.track_indices).split(",").map((s: string)=>parseInt(s.trim())).filter((n: number)=>!isNaN(n));
-      const group = await song.createGroupTrack();
+      // The Extensions API has no createGroupTrack(); a group is backed by an audio bus.
+      const group = await song.createAudioTrack();
       group.name = args.name;
       return { success:true, data:{ groupCreated:true, groupName:args.name, groupIndex:song.tracks.indexOf(group), memberCount:indices.length } };
     }

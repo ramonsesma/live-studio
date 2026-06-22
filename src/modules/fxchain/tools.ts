@@ -20,6 +20,28 @@ export interface ToolResult {
   error?: string;
 }
 
+// The Live Extensions API has no track.createReverb()/createEq()/etc.; built-in Live
+// devices are inserted by name via track.insertDevice(name, index). And Device.parameters
+// is an ARRAY of DeviceParameter (not a name-keyed object), so we match a parameter by
+// name (case-insensitive substring) and set it best-effort — unknown params are skipped.
+const LIVE_DEVICE: Record<string, string> = {
+  eq: "EQ Eight", compress: "Compressor", gate: "Gate",
+  reverb: "Reverb", delay: "Delay", limiter: "Limiter",
+};
+
+async function insertFx(track: any, kind: string, params: Record<string, number | undefined>): Promise<void> {
+  const device = await track.insertDevice(LIVE_DEVICE[kind] || kind, track.devices?.length ?? 0);
+  for (const [name, value] of Object.entries(params)) {
+    if (typeof value !== "number") continue;
+    try {
+      const p = (device.parameters || []).find(
+        (dp: any) => String(dp?.name ?? "").toLowerCase().includes(name.toLowerCase()),
+      );
+      if (p) await p.setValue(value);
+    } catch { /* parameter not available on this device — skip */ }
+  }
+}
+
 type ToolHandler = (args: Record<string, unknown>, song: any) => ToolResult | Promise<ToolResult>;
 
 function trackOrThrow(song: any, index: number): any {
@@ -217,33 +239,12 @@ export function createToolRegistry(): ToolRegistry {
         const trackIndex = song.tracks.indexOf(track);
 
         if (track.constructor.name === "AudioTrack") {
-          const eqDevice = await track.createEq();
-          await eqDevice.parameters.bandwidth.setValue(chain.eq.bandwidth as number);
-          await eqDevice.parameters.gain.setValue(chain.eq.gain as number);
-
-          const compressDevice = await track.createCompressor();
-          await compressDevice.parameters.threshold.setValue(chain.compress.threshold as number);
-          await compressDevice.parameters.ratio.setValue(chain.compress.ratio as number);
-          await compressDevice.parameters.attack.setValue(chain.compress.attack as number);
-          await compressDevice.parameters.release.setValue(chain.compress.release as number);
-
-          const gateDevice = await track.createNoiseGate();
-          await gateDevice.parameters.threshold.setValue(chain.gate.threshold as number);
-          await gateDevice.parameters.attack.setValue(chain.gate.attack as number);
-          await gateDevice.parameters.release.setValue(chain.gate.release as number);
-
-          const reverbDevice = await track.createReverb();
-          await reverbDevice.parameters.decay.setValue(chain.reverb.decay as number);
-          await reverbDevice.parameters.mix.setValue(chain.reverb.mix as number);
-
-          const delayDevice = await track.createDelay();
-          await delayDevice.parameters.time.setValue(chain.delay.time as number);
-          await delayDevice.parameters.feedback.setValue(chain.delay.feedback as number);
-          await delayDevice.parameters.mix.setValue(chain.delay.mix as number);
-
-          const limiterDevice = await track.createLimiter();
-          await limiterDevice.parameters.threshold.setValue(chain.limiter.threshold as number);
-          await limiterDevice.parameters.release.setValue(chain.limiter.release as number);
+          await insertFx(track, "eq", { bandwidth: chain.eq.bandwidth as number, gain: chain.eq.gain as number });
+          await insertFx(track, "compress", { threshold: chain.compress.threshold as number, ratio: chain.compress.ratio as number, attack: chain.compress.attack as number, release: chain.compress.release as number });
+          await insertFx(track, "gate", { threshold: chain.gate.threshold as number, attack: chain.gate.attack as number, release: chain.gate.release as number });
+          await insertFx(track, "reverb", { decay: chain.reverb.decay as number, "dry/wet": chain.reverb.mix as number });
+          await insertFx(track, "delay", { time: chain.delay.time as number, feedback: chain.delay.feedback as number, "dry/wet": chain.delay.mix as number });
+          await insertFx(track, "limiter", { threshold: chain.limiter.threshold as number, release: chain.limiter.release as number });
 
           applied.push({
             trackIndex,
@@ -332,32 +333,23 @@ export function createToolRegistry(): ToolRegistry {
           for (const effect of effects) {
             switch (effect.type) {
               case "eq":
-                const eqDevice = await track.createEq();
-                if (effect.params.bandwidth) await eqDevice.parameters.bandwidth.setValue(effect.params.bandwidth as number);
-                if (effect.params.gain) await eqDevice.parameters.gain.setValue(effect.params.gain as number);
+                await insertFx(track, "eq", { bandwidth: effect.params.bandwidth as number, gain: effect.params.gain as number });
                 appliedEffects.push("EQ");
                 break;
               case "compress":
-                const compressDevice = await track.createCompressor();
-                if (effect.params.threshold) await compressDevice.parameters.threshold.setValue(effect.params.threshold as number);
-                if (effect.params.ratio) await compressDevice.parameters.ratio.setValue(effect.params.ratio as number);
+                await insertFx(track, "compress", { threshold: effect.params.threshold as number, ratio: effect.params.ratio as number });
                 appliedEffects.push("Compressor");
                 break;
               case "reverb":
-                const reverbDevice = await track.createReverb();
-                if (effect.params.decay) await reverbDevice.parameters.decay.setValue(effect.params.decay as number);
-                if (effect.params.mix) await reverbDevice.parameters.mix.setValue(effect.params.mix as number);
+                await insertFx(track, "reverb", { decay: effect.params.decay as number, "dry/wet": effect.params.mix as number });
                 appliedEffects.push("Reverb");
                 break;
               case "delay":
-                const delayDevice = await track.createDelay();
-                if (effect.params.time) await delayDevice.parameters.time.setValue(effect.params.time as number);
-                if (effect.params.feedback) await delayDevice.parameters.feedback.setValue(effect.params.feedback as number);
+                await insertFx(track, "delay", { time: effect.params.time as number, feedback: effect.params.feedback as number });
                 appliedEffects.push("Delay");
                 break;
               case "limiter":
-                const limiterDevice = await track.createLimiter();
-                if (effect.params.threshold) await limiterDevice.parameters.threshold.setValue(effect.params.threshold as number);
+                await insertFx(track, "limiter", { threshold: effect.params.threshold as number });
                 appliedEffects.push("Limiter");
                 break;
             }

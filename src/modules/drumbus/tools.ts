@@ -25,7 +25,8 @@ export function createToolRegistry() {
   reg.register({ name:"add_drum_group", description:"Create drum bus group track", category:"drum-bus", parameters:{ name:{type:"string",description:"Bus group name",required:false}, tracks:{type:"string",description:"Comma-separated track indices to group",required:true} } },
     async (args: any, song: any) => {
       const indices = String(args.tracks).split(",").map((s: string)=>parseInt(s.trim())).filter((n: number)=>!isNaN(n));
-      const group = await song.createGroupTrack();
+      // The Extensions API has no createGroupTrack(); a drum bus is backed by an audio track.
+      const group = await song.createAudioTrack();
       group.name = args.name||"Drum Bus";
       return { success:true, data:{ groupCreated:true, groupName:group.name, memberCount:indices.length, groupIndex:song.tracks.indexOf(group) } };
     }
