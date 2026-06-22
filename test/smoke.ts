@@ -58,13 +58,13 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 75 módulos", (mods.modules || []).length === 75, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 59 módulos", (mods.modules || []).length === 59, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("74 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 74);
+check("58 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 58);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
-check("GET /api/tools agrega todos los tools", allTools.length >= 290, "n=" + allTools.length);
+check("GET /api/tools agrega todos los tools", allTools.length >= 240, "n=" + allTools.length);
 const drumTools = (await get("/api/tools?module=drums")).tools;
 check("filtro por módulo (drums)", drumTools.length === 3 && drumTools.every((t: any) => t.module === "drums"));
 
@@ -87,8 +87,6 @@ const info = await post("/api/execute", { name: "session__get_session_info", arg
 check("session__get_session_info", info.success && info.data.tempo === 120);
 
 // 5b. lote 2: módulos nuevos
-const st = await post("/api/execute", { name: "stereo__apply_width_preset", args: { track_index: 0, preset: "wide" } });
-check("stereo__apply_width_preset", st.success && st.data.params.width === 1.5);
 const vx = await post("/api/execute", { name: "vocal__setup_chain", args: { track_index: 0, chain_type: "lead" } });
 check("vocal__setup_chain crea cadena", vx.success && vx.data.deviceCount > 0);
 const sfx = await post("/api/execute", { name: "sfx__generate_sfx", args: { category: "cinematic", sound: "whoosh" } });
@@ -165,8 +163,6 @@ check("sections__get_sections", sec.success && Array.isArray(sec.data.sections) 
 // 5h. lote 7: composición / FX / gestión / tuning
 const lyr = await post("/api/execute", { name: "lyricmelody__generate_melody_from_lyrics", args: { text: "hello world this is a test" } });
 check("lyricmelody__generate_melody_from_lyrics crea clip", lyr.success && lyr.data.clipName.includes("LyricMelody"));
-const fxp = await post("/api/execute", { name: "fxpresets__search_presets", args: { category: "drums" } });
-check("fxpresets__search_presets filtra", fxp.success && fxp.data.presets.every((p: any) => p.category === "drums"));
 const tsg = await post("/api/execute", { name: "timesig__apply_polyrhythm", args: { sigs: "3/4,4/4,5/8" } });
 check("timesig__apply_polyrhythm crea pistas", tsg.success && tsg.data.tracks.length === 3);
 const cpd = await post("/api/execute", { name: "chordpads__set_pad", args: { pad_index: 0, root: "C", chord_type: "maj7" } });
@@ -183,8 +179,6 @@ const nta = await post("/api/execute", { name: "notation__get_clip_notes", args:
 check("notation__get_clip_notes", nta.success && Array.isArray(nta.data.notes) && nta.data.notes.length > 0);
 const drp = await post("/api/execute", { name: "drumreplace__replace_drum", args: { track_index: 0, clip_index: 0, drum_type: "kick" } });
 check("drumreplace__replace_drum crea pista MIDI", drp.success && drp.data.replaced);
-const a2m = await post("/api/execute", { name: "audio2midi__convert_to_chords", args: { track_index: 0, clip_index: 0 } });
-check("audio2midi__convert_to_chords", a2m.success && a2m.data.chordCount === 8);
 const gar = await post("/api/execute", { name: "genarranger__generate_arrangement", args: { style: "techno" } });
 check("genarranger__generate_arrangement", gar.success && gar.data.totalBars === 96);
 const stl = await post("/api/execute", { name: "setlist__create_setlist", args: { name: "Live Set" } });
@@ -213,16 +207,8 @@ check("stepseq__set_pattern (16 pasos)", stp.success && stp.data.totalSteps === 
 // 5k. lote 10: mezcla avanzada / synth / live / análisis
 const dbs = await post("/api/execute", { name: "drumbus__add_drum_group", args: { tracks: "0,1" } });
 check("drumbus__add_drum_group", dbs.success && dbs.data.groupCreated);
-const rcy = await post("/api/execute", { name: "rackcycler__get_chains", args: { track_index: 0 } });
-check("rackcycler__get_chains (6 cadenas)", rcy.success && rcy.data.chainCount === 6);
-const vcp = await post("/api/execute", { name: "vocalcomp__create_comp_track", args: { track_indices: "0,1,2" } });
-check("vocalcomp__create_comp_track", vcp.success && vcp.data.takes === 3);
-const mxd = await post("/api/execute", { name: "maxdevices__list_max_devices", args: {} });
-check("maxdevices__list_max_devices", mxd.success && Array.isArray(mxd.data.devices));
 const mmx = await post("/api/execute", { name: "modmatrix__get_matrix", args: { track_index: 0 } });
 check("modmatrix__get_matrix (5 routings)", mmx.success && mmx.data.totalRoutings === 5);
-const spc = await post("/api/execute", { name: "spectrogram__get_peaks", args: { track_index: 0 } });
-check("spectrogram__get_peaks (harmónicos)", spc.success && spc.data.peakCount === 10);
 
 // 5l. lote 11: mezcla / MIDI / FX / export
 const mcv = await post("/api/execute", { name: "mixconsole__get_mixer_state", args: {} });
@@ -233,12 +219,8 @@ const rkb = await post("/api/execute", { name: "rackbuilder__create_rack", args:
 check("rackbuilder__create_rack (8 macros)", rkb.success && rkb.data.macroCount === 8);
 const mtf = await post("/api/execute", { name: "miditransform__apply_arpeggio", args: { track_index: 0, clip_index: 0, pattern: "updown" } });
 check("miditransform__apply_arpeggio", mtf.success && mtf.data.pattern === "updown");
-const scp = await post("/api/execute", { name: "sidechainpro__create_sidechain", args: { name: "Pump", trigger_track: 0, target_track: 1 } });
-check("sidechainpro__create_sidechain", scp.success && scp.data.sidechainCreated);
 const mlf = await post("/api/execute", { name: "midilfo__set_lfo_multi_target", args: { track_index: 0, targets: "cutoff,res,vol" } });
 check("midilfo__set_lfo_multi_target (3 targets)", mlf.success && mlf.data.targetCount === 3);
-const fsp = await post("/api/execute", { name: "freqsplit__set_band_gain", args: { track_index: 0, band_gains: "2,-1,3" } });
-check("freqsplit__set_band_gain (3 bandas)", fsp.success && fsp.data.bandCount === 3);
 
 // 5m. lote 12: live / utilidades / análisis / MIDI
 const lqz = await post("/api/execute", { name: "launchquant__set_global_quant", args: { value: "1/8" } });
@@ -249,8 +231,6 @@ const cgr = await post("/api/execute", { name: "clipgraph__build_graph", args: {
 check("clipgraph__build_graph", cgr.success && cgr.data.nodeCount > 0);
 const ttp = await post("/api/execute", { name: "tempotap__tap", args: {} });
 check("tempotap__tap", ttp.success && ttp.data.tapRecorded);
-const mmp = await post("/api/execute", { name: "midimap__show_midi_map", args: { track_index: 0 } });
-check("midimap__show_midi_map", mmp.success && mmp.data.totalMappings === 3);
 
 // 5f. paleta de comandos rápidos (micro-acciones)
 const qa = await post("/api/execute", { name: "quickactions__list_quick_actions", args: {} });

@@ -21,20 +21,7 @@ const DRUM_KITS: any[] = [
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
-  reg.register({ name:"analyze_drums", description:"Analyze drum track and detect hits", category:"drum-replace", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true} } },
-    async (args: any, song: any) => {
-      const track = song.tracks[args.track_index];
-      if (!track) return { success:false, error:"Track not found" };
-      const hits = [
-        { type:"Kick", hits:32, averageVelocity:95, confidence:0.94 },
-        { type:"Snare", hits:24, averageVelocity:82, confidence:0.88 },
-        { type:"Hi-Hat", hits:64, averageVelocity:70, confidence:0.76 },
-        { type:"Tom", hits:8, averageVelocity:78, confidence:0.65 }
-      ];
-      return { success:true, data:{ trackName:track.name, totalHits:hits.reduce((s,h)=>s+h.hits,0), hitAnalysis:hits } };
-    }
-  );
-
+  
   reg.register({ name:"replace_drum", description:"Replace a drum type with a sample", category:"drum-replace", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, drum_type:{type:"string",description:"Drum type to replace",required:true,enum:["kick","snare","hi-hat","tom","all"]}, sample_index:{type:"number",description:"Sample kit index",required:false}, blend:{type:"number",description:"Blend with original 0-100%",required:false} } },
     async (args: any, song: any) => {
       const midiTrack = await song.createMidiTrack();

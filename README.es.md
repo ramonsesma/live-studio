@@ -6,16 +6,16 @@
 
 <p align="center">
   <b>Una super-extensión modular para Ableton Live.</b><br/>
-  74 módulos · 299 tools · 1293 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
+  58 módulos · 249 tools · 1293 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
-  <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-74-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-299-6cc6ff" />
+  <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-58-ffb347" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-249-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-1293-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-11-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-118%20%E2%9C%93-2ea043" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-76%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue" />
   <a href="README.md"><img alt="readme in English" src="https://img.shields.io/badge/README-English-yellow" /></a>
@@ -38,12 +38,12 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 
 ## ✨ Características
 
-- **75 módulos** (74 visibles + 1 oculto) con **299 tools reales** repartidos por categorías:
+- **59 módulos** (58 visibles + 1 oculto) con **249 tools reales** repartidos por categorías:
   generación musical, drums, mezcla/mastering, EQ/análisis, síntesis, sampling, arreglo,
   performance/live, MIDI, hardware/control, gestión de proyectos, conversión audio↔MIDI y más.
 - **Copiloto IA** (OpenRouter / OpenAI / OpenCode Zen) con loop de *tool-calling*: recibe las
-  definiciones de los 299 tools y orquesta los módulos por lenguaje natural.
-- **Paleta de comandos rápidos** (`⌘K`): indexa los **299 tools** + **1293 micro-acciones**
+  definiciones de los 249 tools y orquesta los módulos por lenguaje natural.
+- **Paleta de comandos rápidos** (`⌘K`): indexa los **249 tools** + **1293 micro-acciones**
   (extraídas de 215 micro-extensiones) y las ejecuta con teclado.
 - **11 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
   grafo de clips, matriz de modulación, mixer con faders/VU, rejillas de pasos y pads,
@@ -51,7 +51,7 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
 - **Ligero**: bundle de ~468 KB, sin frameworks de frontend.
-- **Probado**: 118 pruebas de humo end-to-end del servidor + módulos.
+- **Probado**: 76 pruebas de humo end-to-end del servidor + módulos.
 
 ## 📸 Vistas
 
@@ -60,7 +60,7 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 > - **Módulos** — barra lateral + panel con formularios auto-generados por tool.
 > - **Copiloto IA** — chat que encadena `session__create_midi_track` → `chords__generate_chords` → `drums__generate_pattern` en una sola instrucción.
 > - **Paleta ⌘K** — buscador que mezcla tools reales y micro-acciones.
-> - **Paneles ricos** — Mix Console (faders/VU), Notation (piano-roll), rueda Camelot, grafo de clips…
+> - **Paneles ricos** — Mix Console (faders/VU), Notation (piano-roll), Step Sequencer, grafo de clips…
 
 *(Captura las pantallas reales desde Live y colócalas en `assets/` para enriquecer esta sección.)*
 
@@ -143,27 +143,28 @@ y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 11: `o
 ```bash
 npm run build       # compila (esbuild)
 npm run typecheck   # tsc --noEmit
-npm run test        # 118 pruebas de humo (servidor + módulos, song simulado)
+npm run test        # 76 pruebas de humo (servidor + módulos, song simulado)
 npm run package     # build + empaqueta .ablx con la UI
 ```
 
 ## 📚 Catálogo de módulos
 
 <details>
-<summary><b>Ver los 74 módulos por lote</b></summary>
+<summary><b>Ver los 58 módulos por categoría</b> (+ 1 módulo oculto que alimenta la paleta ⌘K)</summary>
 
-- **Lote 1 (núcleo):** Sesión & Pistas · Acordes · Drums · EQ & Análisis
-- **Lote 2 (mezcla/sonido):** Sidechain · Stereo & Imaging · Sampler & Slicing · Arreglo & Navegación · Vocal Chain & FX · SFX & Texturas
-- **Lote 3 (perf/comp/org):** Generador de Melodías · Performance & Looper · Clips & Escenas · DJ & Mezcla Armónica · Takes & Comping · Clip Colorizer
-- **Lote 4:** Gain Staging · Synth Patchbay · Plantillas de Proyecto · Notas de Proyecto · Groove & Humanize · Automatización & Curvas
-- **Estrella (paneles ricos):** Organizador de Sesión · Cadenas de Efectos
-- **Lote 6:** Compresión & Dinámica · Mixing Assistant IA · Clasificador de Género · EQ Match · MIDI Harmonizer · Quantize & Swing · Delay Calculator · MIDI Randomizer · Stem Splitter · Secciones de Arreglo
-- **Lote 7:** Letra → Melodía · FX Chain Presets · Plugin Browser · Time Signature · Crossfade Tool · Device Presets · Microtonal Tuner · Chord Pads · Snapshots · Project Health
-- **Lote 8:** Controller Mapper · Notation Viewer · Drum Replacer · Audio → MIDI · Generative Arranger · Setlist Manager · Media Pool · Group Routing · Bulk Track Manager · Tempo & Grid Sync
-- **Lote 9:** Mix Scene Saver · API Console · File Manager · Clip Versions · Looper Controller · Drum Map Editor · MIDI Gate · Audio Restorer · Macro Mapper Pro · Step Sequencer
-- **Lote 10:** Drum Bus Processor · Rack Preset Cycler · Vocal Comp Editor · Max Device Manager · Recording Router · Cue / Headphone Mixer · Arrangement Looper · Modulation Matrix · Phase Aligner · Spectrogram
-- **Lote 11:** Mix Console View · Track Color Coordinator · Export Batch Processor · Rack Builder · Audio Comparer A/B · Vocal Tuner · MIDI Transformer · Sidechain Designer Pro · MIDI LFO · Frequency Splitter
-- **Lote 12:** Clip Launch Quantizer · Live Coding Sandbox · Audio Fingerprint ID · Clip Relation Graph · Tempo Tapper · Patch Browser · MIDI Map Visualizer · Cue Mixer · Audio Quantizer · MIDI Monitor
+- **Sesión & proyecto:** Sesión & Pistas · Clips & Escenas · Bulk Track Manager · Track Color Coordinator · Plantillas de Proyecto · Notas de Proyecto · Project Health · Organizador de Sesión · Snapshots
+- **MIDI & composición:** Acordes · Generador de Melodías · Letra → Melodía · MIDI Harmonizer · MIDI Randomizer · MIDI Transformer · MIDI Gate · MIDI LFO · Chord Pads · Step Sequencer · Quantize & Swing · Groove & Humanize · Notation Viewer
+- **Drums:** Drums & Patterns · Drum Replacer · Drum Map Editor · Drum Bus Processor
+- **Mezcla & FX:** EQ & Análisis · Compresión & Dinámica · Gain Staging · Mixing Assistant IA · Mix Console View · Mix Scene Saver · Cadenas de Efectos · FX Chain Presets · Automatización & Curvas · Modulation Matrix · Macro Mapper Pro · Rack Builder
+- **Arreglo & performance:** Arreglo & Navegación · Secciones de Arreglo · Generative Arranger · Performance & Looper · Takes & Comping · Clip Colorizer · Clip Versions · Clip Relation Graph · Clip Launch Quantizer · Setlist Manager
+- **Tempo & tiempo:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator
+- **Diseño de sonido:** Synth Patchbay · SFX & Texturas · Vocal Chain & FX
+- **Routing & dev:** Group Routing · API Console · Live Coding Sandbox
+- **Oculto:** Quick Actions — las 1293 micro-acciones que indexa la paleta ⌘K
+
+> Los módulos que dependían de capacidades que el SDK de extensiones no expone (DSP/análisis
+> de audio, transporte/grabación, hardware/controladores, acceso a archivos/librería, escaneo
+> de plugins) se eliminaron, así que cada módulo aquí opera sobre el Set real.
 
 </details>
 

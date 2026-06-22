@@ -6,16 +6,16 @@
 
 <p align="center">
   <b>A modular super-extension for Ableton Live.</b><br/>
-  74 modules · 299 tools · 1293 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
+  58 modules · 249 tools · 1293 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
-  <img alt="modules" src="https://img.shields.io/badge/modules-74-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-299-6cc6ff" />
+  <img alt="modules" src="https://img.shields.io/badge/modules-58-ffb347" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-249-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-1293-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-11-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-118%20%E2%9C%93-2ea043" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-76%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue" />
   <a href="README.es.md"><img alt="readme in Spanish" src="https://img.shields.io/badge/README-Espa%C3%B1ol-yellow" /></a>
@@ -39,19 +39,19 @@ of each concept into one place.
 
 ## ✨ Features
 
-- **75 modules** (74 visible + 1 hidden) with **299 real tools** across categories: music
+- **59 modules** (58 visible + 1 hidden) with **249 real tools** across categories: music
   generation, drums, mixing/mastering, EQ/analysis, synthesis, sampling, arrangement,
   performance/live, MIDI, hardware/control, project management, audio↔MIDI conversion and more.
 - **AI copilot** (OpenRouter / OpenAI / OpenCode Zen) with a *tool-calling* loop: it receives
-  the definitions of all 299 tools and orchestrates modules via natural language.
-- **Quick command palette** (`⌘K`): indexes the **299 tools** + **1293 quick actions**
+  the definitions of all 249 tools and orchestrates modules via natural language.
+- **Quick command palette** (`⌘K`): indexes the **249 tools** + **1293 quick actions**
   (extracted from 215 micro-extensions) and runs them with the keyboard.
 - **11 curated rich panels** where the auto-generated form falls short: piano-roll, clip
   graph, modulation matrix, mixer with faders/VU, step grids, pad grids, drum map, comping…
 - **Auto-generated UI** for everything else: any new module shows up with its form without
   writing HTML, reading its tool definitions.
 - **Lightweight**: ~468 KB bundle, no frontend frameworks.
-- **Tested**: 118 end-to-end smoke tests of the server + modules.
+- **Tested**: 76 end-to-end smoke tests of the server + modules.
 
 ## 📸 Screenshots
 
@@ -69,7 +69,7 @@ of each concept into one place.
   <tr>
     <td align="center">
       <img src="assets/screenshots/03-palette.svg" alt="Command palette" width="100%" /><br/>
-      <sub><b>⌘K command palette</b> — mixes 299 real tools and 1293 quick actions in one search.</sub>
+      <sub><b>⌘K command palette</b> — mixes 249 real tools and 1293 quick actions in one search.</sub>
     </td>
     <td align="center">
       <img src="assets/screenshots/04-mixconsole.svg" alt="Mix Console" width="100%" /><br/>
@@ -78,8 +78,8 @@ of each concept into one place.
   </tr>
   <tr>
     <td align="center">
-      <img src="assets/screenshots/05-camelot.svg" alt="Camelot wheel" width="100%" /><br/>
-      <sub><b>Harmonic Mixing</b> — interactive Camelot wheel: detected key + compatible tracks highlighted.</sub>
+      <img src="assets/screenshots/05-stepseq.svg" alt="Step Sequencer" width="100%" /><br/>
+      <sub><b>Step Sequencer</b> — toggle steps on a clip's 1/16 grid; each cell writes a real MIDI note.</sub>
     </td>
     <td align="center">
       <img src="assets/screenshots/06-pianoroll.svg" alt="Piano-roll" width="100%" /><br/>
@@ -167,7 +167,7 @@ and add it to `index.html`. `shell.js` uses it instead of the autoform. There ar
 ```bash
 npm run build       # compile (esbuild)
 npm run typecheck   # tsc --noEmit
-npm run test        # 118 smoke tests (server + modules, simulated song)
+npm run test        # 76 smoke tests (server + modules, simulated song)
 npm run package     # build + package .ablx with the UI
 ```
 
@@ -193,20 +193,21 @@ npm run package     # build + package .ablx with the UI
 ## 📚 Module catalog
 
 <details>
-<summary><b>Show all 74 modules by batch</b></summary>
+<summary><b>Show the 58 modules by category</b> (+ 1 hidden module backing the ⌘K palette)</summary>
 
-- **Batch 1 (core):** Session & Tracks · Chords & Progressions · Drums & Patterns · EQ & Analysis
-- **Batch 2 (mixing/sound):** Sidechain · Stereo & Imaging · Sampler & Slicing · Arrangement & Navigation · Vocal Chain & FX · SFX & Textures
-- **Batch 3 (perf/comp/org):** Melody Generator · Performance & Looper · Clips & Scenes · DJ & Harmonic Mixing · Takes & Comping · Clip Colorizer
-- **Batch 4:** Gain Staging & Levels · Synth Patchbay · Project Templates · Project Notes · Groove & Humanize · Automation & Curves
-- **Star (rich panels):** Session Organizer · FX Chains
-- **Batch 6:** Compression & Dynamics · AI Mixing Assistant · Genre Classifier · EQ Match · MIDI Harmonizer · Quantize & Swing · Delay Calculator · MIDI Randomizer · Stem Splitter · Arrangement Sections
-- **Batch 7:** Lyric → Melody · FX Chain Presets · Plugin Browser · Time Signature · Crossfade Tool · Device Presets · Microtonal Tuner · Chord Pads · Snapshots · Project Health
-- **Batch 8:** Controller Mapper · Notation Viewer · Drum Replacer · Audio → MIDI · Generative Arranger · Setlist Manager · Media Pool · Group Routing · Bulk Track Manager · Tempo & Grid Sync
-- **Batch 9:** Mix Scene Saver · API Console · File Manager · Clip Versions · Looper Controller · Drum Map Editor · MIDI Gate · Audio Restorer · Macro Mapper Pro · Step Sequencer
-- **Batch 10:** Drum Bus Processor · Rack Preset Cycler · Vocal Comp Editor · Max Device Manager · Recording Router · Cue / Headphone Mixer · Arrangement Looper · Modulation Matrix · Phase Aligner · Spectrogram
-- **Batch 11:** Mix Console View · Track Color Coordinator · Export Batch Processor · Rack Builder · Audio Comparer A/B · Vocal Tuner · MIDI Transformer · Sidechain Designer Pro · MIDI LFO · Frequency Splitter
-- **Batch 12:** Clip Launch Quantizer · Live Coding Sandbox · Audio Fingerprint ID · Clip Relation Graph · Tempo Tapper · Patch Browser · MIDI Map Visualizer · Cue Mixer · Audio Quantizer · MIDI Monitor
+- **Session & project:** Session & Tracks · Clips & Scenes · Bulk Track Manager · Track Color Coordinator · Project Templates · Project Notes · Project Health · Session Organizer · Snapshots
+- **MIDI & composition:** Chords & Progressions · Melody Generator · Lyric → Melody · MIDI Harmonizer · MIDI Randomizer · MIDI Transformer · MIDI Gate · MIDI LFO · Chord Pads · Step Sequencer · Quantize & Swing · Groove & Humanize · Notation Viewer
+- **Drums:** Drums & Patterns · Drum Replacer · Drum Map Editor · Drum Bus Processor
+- **Mixing & FX:** EQ & Analysis · Compression & Dynamics · Gain Staging & Levels · AI Mixing Assistant · Mix Console View · Mix Scene Saver · FX Chains · FX Chain Presets · Automation & Curves · Modulation Matrix · Macro Mapper Pro · Rack Builder
+- **Arrangement & performance:** Arrangement & Navigation · Arrangement Sections · Generative Arranger · Performance & Looper · Takes & Comping · Clip Colorizer · Clip Versions · Clip Relation Graph · Clip Launch Quantizer · Setlist Manager
+- **Tempo & time:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator
+- **Sound design:** Synth Patchbay · SFX & Textures · Vocal Chain & FX
+- **Routing & dev:** Group Routing · API Console · Live Coding Sandbox
+- **Hidden:** Quick Actions — the 1293 micro-actions indexed by the ⌘K palette
+
+> Modules that depended on capabilities the Live Extensions SDK doesn't expose (audio
+> DSP/analysis, transport/recording, hardware/controllers, file/library access, plugin
+> scanning) were removed so every module here operates on the real Set.
 
 </details>
 
