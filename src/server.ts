@@ -38,8 +38,20 @@ function parseBody(req: http.IncomingMessage): Promise<Record<string, unknown>> 
   });
 }
 function sendJson(res: http.ServerResponse, status: number, data: unknown) {
+  // Never write twice (e.g. when an error is thrown after a response was already sent),
+  // and serialize BEFORE writeHead so a stringify failure can't leave a half-written
+  // response. The SDK uses `bigint` for handles/indices, which JSON.stringify rejects,
+  // so coerce those; if serialization still fails, send a safe error payload instead.
+  if (res.headersSent) return;
+  let payload: string;
+  try {
+    payload = JSON.stringify(data, (_k, v) => (typeof v === "bigint" ? Number(v) : v));
+  } catch (err) {
+    status = 500;
+    payload = JSON.stringify({ success: false, error: `Response could not be serialized: ${err instanceof Error ? err.message : String(err)}` });
+  }
   res.writeHead(status, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(data));
+  res.end(payload);
 }
 
 export async function startServer(bridge: Bridge): Promise<AppServer> {
@@ -104,6 +116,7 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
       res.writeHead(200, { "Content-Type": MIME[path.extname(full)] || "text/plain" });
       res.end(content);
     } catch (err: any) {
+      if (res.headersSent) { try { res.end(); } catch { /* already ended */ } return; }
       if (err && err.code === "ENOENT") { res.writeHead(404); res.end("Not found"); return; }
       sendJson(res, 500, { success: false, error: err?.message || "Internal error" });
     }

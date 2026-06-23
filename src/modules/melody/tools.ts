@@ -24,6 +24,15 @@ const SCALES: any = {
 };
 const NOTES = ["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
 
+
+// Real MidiClip API: notes are written via the `notes` setter (NoteDescription[]),
+// not a non-existent addNote(clip, ). This shim appends one note to the real array.
+function addNote(clip: any, pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
+  const ns = clip.notes || [];
+  ns.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
+  clip.notes = ns;
+}
+
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
@@ -55,7 +64,7 @@ export function createToolRegistry() {
         const midiNote = 60 + scaleNotes[noteIdx] + octaveShift;
         const dur = noteDurs[Math.floor(Math.random() * Math.min(complexity, noteDurs.length))];
         const vel = 60 + Math.random() * 40;
-        if (beat + dur <= totalBeats) { await clip.addNote(midiNote, beat, dur, vel, 0); }
+        if (beat + dur <= totalBeats) { addNote(clip, midiNote, beat, dur, vel, 0); }
         beat += dur;
       }
 

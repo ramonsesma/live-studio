@@ -28,6 +28,15 @@ const PROGRESSIONS: any = {
 
 const SCALE_DEGREES: any = { I:0, ii:1, iii:2, IV:3, V:4, vi:5, vii:7, i:0, "iiø":1, III:2, iv:3, v:4, VI:5, VII:6 };
 
+
+// Real MidiClip API: notes are written via the `notes` setter (NoteDescription[]),
+// not a non-existent addNote(clip, ). This shim appends one note to the real array.
+function addNote(clip: any, pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
+  const ns = clip.notes || [];
+  ns.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
+  clip.notes = ns;
+}
+
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
@@ -53,7 +62,7 @@ export function createToolRegistry() {
       clip.name = `${key} ${genre}`;
       for (let i = 0; i < progression.length; i++) {
         const note = chordSet[key];
-        if (note) { for (const n of note) { await clip.addNote(n, i * duration, duration, 100, 0); } }
+        if (note) { for (const n of note) { addNote(clip, n, i * duration, duration, 100, 0); } }
       }
       return { success:true, data:{ key, scale, genre, progression, trackIndex:song.tracks.indexOf(track), clipName:clip.name, notes:progression.length * 3 } };
     }

@@ -21,6 +21,15 @@ const SFX_CATEGORIES: any = {
   musical:   { name:"Musical",   sounds:["bell","chime","gliss","arp","pad","bass","noise","click"] }
 };
 
+
+// Real MidiClip API: notes are written via the `notes` setter (NoteDescription[]),
+// not a non-existent addNote(clip, ). This shim appends one note to the real array.
+function addNote(clip: any, pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
+  const ns = clip.notes || [];
+  ns.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
+  clip.notes = ns;
+}
+
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
@@ -39,8 +48,8 @@ export function createToolRegistry() {
       if (trackIdx === undefined) { track.name = `SFX ${args.category}`; }
       const clip = await track.createMidiClip(0, duration);
       clip.name = `${args.sound} SFX`;
-      await clip.addNote(60, 0, duration * 0.1, 100, 0);
-      if (duration > 1) await clip.addNote(64, 0.5, duration * 0.1, 80, 0);
+      addNote(clip, 60, 0, duration * 0.1, 100, 0);
+      if (duration > 1) addNote(clip, 64, 0.5, duration * 0.1, 80, 0);
       return { success:true, data:{ category:args.category, sound:args.sound, duration, trackIndex:song.tracks.indexOf(track), clipName:clip.name } };
     }
   );
@@ -54,7 +63,7 @@ export function createToolRegistry() {
       const clip = await track.createMidiClip(0, bars * 4);
       clip.name = `${args.type} Texture ${bars} bars`;
       for (let i = 0; i < bars * 4; i += 2) {
-        await clip.addNote(36 + Math.floor(Math.random()*12), i, 2, 40 + Math.random()*30, 0);
+        addNote(clip, 36 + Math.floor(Math.random()*12), i, 2, 40 + Math.random()*30, 0);
       }
       return { success:true, data:{ type:args.type, bars, trackIndex:song.tracks.indexOf(track), notes:bars*2 } };
     }
