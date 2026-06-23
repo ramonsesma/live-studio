@@ -58,9 +58,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 59 módulos", (mods.modules || []).length === 59, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 58 módulos", (mods.modules || []).length === 58, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("58 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 58);
+check("57 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 57);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -139,12 +139,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "modmatrix", "drummap", "clipgraph", "notation", "takes"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 11 paneles ricos", panelsOk);
+check("sirve los 10 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -166,9 +166,9 @@ check("lyricmelody__generate_melody_from_lyrics crea clip", lyr.success && lyr.d
 const tsg = await post("/api/execute", { name: "timesig__apply_polyrhythm", args: { sigs: "3/4,4/4,5/8" } });
 check("timesig__apply_polyrhythm crea pistas", tsg.success && tsg.data.tracks.length === 3);
 const cpd = await post("/api/execute", { name: "chordpads__set_pad", args: { pad_index: 0, root: "C", chord_type: "maj7" } });
-check("chordpads__set_pad (bug param corregido)", cpd.success && cpd.data.chord === "C maj7");
-const cpdDef = (await get("/api/tools?module=chordpads")).tools.find((t: any) => t.originalName === "set_pad");
-check("chordpads set_pad: param inversion bien formado", cpdDef && cpdDef.parameters.inversion && cpdDef.parameters.inversion.type === "number");
+check("chordpads__set_pad computes real chord notes", cpd.success && cpd.data.chord === "C Major 7" && cpd.data.notes.length === 4);
+const cptr = await post("/api/execute", { name: "chordpads__trigger_pad", args: { pad_index: 0 } });
+check("chordpads__trigger_pad drops the assigned chord as a clip", cptr.success && cptr.data.notesPlayed === 4);
 const snp = await post("/api/execute", { name: "snapshots__save_snapshot", args: { name: "Mix v1" } });
 check("snapshots__save_snapshot", snp.success && snp.data.total === 1);
 const hlt = await post("/api/execute", { name: "health__run_checks", args: {} });
@@ -207,8 +207,6 @@ check("stepseq__set_pattern (16 pasos)", stp.success && stp.data.totalSteps === 
 // 5k. lote 10: mezcla avanzada / synth / live / análisis
 const dbs = await post("/api/execute", { name: "drumbus__add_drum_group", args: { tracks: "0,1" } });
 check("drumbus__add_drum_group", dbs.success && dbs.data.groupCreated);
-const mmx = await post("/api/execute", { name: "modmatrix__get_matrix", args: { track_index: 0 } });
-check("modmatrix__get_matrix (5 routings)", mmx.success && mmx.data.totalRoutings === 5);
 
 // 5l. lote 11: mezcla / MIDI / FX / export
 const mcv = await post("/api/execute", { name: "mixconsole__get_mixer_state", args: {} });

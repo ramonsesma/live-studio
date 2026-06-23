@@ -14,6 +14,8 @@ export class ToolRegistry {
 
 const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const GM_DRUM_MAP: any = { 36:"Kick", 38:"Snare", 42:"Closed Hi-Hat", 46:"Open Hi-Hat", 39:"Clap", 41:"Floor Tom", 43:"High Tom", 45:"Mid Tom", 47:"Low Tom", 49:"Crash", 51:"Ride", 56:"Cowbell", 76:"Hi Conga", 77:"Mid Conga", 78:"Low Conga" };
+const PAD_COLORS = ["#ff6b6b","#ffb347","#6cc6ff","#5ad17a","#b07cff","#ff8fcf","#7cf0d8","#ffd36c"];
+const noteName = (n: number) => `${NOTE_NAMES[((n % 12) + 12) % 12]}${Math.floor(n / 12) - 2}`;
 
 export function createToolRegistry() {
   const reg = new ToolRegistry();
@@ -26,9 +28,14 @@ export function createToolRegistry() {
       const rack = (track.devices || []).find((d: any) => d?.constructor?.name === "DrumRack" || /drum\s*rack/i.test(d?.name || ""));
       if (!rack) return { success:false, error:"No Drum Rack on this track" };
       const chains = rack.chains || [];
-      const pads = chains.map((c: any, i: number) => ({
-        index:i, name:c?.name || `Pad ${i+1}`, deviceCount:(c?.devices || []).length,
-      }));
+      const pads = chains.map((c: any, i: number) => {
+        const note = typeof c?.receivingNote === "number" ? c.receivingNote : 36 + i;
+        return {
+          index:i, note, noteName:noteName(note),
+          name:c?.name || GM_DRUM_MAP[note] || noteName(note),
+          color:PAD_COLORS[i % PAD_COLORS.length], deviceCount:(c?.devices || []).length,
+        };
+      });
       return { success:true, data:{ trackName:track.name, deviceName:rack.name, padCount:pads.length, pads } };
     }
   );

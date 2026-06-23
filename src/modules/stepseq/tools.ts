@@ -17,10 +17,17 @@ export function createToolRegistry() {
 
   reg.register({ name:"set_pattern", description:"Set step sequencer pattern", category:"step-seq", parameters:{ track_index:{type:"number",description:"Track index",required:true}, steps:{type:"number",description:"Number of steps (8/16/32)",required:false,enum:[8,16,32]}, resolution:{type:"string",description:"Step resolution",required:false,enum:["1/4","1/8","1/16","1/32"]}, swing:{type:"number",description:"Swing amount 0-100%",required:false} } },
     async (args: any, song: any) => {
+      const n = args.steps || 16;
+      const g = 0.25; // one 1/16 step, in beats
       const track = await song.createMidiTrack();
-      track.name = `Step Seq ${args.steps||16}`;
-      const steps = Array.from({length:args.steps||16}, (_, i) => ({ step:i, active:Math.random()>0.4, velocity:Math.floor(Math.random()*60+40), flam:Math.random()>0.8, accent:Math.random()>0.7 }));
-      return { success:true, data:{ created:true, trackIndex:song.tracks.indexOf(track), steps, resolution:args.resolution||"1/16", swing:args.swing||0, totalSteps:steps.length, activeSteps:steps.filter((s: any)=>s.active).length } };
+      track.name = `Step Seq ${n}`;
+      const steps = Array.from({ length: n }, (_, i) => ({ step:i, active:Math.random() > 0.45, velocity:Math.floor(Math.random() * 50 + 70) }));
+      // Write the active steps as real notes into a new MIDI clip.
+      const clip = await track.createMidiClip(0, Math.max(1, n * g));
+      clip.name = track.name;
+      const pitch = 60;
+      clip.notes = steps.filter((s: any) => s.active).map((s: any) => ({ pitch, startTime:s.step * g, duration:g * 0.9, velocity:s.velocity }));
+      return { success:true, data:{ created:true, trackIndex:song.tracks.indexOf(track), clipIndex:0, steps, resolution:args.resolution || "1/16", swing:args.swing || 0, totalSteps:steps.length, activeSteps:steps.filter((s: any) => s.active).length } };
     }
   );
 

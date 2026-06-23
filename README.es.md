@@ -6,15 +6,15 @@
 
 <p align="center">
   <b>Una super-extensión modular para Ableton Live.</b><br/>
-  58 módulos · 249 tools · 1293 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
+  57 módulos · 244 tools · 1293 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
-  <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-58-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-249-6cc6ff" />
+  <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-57-ffb347" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-244-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-1293-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-11-9370db" />
+  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-10-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-76%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue" />
@@ -38,15 +38,15 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 
 ## ✨ Características
 
-- **59 módulos** (58 visibles + 1 oculto) con **249 tools reales** repartidos por categorías:
+- **58 módulos** (57 visibles + 1 oculto) con **244 tools reales** repartidos por categorías:
   generación musical, drums, mezcla/mastering, EQ/análisis, síntesis, sampling, arreglo,
   performance/live, MIDI, hardware/control, gestión de proyectos, conversión audio↔MIDI y más.
 - **Copiloto IA** (OpenRouter / OpenAI / OpenCode Zen) con loop de *tool-calling*: recibe las
-  definiciones de los 249 tools y orquesta los módulos por lenguaje natural.
-- **Paleta de comandos rápidos** (`⌘K`): indexa los **249 tools** + **1293 micro-acciones**
+  definiciones de los 244 tools y orquesta los módulos por lenguaje natural.
+- **Paleta de comandos rápidos** (`⌘K`): indexa los **244 tools** + **1293 micro-acciones**
   (extraídas de 215 micro-extensiones) y las ejecuta con teclado.
-- **11 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
-  grafo de clips, matriz de modulación, mixer con faders/VU, rejillas de pasos y pads,
+- **10 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
+  grafo de clips, mixer con faders/VU, rejillas de pasos y pads,
   mapa de drums, comping…
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
@@ -135,7 +135,7 @@ src/
 └── modules/<id>/tools.ts # cada módulo = su toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + paleta
-└── panels/<id>.js                        # 11 paneles ricos
+└── panels/<id>.js                        # 10 paneles ricos
 ```
 
 ### Añadir un módulo (3 pasos)
@@ -148,8 +148,8 @@ public/
 
 ### Paneles ricos
 Crea `public/panels/<id>.js` que registre `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`
-y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 11: `organizer`, `fxchain`,
-`mixconsole`, `stepseq`, `chordpads`, `drums`, `modmatrix`, `drummap`, `clipgraph` (grafo),
+y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 10: `organizer`, `fxchain`,
+`mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (grafo),
 `notation` (piano-roll), `takes`.
 
 ## 🛠️ Desarrollo
@@ -164,12 +164,12 @@ npm run package     # build + empaqueta .ablx con la UI
 ## 📚 Catálogo de módulos
 
 <details>
-<summary><b>Ver los 58 módulos por categoría</b> (+ 1 módulo oculto que alimenta la paleta ⌘K)</summary>
+<summary><b>Ver los 57 módulos por categoría</b> (+ 1 módulo oculto que alimenta la paleta ⌘K)</summary>
 
 - **Sesión & proyecto:** Sesión & Pistas · Clips & Escenas · Bulk Track Manager · Track Color Coordinator · Plantillas de Proyecto · Notas de Proyecto · Project Health · Organizador de Sesión · Snapshots
 - **MIDI & composición:** Acordes · Generador de Melodías · Letra → Melodía · MIDI Harmonizer · MIDI Randomizer · MIDI Transformer · MIDI Gate · MIDI LFO · Chord Pads · Step Sequencer · Quantize & Swing · Groove & Humanize · Notation Viewer
 - **Drums:** Drums & Patterns · Drum Replacer · Drum Map Editor · Drum Bus Processor
-- **Mezcla & FX:** EQ & Análisis · Compresión & Dinámica · Gain Staging · Mixing Assistant IA · Mix Console View · Mix Scene Saver · Cadenas de Efectos · FX Chain Presets · Automatización & Curvas · Modulation Matrix · Macro Mapper Pro · Rack Builder
+- **Mezcla & FX:** EQ & Análisis · Compresión & Dinámica · Gain Staging · Mixing Assistant IA · Mix Console View · Mix Scene Saver · Cadenas de Efectos · FX Chain Presets · Automatización & Curvas · Macro Mapper Pro · Rack Builder
 - **Arreglo & performance:** Arreglo & Navegación · Secciones de Arreglo · Generative Arranger · Performance & Looper · Takes & Comping · Clip Colorizer · Clip Versions · Clip Relation Graph · Clip Launch Quantizer · Setlist Manager
 - **Tempo & tiempo:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator
 - **Diseño de sonido:** Synth Patchbay · SFX & Texturas · Vocal Chain & FX

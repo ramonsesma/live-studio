@@ -29,22 +29,36 @@ const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 
 export function createToolRegistry() {
   const reg = new ToolRegistry();
+  // Per-session pad assignments: pad index → { chord label, MIDI note pitches }.
+  const padState = new Map<number, { chord: string; notes: number[] }>();
 
   reg.register({ name:"get_chords", description:"Get available chord types", category:"chord-pads", parameters:{} },
     async () => ({ success:true, data:{ chords:Object.entries(CHORD_LIB).map(([k,v]: any)=>({ name:k, description:v.name, intervals:v.intervals })) } })
   );
 
-  reg.register({ name:"set_pad", description:"Assign a chord to a pad", category:"chord-pads", parameters:{ pad_index:{type:"number",description:"Pad index 0-15",required:true}, root:{type:"string",description:"Root note",required:true,enum:NOTES}, chord_type:{type:"string",description:"Chord type",required:true,enum:Object.keys(CHORD_LIB)}, octave:{type:"number",description:"Octave (-2 to 2)",required:false}, voicing:{type:"string",description:"Voicing style",required:false,enum:["close","open","drop2","spread"]}, inversion:{type:"number",description:"Inversion 0-3",required:false} } },
-    async (args: any) => ({ success:true, data:{ padAssigned:true, pad:args.pad_index, chord:`${args.root} ${args.chord_type}`, voicing:args.voicing||"close", inversion:args.inversion||0 } })
+  reg.register({ name:"set_pad", description:"Assign a chord to a pad", category:"chord-pads", parameters:{ pad_index:{type:"number",description:"Pad index 0-15",required:true}, root:{type:"string",description:"Root note",required:true,enum:NOTES}, chord_type:{type:"string",description:"Chord type",required:true,enum:Object.keys(CHORD_LIB)}, octave:{type:"number",description:"Octave (-2 to 2)",required:false} } },
+    async (args: any) => {
+      const rootIdx = NOTES.indexOf(args.root);
+      const lib = CHORD_LIB[args.chord_type];
+      if (rootIdx < 0 || !lib) return { success:false, error:`Unknown root or chord type` };
+      const base = 48 + rootIdx + (args.octave || 0) * 12;
+      const notes = lib.intervals.map((iv: number) => base + iv);
+      const chord = `${args.root} ${lib.name}`;
+      padState.set(args.pad_index, { chord, notes });
+      return { success:true, data:{ padAssigned:true, pad:args.pad_index, chord, notes } };
+    }
   );
 
-  reg.register({ name:"trigger_pad", description:"Trigger a chord pad (simulate playing)", category:"chord-pads", parameters:{ pad_index:{type:"number",description:"Pad index to trigger",required:true}, velocity:{type:"number",description:"Velocity 0-127",required:false} } },
+  reg.register({ name:"trigger_pad", description:"Drop the pad's chord as a MIDI clip on a new track", category:"chord-pads", parameters:{ pad_index:{type:"number",description:"Pad index to trigger",required:true}, velocity:{type:"number",description:"Velocity 0-127",required:false} } },
     async (args: any, song: any) => {
+      const st = padState.get(args.pad_index);
+      if (!st) return { success:false, error:`Pad ${args.pad_index} is empty — assign a chord first` };
       const track = await song.createMidiTrack();
-      track.name = `Chord Pad ${args.pad_index}`;
+      track.name = `Chord: ${st.chord}`;
       const clip = await track.createMidiClip(0, 4);
-      clip.name = `Pad ${args.pad_index} chord`;
-      return { success:true, data:{ triggered:true, pad:args.pad_index, velocity:args.velocity||100, notesPlayed:3, trackIndex:song.tracks.indexOf(track) } };
+      clip.name = st.chord;
+      clip.notes = st.notes.map((p: number) => ({ pitch:p, startTime:0, duration:4, velocity:args.velocity || 100 }));
+      return { success:true, data:{ triggered:true, pad:args.pad_index, chord:st.chord, notesPlayed:st.notes.length, trackIndex:song.tracks.indexOf(track) } };
     }
   );
 

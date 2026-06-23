@@ -48,7 +48,6 @@ import { createToolRegistry as midiGateTools } from "../modules/midigate/tools.j
 import { createToolRegistry as macrosTools } from "../modules/macros/tools.js";
 import { createToolRegistry as stepSeqTools } from "../modules/stepseq/tools.js";
 import { createToolRegistry as drumBusTools } from "../modules/drumbus/tools.js";
-import { createToolRegistry as modMatrixTools } from "../modules/modmatrix/tools.js";
 import { createToolRegistry as mixConsoleTools } from "../modules/mixconsole/tools.js";
 import { createToolRegistry as trackColorTools } from "../modules/trackcolor/tools.js";
 import { createToolRegistry as rackBuilderTools } from "../modules/rackbuilder/tools.js";
@@ -130,7 +129,6 @@ export function createMasterRegistry(): MasterRegistry {
 
   // --- Batch 10 (advanced mixing / synth / live / analysis) ---
   m.addModule({ id:"drumbus",     label:"Drum Bus Processor", icon:"🥁", description:"Bus compression, parallel, transient shaper and analysis.", registry: drumBusTools() });
-  m.addModule({ id:"modmatrix",   label:"Modulation Matrix", icon:"🕸️", description:"Modulation matrix: add, tweak and toggle routings.", registry: modMatrixTools() });
 
   // --- Batch 11 (mixing / MIDI / FX / export) ---
   m.addModule({ id:"mixconsole",  label:"Mix Console View", icon:"🎛️", description:"Full mixer: faders, pan, sends, mute/solo and VU.", registry: mixConsoleTools() });

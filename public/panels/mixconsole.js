@@ -15,11 +15,10 @@ window.LiveStudioPanels.mixconsole = function (panel, helpers) {
     for (const ch of r.data.channels) {
       const strip = document.createElement("div");
       strip.className = "mc-strip";
-      const vu = Math.round((ch.vuMeter||0)*100);
       strip.innerHTML = `
         <div class="mc-name">${ch.name}</div>
-        <div class="mc-vu"><div class="mc-vu-fill" style="height:${vu}%"></div></div>
         <input class="mc-fader" type="range" min="0" max="1" step="0.01" value="${(ch.fader||0).toFixed(2)}" orient="vertical" />
+        <div class="hint" style="font-size:10px">${Math.round((ch.fader||0)*100)}%</div>
         <div class="mc-pan-row"><span class="hint">pan</span><input class="mc-pan" type="range" min="-1" max="1" step="0.05" value="${(ch.pan||0).toFixed(2)}" /></div>
         <div class="mc-btns"><button class="mc-m${ch.muted?' on':''}">M</button><button class="mc-s${ch.soloed?' on':''}">S</button></div>`;
       strip.querySelector(".mc-fader").onchange = (e) => exec("set_fader", { track_index: ch.index, level: Number(e.target.value) });

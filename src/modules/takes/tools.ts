@@ -27,11 +27,14 @@ export function createToolRegistry() {
   reg.register({ name:"list_takes", description:"List all recorded takes for a track", category:"take-recorder", parameters:{ track_index:{type:"number",description:"Track index",required:true} } },
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
-      const takes = Array.from({length:4}, (_, i) => ({
-        take:i+1, name:`Take ${i+1}`, duration:"16 bars", date:new Date(Date.now()-i*60000).toISOString(),
-        rating:["best","good","okay","noisy"][i], selected:i===0
-      }));
-      return { success:true, data:{ trackName:track?.name||"Unknown", takeCount:takes.length, takes } };
+      if (!track) return { success:false, error:"Track not found" };
+      // Real take lanes from the SDK (track.takeLanes). Each has a name and its clips.
+      const lanes = track.takeLanes || [];
+      const takes = lanes.map((ln: any, i: number) => {
+        const clipCount = (ln.clips || []).length;
+        return { take:i + 1, name:ln.name || `Take ${i + 1}`, clipCount, rating: clipCount ? "good" : "okay", selected:i === 0 };
+      });
+      return { success:true, data:{ trackName:track.name, takeCount:takes.length, takes } };
     }
   );
 
