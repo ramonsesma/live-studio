@@ -90,12 +90,25 @@ of each concept into one place.
 
 ## 🚀 Installation
 
-### Option A — download the package
-1. Download `live-studio.ablx` from the **[Releases](../../releases)** tab.
-2. In Ableton Live: **Preferences → … → Install Extension** and pick the `.ablx`.
-3. Open Live Studio from the extensions menu.
+> **You do not need the SDK, Node, or any coding to *use* this.** Just the `.ablx` file
+> below and Ableton Live 12.4.5b+.
 
-### Option B — build from source
+### Option A — download and install (for everyone)
+1. Download **`live-studio.ablx`** from the **[Releases](../../releases)** tab.
+2. In Ableton Live open **Preferences → Extensions** and **drag the `.ablx` onto that
+   panel** (or use its install button). Live confirms it's installed.
+3. **Make sure “Developer Mode” is OFF** in that same Extensions tab. Developer Mode hands
+   the extension host to the SDK runner, so an *installed* `.ablx` won't start while it's on.
+4. **Quit and reopen Ableton Live** (a full restart — this is needed for the extension's
+   host process to start in the current beta).
+5. Open the UI: **right-click a track, an empty clip slot, a clip or a scene → Extensions →
+   Live Studio.** The window opens; close it with the window's ✕.
+
+> Troubleshooting: if "Live Studio" isn't in the right-click **Extensions** submenu, it's
+> almost always (a) Developer Mode left ON, or (b) Live wasn't fully restarted after install
+> — both are known Live 12 Beta quirks. Re-check those two and relaunch Live.
+
+### Option B — build from source (for developers)
 ```bash
 git clone <repo-url> live-studio && cd live-studio
 npm install
