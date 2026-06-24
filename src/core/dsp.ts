@@ -137,8 +137,44 @@ export function analyzeWavBuffer(buf: Buffer, opts?: { fftSize?: number; bands?:
   const { samples, sampleRate } = decodeWav(buf);
   return analyzePcm(samples, sampleRate, opts);
 }
+
+// Approximate mapping for Live's mixer volume DeviceParameter (value 0..1 ↔ dB).
+// Unity (0 dB) sits at ~0.85, +6 dB at 1.0, with a log taper below unity. The SDK exposes
+// no dB readout for the fader, so this is an estimate used only for the "apply" step;
+// the RMS/peak measurement that drives it is exact (from rendered audio).
+const UNITY = 0.85;
+export function faderValueToDb(v: number): number {
+  if (v <= 0) return -70;
+  if (v >= UNITY) return ((v - UNITY) / (1 - UNITY)) * 6;
+  return 40 * Math.log10(v / UNITY);
+}
+export function faderDbToValue(db: number): number {
+  if (!isFinite(db)) return db < 0 ? 0 : 1;
+  if (db >= 0) return UNITY + (Math.min(db, 6) / 6) * (1 - UNITY);
+  return Math.max(0, UNITY * Math.pow(10, db / 40));
+}
 export function analyzeWavFile(path: string, opts?: { fftSize?: number; bands?: number }): Analysis {
   return analyzeWavBuffer(readFileSync(path), opts);
+}
+
+// Top-k spectral peaks (local maxima) of a sample window — used to turn audio into MIDI.
+export function peakFrequencies(samples: Float32Array, sampleRate: number, k = 1, fftSize = 4096): { hz: number; mag: number }[] {
+  const avail = Math.max(2, Math.min(fftSize, samples.length));
+  const n = 1 << Math.floor(Math.log2(avail)); // FFT needs a power of two
+  if (n < 4) return [];
+  const re = new Float64Array(n), im = new Float64Array(n);
+  for (let i = 0; i < n; i++) { const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1))); re[i] = (samples[i] || 0) * w; }
+  fft(re, im);
+  const half = n >> 1;
+  const mag = new Float64Array(half);
+  for (let i = 0; i < half; i++) mag[i] = Math.hypot(re[i], im[i]);
+  const peaks: { hz: number; mag: number }[] = [];
+  for (let i = 2; i < half - 2; i++) {
+    if (mag[i] > mag[i - 1] && mag[i] >= mag[i + 1] && mag[i] > mag[i - 2] && mag[i] >= mag[i + 2]) {
+      peaks.push({ hz: (i * sampleRate) / n, mag: mag[i] });
+    }
+  }
+  return peaks.sort((a, b) => b.mag - a.mag).slice(0, k);
 }
 
 // --- test/demo helpers: synthesize PCM and a 16-bit WAV ---

@@ -2,6 +2,11 @@
 import { MasterRegistry } from "../core/registry.js";
 import { createToolRegistry as sessionTools } from "../modules/session/tools.js";
 import { createToolRegistry as resonanceTools } from "../modules/resonance/tools.js";
+import { createToolRegistry as autogainTools } from "../modules/autogain/tools.js";
+import { createToolRegistry as keyscaleTools } from "../modules/keyscale/tools.js";
+import { createToolRegistry as genrhythmTools } from "../modules/genrhythm/tools.js";
+import { createToolRegistry as texturemapTools } from "../modules/texturemap/tools.js";
+import { createToolRegistry as spectrumCompareTools } from "../modules/spectrumcompare/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -143,6 +148,11 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"tempotap",    label:"Tempo Tapper", icon:"👆", description:"Tap tempo, set from taps, auto-detect and history.", registry: tempoTapTools() });
 
   m.addModule({ id:"resonance",   label:"Resonance · Mix Radar", icon:"📡", description:"Renders stems to audio, FFT-analyzes them in-host and maps frequency masking across the whole set.", registry: resonanceTools() });
+  m.addModule({ id:"autogain",    label:"Auto-Gain Stager", icon:"📏", description:"Measures real RMS/peak per audio track (render→FFT) and sets each fader to a reference level.", registry: autogainTools() });
+  m.addModule({ id:"keyscale",    label:"Key & Scale Detective", icon:"🔑", description:"Detects the key/scale from a pitch-class histogram (Krumhansl–Schmuckler) and flags out-of-scale notes.", registry: keyscaleTools() });
+  m.addModule({ id:"genrhythm",   label:"Generative Rhythm", icon:"🎲", description:"Rule-based probabilistic drum patterns using the SDK's native note probability + velocity deviation.", registry: genrhythmTools() });
+  m.addModule({ id:"texturemap",  label:"Audio Texture Mapper", icon:"🌫️", description:"Renders an audio stem and maps its dominant spectral peaks per window to MIDI notes.", registry: texturemapTools() });
+  m.addModule({ id:"spectrumcompare", label:"Spectrum Match", icon:"🔀", description:"Overlays two tracks' spectra (render→FFT) and highlights overlapping/masking bands.", registry: spectrumCompareTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"Vocabulary of 1293 micro-actions (from the 215 *-action extensions).", hidden:true, registry: quickActionsTools() });

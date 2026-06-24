@@ -1,6 +1,7 @@
 import { MasterRegistry } from "./core/registry.js";
 import type { LLMClient, LLMMessage } from "./core/llm.js";
-import { analyzeWavFile, analyzePcm, synthPcm, type Analysis } from "./core/dsp.js";
+import { analyzeWavFile, analyzePcm, synthPcm, faderDbToValue, peakFrequencies, decodeWav, type Analysis } from "./core/dsp.js";
+import { readFileSync } from "node:fs";
 
 const SYSTEM_PROMPT = `You are the Live Studio copilot, integrated into Ableton Live 12. You control Live with the full Live Studio toolset — 242 tools across 57 modules (session, chords, drums, eq, mixconsole, miditransform, randomizer, organizer, fxchain, …).
 
@@ -126,6 +127,102 @@ export class Bridge {
       return this.registry.execute(String(args.name), (args.args as Record<string, unknown>) || {}, this.song);
     }
     return { success: false, error: `Unknown meta-tool: ${name}` };
+  }
+
+  // Auto-Gain Stager: render each audio track pre-fx, measure RMS/peak (exact), then set
+  // each fader to a reference level. renderPreFxAudio is pre-fader, so fader dB = target − source.
+  async autoGain(req: { trackIndices?: number[]; targetMode?: string; startBeat?: number; endBeat?: number; apply?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const start = req.startBeat ?? 0, end = req.endBeat ?? 8;
+      let rows: { index: number; name: string; rmsDb: number; peakDb: number }[] = [];
+      if (req.demo) {
+        rows = ["Kick", "Bass", "Gtr", "Vox", "Synth", "Perc"].map((name, i) => ({ index: i, name, rmsDb: [-8, -6, -15, -11, -20, -13][i], peakDb: [-1, -2, -8, -4, -12, -6][i] }));
+      } else {
+        const tracks = this.song?.tracks || [];
+        const idxs = req.trackIndices?.length ? req.trackIndices : tracks.map((_: any, i: number) => i);
+        if (!this.resources?.renderPreFxAudio) return { success: false, error: "Audio render is only available inside Live." };
+        for (const i of idxs) {
+          const t = tracks[i];
+          if (!t || !("createAudioClip" in t)) continue; // audio tracks only
+          const wav: string = await this.resources.renderPreFxAudio(t, start, end);
+          const a = analyzeWavFile(wav);
+          rows.push({ index: i, name: t.name, rmsDb: a.rmsDb, peakDb: a.peakDb });
+        }
+        if (!rows.length) return { success: false, error: "No audio tracks to analyze. Resample MIDI tracks to audio first." };
+      }
+      const finite = rows.filter((r) => isFinite(r.rmsDb));
+      const mode = req.targetMode || "average";
+      let targetDb: number;
+      if (mode === "-18") targetDb = -18;
+      else if (mode === "-12") targetDb = -12;
+      else if (mode === "loudest") targetDb = Math.max(...finite.map((r) => r.rmsDb));
+      else if (mode === "quietest") targetDb = Math.min(...finite.map((r) => r.rmsDb));
+      else targetDb = finite.length ? finite.reduce((a, r) => a + r.rmsDb, 0) / finite.length : -18;
+      const plan = rows.map((r) => {
+        const faderDb = isFinite(r.rmsDb) ? Math.max(-24, Math.min(6, targetDb - r.rmsDb)) : 0;
+        return { ...r, rmsDb: Number(r.rmsDb.toFixed(1)), peakDb: Number(r.peakDb.toFixed(1)), faderDb: Number(faderDb.toFixed(1)), faderValue: faderDbToValue(faderDb) };
+      });
+      let applied = false;
+      if (req.apply && !req.demo) {
+        for (const p of plan) { const vol = this.song?.tracks?.[p.index]?.mixer?.volume; if (vol?.setValue) await vol.setValue(p.faderValue); }
+        applied = true;
+      }
+      return { success: true, data: { targetMode: mode, targetDb: Number(targetDb.toFixed(1)), applied, tracks: plan } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // Audio Texture Mapper: render an audio stem, window it, take the dominant spectral peak(s)
+  // per window and turn them into MIDI notes (optionally snapped to Live's scale).
+  async textureMap(req: { trackIndex?: number; startBeat?: number; endBeat?: number; noteCount?: number; polyphony?: number; snapScale?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const noteCount = Math.max(4, Math.min(64, req.noteCount || 16));
+      const poly = Math.max(1, Math.min(4, req.polyphony || 1));
+      const startBeat = req.startBeat ?? 0, endBeat = req.endBeat ?? 8;
+      let samples: Float32Array, sampleRate: number, srcName = "Demo";
+      if (req.demo) {
+        sampleRate = 44100;
+        const seg = Math.floor(sampleRate * 0.5), parts = [220, 277, 330, 440, 392, 494, 587, 659];
+        samples = new Float32Array(seg * parts.length);
+        parts.forEach((hz, si) => { for (let i = 0; i < seg; i++) samples[si * seg + i] = 0.6 * Math.sin((2 * Math.PI * hz * i) / sampleRate); });
+      } else {
+        const t = (this.song?.tracks || [])[req.trackIndex as number];
+        if (!t) return { success: false, error: `Track ${req.trackIndex} not found` };
+        if (!("createAudioClip" in t)) return { success: false, error: "Audio Texture Mapper reads audio tracks. Resample a MIDI track first." };
+        if (!this.resources?.renderPreFxAudio) return { success: false, error: "Audio render is only available inside Live." };
+        const wav: string = await this.resources.renderPreFxAudio(t, startBeat, endBeat);
+        const dec = decodeWav(readFileSync(wav)); samples = dec.samples; sampleRate = dec.sampleRate; srcName = t.name;
+      }
+      const root = this.song?.rootNote, intervals = Array.isArray(this.song?.scaleIntervals) ? this.song.scaleIntervals : null;
+      const scalePcs = req.snapScale && root != null && intervals ? intervals.map((i: number) => ((i + root) % 12)) : null;
+      const snapPitch = (p: number) => { if (!scalePcs) return p; let best = p, bd = 99; for (let d = -6; d <= 6; d++) { const q = p + d; if (scalePcs.includes(((q % 12) + 12) % 12) && Math.abs(d) < bd) { best = q; bd = Math.abs(d); } } return best; };
+      const NN = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+      const win = Math.max(2, Math.floor(samples.length / noteCount));
+      const stepBeats = (endBeat - startBeat) / noteCount;
+      const notes: any[] = [], preview: any[] = [];
+      for (let i = 0; i < noteCount; i++) {
+        const chunk = samples.subarray(i * win, (i + 1) * win);
+        for (const pk of peakFrequencies(chunk, sampleRate, poly)) {
+          if (pk.hz < 25) continue;
+          let pitch = Math.round(69 + 12 * Math.log2(pk.hz / 440));
+          if (pitch < 24 || pitch > 100) continue;
+          pitch = snapPitch(pitch);
+          const vel = Math.max(30, Math.min(120, Math.round(60 + Math.log10(pk.mag + 1) * 20)));
+          notes.push({ pitch, startTime: startBeat + i * stepBeats, duration: stepBeats * 0.95, velocity: vel });
+          preview.push({ pitch, name: NN[((pitch % 12) + 12) % 12] + (Math.floor(pitch / 12) - 1), start: Number((startBeat + i * stepBeats).toFixed(2)), hz: Math.round(pk.hz) });
+        }
+      }
+      let trackIndex: number | null = null, clipName: string | null = null;
+      if (!req.demo && notes.length && this.song?.createMidiTrack) {
+        const nt = await this.song.createMidiTrack(); nt.name = `${srcName} → MIDI`;
+        const clip = await nt.createMidiClip(0, Math.max(4, endBeat)); clip.name = `${srcName} texture`;
+        clip.notes = notes; trackIndex = this.song.tracks.indexOf(nt); clipName = clip.name;
+      }
+      return { success: true, data: { source: req.demo ? "demo" : "render", srcName, noteCount: notes.length, snapped: !!scalePcs, trackIndex, clipName, notes: preview } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
   }
 
   async processChat(req: ChatRequest, client: LLMClient): Promise<ChatResponse> {

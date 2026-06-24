@@ -58,9 +58,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 58 módulos", (mods.modules || []).length === 58, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 63 módulos", (mods.modules || []).length === 63, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("57 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 57);
+check("62 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 62);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -137,12 +137,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 22 paneles ricos", panelsOk);
+check("sirve los 27 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -259,6 +259,39 @@ const lis = await post("/api/listen", { demo: true });
 check("resonance /api/listen demo → 30-band spectrum", lis.success && lis.data.analysis.bands.length === 30 && lis.data.analysis.peakHz > 0);
 const lisMidi = await post("/api/listen", { trackIndex: 1 });
 check("resonance listen rechaza pista MIDI con mensaje claro", lisMidi.success === false && /audio|resample|render/i.test(lisMidi.error));
+
+// 7d. Auto-Gain Stager: demo mode proves the render→measure→plan pipeline + fader math.
+const ag = await post("/api/autogain", { demo: true, targetMode: "average" });
+check("autogain /api/autogain demo → plan de faders", ag.success && ag.data.tracks.length === 6 && ag.data.tracks.every((t: any) => typeof t.faderDb === "number" && typeof t.faderValue === "number"));
+const agQuiet = ag.data.tracks.find((t: any) => t.name === "Synth"); // quietest stem must get a positive (boost) move toward the average
+check("autogain sube las pistas por debajo de la referencia", agQuiet.faderDb > 0);
+
+// 7e. Key & Scale Detective: Krumhansl detection on a known diatonic melody.
+const cmajSong: any = { rootNote: 0, scaleName: "Major", scaleMode: true, scaleIntervals: [0,2,4,5,7,9,11],
+  tracks: [{ clipSlots: [{ clip: { notes: [60,64,67,72,64,60,67,64,60,55,52,60].map((pp, i) => ({ pitch: pp, startTime: i, duration: 1, velocity: 100 })) } }], arrangementClips: [] }] };
+const ks = await reg.execute("keyscale__detect_key", {}, cmajSong);
+check("keyscale detecta C major en una melodía diatónica", ks.success && ks.data.best.key === "C major", JSON.stringify(ks.data?.best));
+check("keyscale compara con la escala de Live", ks.success && ks.data.matchesLive === true);
+const fr0 = await reg.execute("keyscale__find_foreign_notes", { track_index: 0, root: 0, scale: "major" }, cmajSong);
+check("keyscale: 0 notas foráneas en escala", fr0.success && fr0.data.foreignCount === 0);
+cmajSong.tracks[0].clipSlots[0].clip.notes.push({ pitch: 61, startTime: 99, duration: 1, velocity: 100 }); // C#
+const fr1 = await reg.execute("keyscale__find_foreign_notes", { track_index: 0, root: 0, scale: "major" }, cmajSong);
+check("keyscale marca la nota foránea (C#)", fr1.success && fr1.data.foreignCount === 1 && fr1.data.foreign[0].name.startsWith("C#"));
+
+// 7f. Generative Rhythm: writes notes with NATIVE probability + velocityDeviation.
+const gr = await post("/api/execute", { name: "genrhythm__generate", args: { bars: 2, density: 60 } });
+const grNotes = gr.success ? gr.data : null;
+check("genrhythm genera un patrón", gr.success && gr.data.noteCount > 0 && gr.data.lanes.length === 3);
+// re-read the written clip from the mock to confirm probability landed on the notes
+const grTrack = song.tracks[gr.data.trackIndex];
+const grClip = grTrack?.clipSlots?.[0]?.clip;
+check("genrhythm usa probability nativa en las notas", !!grClip && grClip.notes.some((n: any) => typeof n.probability === "number" && n.probability < 1) && grClip.notes.every((n: any) => typeof n.velocityDeviation === "number"));
+
+// 7g. Audio Texture Mapper: demo audio → FFT per window → MIDI notes.
+const tx = await post("/api/texturemap", { demo: true, noteCount: 8 });
+check("texturemap demo → notas MIDI desde audio", tx.success && tx.data.notes.length > 0 && tx.data.notes.every((n: any) => n.pitch >= 24 && n.pitch <= 100));
+const txHz = await post("/api/execute", { name: "texturemap__hz_to_pitch", args: { hz: 440 } });
+check("texturemap hz_to_pitch: 440 Hz → A4", txHz.success && txHz.data.pitch === 69 && txHz.data.name === "A4");
 
 // 8. estáticos
 const html = await (await fetch(base + "/")).text();
