@@ -1,6 +1,7 @@
 // Single assembly point: adding a new module = one line here.
 import { MasterRegistry } from "../core/registry.js";
 import { createToolRegistry as sessionTools } from "../modules/session/tools.js";
+import { createToolRegistry as resonanceTools } from "../modules/resonance/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -140,6 +141,8 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"sandbox",     label:"Live Coding Sandbox", icon:"💻", description:"Evaluate TypeScript against the set, autocomplete and scripts.", registry: sandboxTools() });
   m.addModule({ id:"clipgraph",   label:"Clip Relation Graph", icon:"🕸️", description:"Graph of relationships between clips, patterns and suggestions.", registry: clipGraphTools() });
   m.addModule({ id:"tempotap",    label:"Tempo Tapper", icon:"👆", description:"Tap tempo, set from taps, auto-detect and history.", registry: tempoTapTools() });
+
+  m.addModule({ id:"resonance",   label:"Resonance · Mix Radar", icon:"📡", description:"Renders stems to audio, FFT-analyzes them in-host and maps frequency masking across the whole set.", registry: resonanceTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"Vocabulary of 1293 micro-actions (from the 215 *-action extensions).", hidden:true, registry: quickActionsTools() });

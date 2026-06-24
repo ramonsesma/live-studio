@@ -1,5 +1,6 @@
 import { MasterRegistry } from "./core/registry.js";
 import type { LLMClient, LLMMessage } from "./core/llm.js";
+import { analyzeWavFile, analyzePcm, synthPcm, type Analysis } from "./core/dsp.js";
 
 const SYSTEM_PROMPT = `You are the Live Studio copilot, integrated into Ableton Live 12. You control Live with the full Live Studio toolset — 242 tools across 57 modules (session, chords, drums, eq, mixconsole, miditransform, randomizer, organizer, fxchain, …).
 
@@ -51,14 +52,46 @@ export interface ChatResponse {
   toolCalls: number;
 }
 
+export interface ListenRequest { trackIndex?: number; startBeat?: number; endBeat?: number; wavPath?: string; demo?: boolean; }
+export interface ListenResult { success: boolean; error?: string; data?: { source: string; trackName?: string; analysis: Analysis }; }
+
 export class Bridge {
-  constructor(private registry: MasterRegistry, private song: any) {}
+  // `resources`/`environment` come from the SDK ExtensionContext and are only present
+  // inside Live; the analysis engine itself runs anywhere (used by /api/listen demo + tests).
+  constructor(private registry: MasterRegistry, private song: any, private resources?: any, private environment?: any) {}
 
   getTools() { return this.registry.getDefinitionsJson(); }
   getModules() { return this.registry.getModules(); }
 
   async executeTool(name: string, args: Record<string, unknown>) {
     return this.registry.execute(name, args, this.song);
+  }
+
+  // Resonance "Listen" pipeline: render a stem to WAV (in Live) → FFT analyze in-host.
+  async listen(req: ListenRequest): Promise<ListenResult> {
+    try {
+      if (req.demo) {
+        // Synthetic stem (kick-ish 60Hz + body 220Hz + air 6kHz) so the path is provable
+        // without Live. Same analyzer the real render path uses.
+        const sr = 44100;
+        const pcm = synthPcm(sr, 1, [{ hz: 60, amp: 0.8 }, { hz: 220, amp: 0.4 }, { hz: 6000, amp: 0.25 }]);
+        return { success: true, data: { source: "demo", trackName: "Demo stem", analysis: analyzePcm(pcm, sr) } };
+      }
+      if (req.wavPath) {
+        return { success: true, data: { source: "file", analysis: analyzeWavFile(req.wavPath) } };
+      }
+      if (req.trackIndex == null) return { success: false, error: "listen needs trackIndex, wavPath or demo:true" };
+      const track = this.song?.tracks?.[req.trackIndex];
+      if (!track) return { success: false, error: `Track ${req.trackIndex} not found` };
+      if (!("createAudioClip" in track)) return { success: false, error: "Listen renders audio tracks. For a MIDI track, resample it to audio first." };
+      if (!this.resources?.renderPreFxAudio) return { success: false, error: "Audio render is only available inside Live (resources.renderPreFxAudio)." };
+      const start = req.startBeat ?? 0;
+      const end = req.endBeat ?? Math.max(start + 4, start + 4);
+      const wavPath: string = await this.resources.renderPreFxAudio(track, start, end);
+      return { success: true, data: { source: "render", trackName: track.name, analysis: analyzeWavFile(wavPath) } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
   }
 
   // Keyword search over every tool definition, ranked by how many query terms hit the

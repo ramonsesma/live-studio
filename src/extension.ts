@@ -22,7 +22,7 @@ export function activate(context: ActivationContext) {
   const openUI = () => {
     void (async () => {
       try {
-        if (!bridge) bridge = new Bridge(createMasterRegistry(), ctx.application.song);
+        if (!bridge) bridge = new Bridge(createMasterRegistry(), ctx.application.song, ctx.resources, ctx.environment);
         if (!currentServer) currentServer = await startServer(bridge);
         await ctx.ui.showModalDialog(`${currentServer.url}/`, 1100, 820);
       } catch (err) {

@@ -6,22 +6,39 @@
 
 <p align="center">
   <b>Una super-extensión modular para Ableton Live.</b><br/>
-  57 módulos · 242 tools · 84 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
+  58 módulos · 244 tools · 84 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
-  <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-56-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-242-6cc6ff" />
+  <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-57-ffb347" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-244-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-84-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-21-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-76%20%E2%9C%93-2ea043" />
+  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-22-9370db" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-78%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue" />
   <a href="README.md"><img alt="readme in English" src="https://img.shields.io/badge/README-English-yellow" /></a>
 </p>
 
 ---
+
+---
+
+## ⭐ Destacado — Resonance · Mix Radar
+
+<p align="center">
+  <img src="assets/demo-mix-radar.gif" alt="Resonance Mix Radar — escucha, detecta colisiones de masking y las talla" width="100%" />
+</p>
+
+**La primera extensión de Live que renderiza tu set a audio, lo _escucha_ y produce de vuelta dentro de él.** Los plugins de un solo canal (Neutron, Gullfoss, smart:EQ) solo ven una pista — Resonance ve el **set completo**.
+
+- **Listen** — renderiza cada stem de audio con `resources.renderPreFxAudio` y corre una **FFT real dentro del host** (cero dependencias nativas): 30 bandas log, frecuencia dominante y loudness por pista.
+- **Ver el masking** — funde los espectros en una **matriz frecuencia × pista**; donde dos pistas pelean en la misma banda, la celda se pone roja.
+- **Actuar** — convierte cada colisión en un **move** correctivo de un clic (tallar EQ, bajar, panear) escrito de vuelta con `DeviceParameter.setValue`, todo en un solo undo (`withinTransaction`).
+- **Recordar** — cachea huellas espectrales por proyecto en `environment.storageDirectory`.
+
+Exprime lo que nada más toca del SDK — el bucle renderizar → analizar → escribir, a nivel de set y dentro del DAW. El Mix Radar es el más elaborado de los 22 paneles ricos.
 
 ## ¿Qué es?
 
@@ -38,22 +55,22 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 
 ## ✨ Características
 
-- **57 módulos** (56 visibles + 1 oculto) con **242 tools reales** repartidos por categorías:
+- **58 módulos** (57 visibles + 1 oculto) con **244 tools reales** repartidos por categorías:
   generación musical, drums, mezcla/mastering, EQ/análisis, síntesis, sampling, arreglo,
   performance/live, MIDI, hardware/control, gestión de proyectos, conversión audio↔MIDI y más.
 - **Copiloto IA** (OpenRouter / OpenAI / OpenCode Zen) con loop de *tool-calling*: descubre y
-  ejecuta **cualquiera de los 242 tools** mediante un kit de meta-tools (`find_tools` busca en
+  ejecuta **cualquiera de los 244 tools** mediante un kit de meta-tools (`find_tools` busca en
   toda la suite, `list_modules` navega, `run_tool` ejecuta) — alcanza todo sin saturar al modelo.
-- **Paleta de comandos rápidos** (`⌘K`): indexa los **242 tools** + **84 quick actions**
+- **Paleta de comandos rápidos** (`⌘K`): indexa los **244 tools** + **84 quick actions**
   (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
-- **21 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
+- **22 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
   grafo de clips, mixer con faders/VU, rejillas de pasos y pads, mapa de drums, comping, curva EQ,
   diseñador de LFO, trance gate, synth patchbay, timeline de arreglo, rejilla de pistas, gain
   staging, rack builder, salud de sesión, pad de directo, diff de versiones…
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
 - **Ligero**: bundle de ~468 KB, sin frameworks de frontend.
-- **Probado**: 76 pruebas de humo end-to-end del servidor + módulos.
+- **Probado**: 78 pruebas de humo end-to-end del servidor + módulos.
 
 ## 📸 Vistas
 
@@ -137,7 +154,7 @@ src/
 └── modules/<id>/tools.ts # cada módulo = su toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + paleta
-└── panels/<id>.js                        # 21 paneles ricos
+└── panels/<id>.js                        # 22 paneles ricos
 ```
 
 ### Añadir un módulo (3 pasos)
@@ -150,27 +167,27 @@ public/
 
 ### Paneles ricos
 Crea `public/panels/<id>.js` que registre `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`
-y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 21:
-`organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (grafo), `notation` (piano-roll), `takes`, `eq` (curva EQ), `midilfo` (diseñador LFO), `midigate` (trance gate), `synth` (patchbay), `genarranger` (timeline de arreglo), `trackmanager` (rejilla de pistas), `health` (salud de sesión), `mastering` (gain staging), `rackbuilder` (rack), `performance` (pad de directo), `clipversions` (versiones y snapshots).
+y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 22:
+`organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (grafo), `notation` (piano-roll), `takes`, `eq` (curva EQ), `midilfo` (diseñador LFO), `midigate` (trance gate), `synth` (patchbay), `genarranger` (timeline de arreglo), `trackmanager` (rejilla de pistas), `health` (salud de sesión), `mastering` (gain staging), `rackbuilder` (rack), `performance` (pad de directo), `clipversions` (versiones y snapshots), `resonance` (mix radar).
 
 ## 🛠️ Desarrollo
 
 ```bash
 npm run build       # compila (esbuild)
 npm run typecheck   # tsc --noEmit
-npm run test        # 76 pruebas de humo (servidor + módulos, song simulado)
+npm run test        # 78 pruebas de humo (servidor + módulos, song simulado)
 npm run package     # build + empaqueta .ablx con la UI
 ```
 
 ## 📚 Catálogo de módulos
 
 <details>
-<summary><b>Ver los 56 módulos por categoría</b> (+ 1 módulo oculto que alimenta la paleta ⌘K)</summary>
+<summary><b>Ver los 57 módulos por categoría</b> (+ 1 módulo oculto que alimenta la paleta ⌘K)</summary>
 
 - **Sesión & proyecto:** Sesión & Pistas · Clips & Escenas · Bulk Track Manager · Track Color Coordinator · Plantillas de Proyecto · Notas de Proyecto · Project Health · Organizador de Sesión · Snapshots
 - **MIDI & composición:** Acordes · Generador de Melodías · Letra → Melodía · MIDI Harmonizer · MIDI Randomizer · MIDI Transformer · MIDI Gate · MIDI LFO · Chord Pads · Step Sequencer · Quantize & Swing · Groove & Humanize · Notation Viewer
 - **Drums:** Drums & Patterns · Drum Replacer · Drum Map Editor · Drum Bus Processor
-- **Mezcla & FX:** EQ & Análisis · Compresión & Dinámica · Gain Staging · Mixing Assistant IA · Mix Console View · Mix Scene Saver · Cadenas de Efectos · FX Chain Presets · Macro Mapper Pro · Rack Builder
+- **Mezcla & FX:** EQ & Análisis · Compresión & Dinámica · Gain Staging · Mixing Assistant IA · Mix Console View · Mix Scene Saver · Cadenas de Efectos · FX Chain Presets · Macro Mapper Pro · Rack Builder · **Resonance · Mix Radar** ⭐
 - **Arreglo & performance:** Arreglo & Navegación · Secciones de Arreglo · Generative Arranger · Performance & Looper · Takes & Comping · Clip Colorizer · Clip Versions · Clip Relation Graph · Clip Launch Quantizer · Setlist Manager
 - **Tempo & tiempo:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator
 - **Diseño de sonido:** Synth Patchbay · SFX & Texturas · Vocal Chain & FX

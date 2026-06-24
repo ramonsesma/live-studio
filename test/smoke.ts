@@ -58,9 +58,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 57 módulos", (mods.modules || []).length === 57, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 58 módulos", (mods.modules || []).length === 58, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("56 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 56);
+check("57 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 57);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -137,12 +137,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 21 paneles ricos", panelsOk);
+check("sirve los 22 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -252,6 +252,13 @@ check("copilot find_tools encuentra el tool real", ft.some((t: any) => t.name ==
 const ftHit = ft.find((t: any) => t.name === "drums__generate_pattern");
 const ftRun = await reg.execute(ftHit.name, { genre: "techno" }, song);
 check("copilot run_tool ejecuta lo que find_tools devuelve", ftRun.success === true);
+
+// 7c. Resonance "Listen" pipeline (render→FFT). Demo mode proves the WAV+FFT analyzer
+// end-to-end through the server without Live; the real path swaps in renderPreFxAudio.
+const lis = await post("/api/listen", { demo: true });
+check("resonance /api/listen demo → 30-band spectrum", lis.success && lis.data.analysis.bands.length === 30 && lis.data.analysis.peakHz > 0);
+const lisMidi = await post("/api/listen", { trackIndex: 1 });
+check("resonance listen rechaza pista MIDI con mensaje claro", lisMidi.success === false && /audio|resample|render/i.test(lisMidi.error));
 
 // 8. estáticos
 const html = await (await fetch(base + "/")).text();

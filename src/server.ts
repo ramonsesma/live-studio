@@ -83,6 +83,11 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         sendJson(res, 200, result);
         return;
       }
+      if (url.pathname === "/api/listen" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.listen(body as any));
+        return;
+      }
       if (url.pathname === "/api/config" && method === "POST") {
         const body = await parseBody(req);
         if (body.provider) config.provider = body.provider as string;
