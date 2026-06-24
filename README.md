@@ -14,7 +14,7 @@
   <img alt="modules" src="https://img.shields.io/badge/modules-56-ffb347" />
   <img alt="tools" src="https://img.shields.io/badge/tools-242-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-84-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-10-9370db" />
+  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-21-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-76%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue" />
@@ -47,8 +47,10 @@ of each concept into one place.
   `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
 - **Quick command palette** (`⌘K`): indexes the **242 tools** + **84 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
-- **10 curated rich panels** where the auto-generated form falls short: piano-roll, clip
-  graph, mixer with faders/VU, step grids, pad grids, drum map, comping…
+- **21 curated rich panels** where the auto-generated form falls short: piano-roll, clip
+  graph, mixer with faders/VU, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
+  trance gate, synth patchbay, arrangement timeline, track grid, gain staging, rack builder,
+  session health, performance pad, version diff…
 - **Auto-generated UI** for everything else: any new module shows up with its form without
   writing HTML, reading its tool definitions.
 - **Lightweight**: ~468 KB bundle, no frontend frameworks.
@@ -159,7 +161,7 @@ src/
 └── modules/<id>/tools.ts # each module = its own toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + palette
-└── panels/<id>.js                        # 10 rich panels
+└── panels/<id>.js                        # 21 rich panels
 ```
 
 ### Adding a module (3 steps)
@@ -172,9 +174,8 @@ public/
 
 ### Rich panels
 Create `public/panels/<id>.js` that registers `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`
-and add it to `index.html`. `shell.js` uses it instead of the autoform. There are 10 already:
-`organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`,
-`clipgraph` (graph), `notation` (piano-roll), `takes`.
+and add it to `index.html`. `shell.js` uses it instead of the autoform. There are 21 already:
+`organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (graph), `notation` (piano-roll), `takes`, `eq` (EQ curve), `midilfo` (LFO designer), `midigate` (trance gate), `synth` (patchbay), `genarranger` (arrangement timeline), `trackmanager` (track grid), `health` (session health), `mastering` (gain staging), `rackbuilder` (rack), `performance` (performance pad), `clipversions` (versions & snapshots).
 
 ## 🛠️ Development
 

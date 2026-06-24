@@ -1,5 +1,5 @@
 import * as esbuild from "esbuild";
-import { cpSync, existsSync } from "fs";
+import { cpSync, existsSync, rmSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -32,6 +32,8 @@ await esbuild.build({
 const publicDir = join(__dirname, "public");
 const distDir = join(__dirname, "dist/ui");
 if (existsSync(publicDir)) {
+  // Clean dist/ui first so panels/files deleted from public/ don't linger in the .ablx.
+  rmSync(distDir, { recursive: true, force: true });
   cpSync(publicDir, distDir, { recursive: true });
 }
 

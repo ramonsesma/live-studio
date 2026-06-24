@@ -14,7 +14,7 @@
   <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-56-ffb347" />
   <img alt="tools" src="https://img.shields.io/badge/tools-242-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-84-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-10-9370db" />
+  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-21-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-76%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue" />
@@ -46,9 +46,10 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
   toda la suite, `list_modules` navega, `run_tool` ejecuta) — alcanza todo sin saturar al modelo.
 - **Paleta de comandos rápidos** (`⌘K`): indexa los **242 tools** + **84 quick actions**
   (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
-- **10 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
-  grafo de clips, mixer con faders/VU, rejillas de pasos y pads,
-  mapa de drums, comping…
+- **21 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
+  grafo de clips, mixer con faders/VU, rejillas de pasos y pads, mapa de drums, comping, curva EQ,
+  diseñador de LFO, trance gate, synth patchbay, timeline de arreglo, rejilla de pistas, gain
+  staging, rack builder, salud de sesión, pad de directo, diff de versiones…
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
 - **Ligero**: bundle de ~468 KB, sin frameworks de frontend.
@@ -136,7 +137,7 @@ src/
 └── modules/<id>/tools.ts # cada módulo = su toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + paleta
-└── panels/<id>.js                        # 10 paneles ricos
+└── panels/<id>.js                        # 21 paneles ricos
 ```
 
 ### Añadir un módulo (3 pasos)
@@ -149,9 +150,8 @@ public/
 
 ### Paneles ricos
 Crea `public/panels/<id>.js` que registre `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`
-y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 10: `organizer`, `fxchain`,
-`mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (grafo),
-`notation` (piano-roll), `takes`.
+y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 21:
+`organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (grafo), `notation` (piano-roll), `takes`, `eq` (curva EQ), `midilfo` (diseñador LFO), `midigate` (trance gate), `synth` (patchbay), `genarranger` (timeline de arreglo), `trackmanager` (rejilla de pistas), `health` (salud de sesión), `mastering` (gain staging), `rackbuilder` (rack), `performance` (pad de directo), `clipversions` (versiones y snapshots).
 
 ## 🛠️ Desarrollo
 

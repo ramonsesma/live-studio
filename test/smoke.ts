@@ -137,12 +137,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 10 paneles ricos", panelsOk);
+check("sirve los 21 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
