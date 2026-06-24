@@ -49,7 +49,7 @@ export function createToolRegistry() {
   reg.register({ name:"get_performance_state", description:"Get current performance state", category:"performance", parameters:{} },
     async (_a: any, song: any) => ({
       success:true, data:{
-        isPlaying:song.isPlaying, tempo:song.tempo, metronome:song.metronome,
+        isPlaying:null, tempo:song.tempo, metronome:null,
         armedTracks:song.tracks.map((t: any, i: number) => ({ trackIndex:i, name:t.name, armed:t.arm, mute:t.mute, solo:t.solo })),
         currentScene:null
       }

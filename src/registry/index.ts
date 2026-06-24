@@ -17,7 +17,6 @@ import { createToolRegistry as synthTools } from "../modules/synth/tools.js";
 import { createToolRegistry as templatesTools } from "../modules/templates/tools.js";
 import { createToolRegistry as notesTools } from "../modules/notes/tools.js";
 import { createToolRegistry as grooveTools } from "../modules/groove/tools.js";
-import { createToolRegistry as automationTools } from "../modules/automation/tools.js";
 import { createToolRegistry as organizerTools } from "../modules/organizer/tools.js";
 import { createToolRegistry as quickActionsTools } from "../modules/quickactions/tools.js";
 import { createToolRegistry as compressorTools } from "../modules/compressor/tools.js";
@@ -86,7 +85,6 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"templates",   label:"Project Templates", icon:"📐", description:"Extract, list and apply templates from your project.", registry: templatesTools() });
   m.addModule({ id:"notes",       label:"Project Notes", icon:"📝", description:"Categorized notes with search, tags and export.", registry: notesTools() });
   m.addModule({ id:"groove",      label:"Groove & Humanize", icon:"🌀", description:"Extract and apply timing/velocity groove to MIDI clips.", registry: grooveTools() });
-  m.addModule({ id:"automation",  label:"Automation & Curves", icon:"📈", description:"Automation lanes: smooth, transform and read envelopes.", registry: automationTools() });
 
   // --- Star modules (rich panels) ---
   m.addModule({ id:"organizer",   label:"Session Organizer", icon:"🧩", description:"Organization score, auto-organize, scene grouping, naming, analysis and genre templates.", registry: organizerTools() });

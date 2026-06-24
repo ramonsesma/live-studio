@@ -22,7 +22,7 @@ export function createToolRegistry() {
         index:i, name:t.name||`Track ${i+1}`, type:t.type||"midi",
         effects:["EQ Eight","Compressor","Reverb"], deviceCount:3
       }));
-      return { success:true, data:{ trackCount:tracks.length, tempo:song.tempo, signature:song.signature, tracks:trackData, hasMarkers:true, hasScenes:true } };
+      return { success:true, data:{ trackCount:tracks.length, tempo:song.tempo, signature:(song.scenes&&song.scenes[0]?(((song.scenes[0].signatureNumerator)||4)+"/"+((song.scenes[0].signatureDenominator)||4)):"4/4"), tracks:trackData, hasMarkers:true, hasScenes:true } };
     }
   );
 

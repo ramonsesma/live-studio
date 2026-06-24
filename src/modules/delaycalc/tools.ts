@@ -18,7 +18,7 @@ export function createToolRegistry() {
   const reg = new ToolRegistry();
 
   reg.register({ name:"get_bpm", description:"Get current project BPM", category:"delay-calc", parameters:{} },
-    async (_a: any, song: any) => ({ success:true, data:{ bpm:song.tempo || 120, timeSignature:song.signature||"4/4" } })
+    async (_a: any, song: any) => ({ success:true, data:{ bpm:song.tempo || 120, timeSignature:(song.scenes&&song.scenes[0]?(((song.scenes[0].signatureNumerator)||4)+"/"+((song.scenes[0].signatureDenominator)||4)):"4/4") } })
   );
 
   reg.register({ name:"calculate", description:"Calculate delay/reverb times from BPM", category:"delay-calc", parameters:{ bpm:{type:"number",description:"BPM (leave empty for project BPM)",required:false}, note_value:{type:"string",description:"Note value to calculate",required:false,enum:["1/1","1/2","1/2d","1/4","1/4d","1/4t","1/8","1/8d","1/8t","1/16","1/16d","1/16t","1/32"]} } },

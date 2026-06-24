@@ -58,9 +58,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 58 módulos", (mods.modules || []).length === 58, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 57 módulos", (mods.modules || []).length === 57, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("57 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 57);
+check("56 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 56);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -119,8 +119,6 @@ const nget = await post("/api/execute", { name: "notes__get_notes", args: { cate
 check("notes__get_notes filtra por categoría", nget.success && nget.data.count === 1);
 const grv = await post("/api/execute", { name: "groove__apply_groove", args: { track_index: 0, clip_index: 0, amount: 80 } });
 check("groove__apply_groove", grv.success && grv.data.amount === 80);
-const aut = await post("/api/execute", { name: "automation__transform_curve", args: { track_index: 0, lane_index: 0, operation: "reverse" } });
-check("automation__transform_curve", aut.success && aut.data.operation === "reverse");
 
 // 5e. módulo estrella: organizer (panel rico)
 const sumr = await post("/api/execute", { name: "organizer__get_session_summary", args: {} });

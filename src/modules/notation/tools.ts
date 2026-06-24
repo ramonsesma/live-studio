@@ -28,7 +28,8 @@ export function createToolRegistry() {
         .sort((a: any, b: any) => a.startTime - b.startTime)
         .map((n: any) => ({ note:NOTE_NAMES[n.pitch % 12] + Math.floor(n.pitch / 12 - 1), pitch:n.pitch, start:n.startTime, duration:n.duration, velocity:n.velocity ?? 100 }));
       const key = `${NOTE_NAMES[(song.rootNote || 0) % 12]} ${song.scaleName || "Major"}`;
-      const ts = Array.isArray(song.timeSignature) ? song.timeSignature.join("/") : "4/4";
+      const sc = (song.scenes || [])[0];
+      const ts = sc ? `${sc.signatureNumerator ?? 4}/${sc.signatureDenominator ?? 4}` : "4/4";
       return { success:true, data:{ trackName:track.name, noteCount:notes.length, timeSignature:ts, keySignature:key, clef:"treble", notes } };
     }
   );

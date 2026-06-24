@@ -82,7 +82,7 @@ export function createToolRegistry(): ToolRegistry {
         totalTracks: song.tracks.length,
         totalScenes: song.scenes.length,
         tempo: song.tempo,
-        timeSignature: song.timeSignature,
+        timeSignature: (song.scenes&&song.scenes[0]?(((song.scenes[0].signatureNumerator)||4)+"/"+((song.scenes[0].signatureDenominator)||4)):"4/4"),
         organizationScore: calculateOrganizationScore(song),
         recommendations: generateRecommendations(song),
         trackCategories: categorizeTracks(song),
@@ -237,7 +237,7 @@ export function createToolRegistry(): ToolRegistry {
         metadata: {
           name: song.name || "Untitled Session",
           tempo: song.tempo,
-          timeSignature: song.timeSignature,
+          timeSignature: (song.scenes&&song.scenes[0]?(((song.scenes[0].signatureNumerator)||4)+"/"+((song.scenes[0].signatureDenominator)||4)):"4/4"),
           created: new Date().toISOString(),
           version: "1.0.0"
         },
@@ -254,7 +254,7 @@ export function createToolRegistry(): ToolRegistry {
         scenes: includeScenes ? song.scenes.map((scene, index) => ({
           index,
           name: scene.name,
-          length: scene.length,
+          signature: `${scene.signatureNumerator ?? 4}/${scene.signatureDenominator ?? 4}`,
           tempo: scene.tempo
         })) : []
       };
@@ -410,12 +410,12 @@ function determineSceneGroup(song: any, scene: any, strategy: string): string {
   switch (strategy) {
     case "tempo":
       if (scene.tempo !== song.tempo) return "bridge";
-      if (scene.length < 4) return "intro";
-      if (scene.length > 8) return "outro";
+      if ((scene.length ?? 8) < 4) return "intro";
+      if ((scene.length ?? 8) > 8) return "outro";
       return "verse";
     case "length":
-      if (scene.length < 4) return "intro";
-      if (scene.length > 8) return "outro";
+      if ((scene.length ?? 8) < 4) return "intro";
+      if ((scene.length ?? 8) > 8) return "outro";
       return "verse";
     case "name_pattern":
       const name = scene.name.toLowerCase();
@@ -461,7 +461,7 @@ function analyzeTrackDistribution(song: any): Record<string, number> {
 function analyzeSceneFlow(song: any): Record<string, unknown> {
   return {
     totalScenes: song.scenes.length,
-    averageLength: song.scenes.reduce((sum, scene) => sum + scene.length, 0) / song.scenes.length,
+    averageLength: song.scenes.length ? song.scenes.reduce((sum, scene) => sum + (scene.length ?? 8), 0) / song.scenes.length : 0,
     tempoChanges: song.scenes.filter(s => s.tempo !== song.tempo).length,
     emptyScenes: song.scenes.filter(s => s.length === 0).length
   };
@@ -695,10 +695,10 @@ function createTemplateWorkflow(genre: string): Array<{ step: number; action: st
 }
 
 function convertToCSV(sessionInfo: any): string {
-  let csv = "Name,Type,Category,Solo,Mute,Armed,Devices,Clips\n";
+  let csv = "Name,Type,Solo,Mute,Armed,Devices,Clips\n";
 
   sessionInfo.tracks.forEach(track => {
-    csv += `${track.name},${track.type},${track.category},${track.solo},${track.mute},${track.armed},${track.devices},${track.clips}\n`;
+    csv += `${track.name},${track.type},${track.solo},${track.mute},${track.armed},${track.devices},${track.clips}\n`;
   });
 
   return csv;
@@ -717,7 +717,7 @@ function convertToText(sessionInfo: any): string {
 
   text += "\nScenes:\n";
   sessionInfo.scenes.forEach(scene => {
-    text += `- ${scene.name} (Length: ${scene.length}s, Tempo: ${scene.tempo} BPM)\n`;
+    text += `- ${scene.name} (Tempo: ${scene.tempo} BPM)\n`;
   });
 
   return text;

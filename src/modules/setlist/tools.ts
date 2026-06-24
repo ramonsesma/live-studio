@@ -31,7 +31,7 @@ export function createToolRegistry() {
   reg.register({ name:"get_current_session", description:"Capture current session as a setlist entry", category:"setlist", parameters:{} },
     async (_a: any, song: any) => {
       const tracks = song.tracks || [];
-      return { success:true, data:{ trackCount:tracks.length, trackNames:tracks.map((t: any)=>t.name).filter(Boolean), tempo:song.tempo, signature:song.signature } };
+      return { success:true, data:{ trackCount:tracks.length, trackNames:tracks.map((t: any)=>t.name).filter(Boolean), tempo:song.tempo, signature:(song.scenes&&song.scenes[0]?(((song.scenes[0].signatureNumerator)||4)+"/"+((song.scenes[0].signatureDenominator)||4)):"4/4") } };
     }
   );
 

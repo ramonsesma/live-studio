@@ -31,7 +31,7 @@ export function createToolRegistry() {
   
   reg.register({ name:"get_api_autocomplete", description:"Get SDK API autocomplete suggestions", category:"sandbox", parameters:{ prefix:{type:"string",description:"Type prefix",required:true} } },
     async (args: any) => {
-      const apis = ["song.tracks","song.tempo","song.createMidiTrack","track.createMidiClip","clip.addNote","device.setParameter"];
+      const apis = ["song.tracks","song.tempo","song.scenes","song.createMidiTrack","song.createAudioTrack","song.createScene","track.mixer.volume","track.insertDevice","track.clipSlots","clip.notes","device.parameters"];
       return { success:true, data:{ suggestions:apis.filter((a: string) => a.startsWith(args.prefix)) } };
     }
   );

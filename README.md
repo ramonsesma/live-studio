@@ -6,13 +6,13 @@
 
 <p align="center">
   <b>A modular super-extension for Ableton Live.</b><br/>
-  57 modules · 244 tools · 1293 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
+  57 modules · 242 tools · 1293 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
-  <img alt="modules" src="https://img.shields.io/badge/modules-57-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-244-6cc6ff" />
+  <img alt="modules" src="https://img.shields.io/badge/modules-56-ffb347" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-242-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-1293-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-10-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-76%20%E2%9C%93-2ea043" />
@@ -39,12 +39,12 @@ of each concept into one place.
 
 ## ✨ Features
 
-- **58 modules** (57 visible + 1 hidden) with **244 real tools** across categories: music
+- **57 modules** (56 visible + 1 hidden) with **242 real tools** across categories: music
   generation, drums, mixing/mastering, EQ/analysis, synthesis, sampling, arrangement,
   performance/live, MIDI, hardware/control, project management, audio↔MIDI conversion and more.
 - **AI copilot** (OpenRouter / OpenAI / OpenCode Zen) with a *tool-calling* loop: it receives
-  the definitions of all 244 tools and orchestrates modules via natural language.
-- **Quick command palette** (`⌘K`): indexes the **244 tools** + **1293 quick actions**
+  the definitions of all 242 tools and orchestrates modules via natural language.
+- **Quick command palette** (`⌘K`): indexes the **242 tools** + **1293 quick actions**
   (extracted from 215 micro-extensions) and runs them with the keyboard.
 - **10 curated rich panels** where the auto-generated form falls short: piano-roll, clip
   graph, mixer with faders/VU, step grids, pad grids, drum map, comping…
@@ -69,7 +69,7 @@ of each concept into one place.
   <tr>
     <td align="center">
       <img src="assets/screenshots/03-palette.svg" alt="Command palette" width="100%" /><br/>
-      <sub><b>⌘K command palette</b> — mixes 244 real tools and 1293 quick actions in one search.</sub>
+      <sub><b>⌘K command palette</b> — mixes 242 real tools and 1293 quick actions in one search.</sub>
     </td>
     <td align="center">
       <img src="assets/screenshots/04-mixconsole.svg" alt="Mix Console" width="100%" /><br/>
@@ -206,12 +206,12 @@ npm run package     # build + package .ablx with the UI
 ## 📚 Module catalog
 
 <details>
-<summary><b>Show the 57 modules by category</b> (+ 1 hidden module backing the ⌘K palette)</summary>
+<summary><b>Show the 56 modules by category</b> (+ 1 hidden module backing the ⌘K palette)</summary>
 
 - **Session & project:** Session & Tracks · Clips & Scenes · Bulk Track Manager · Track Color Coordinator · Project Templates · Project Notes · Project Health · Session Organizer · Snapshots
 - **MIDI & composition:** Chords & Progressions · Melody Generator · Lyric → Melody · MIDI Harmonizer · MIDI Randomizer · MIDI Transformer · MIDI Gate · MIDI LFO · Chord Pads · Step Sequencer · Quantize & Swing · Groove & Humanize · Notation Viewer
 - **Drums:** Drums & Patterns · Drum Replacer · Drum Map Editor · Drum Bus Processor
-- **Mixing & FX:** EQ & Analysis · Compression & Dynamics · Gain Staging & Levels · AI Mixing Assistant · Mix Console View · Mix Scene Saver · FX Chains · FX Chain Presets · Automation & Curves · Macro Mapper Pro · Rack Builder
+- **Mixing & FX:** EQ & Analysis · Compression & Dynamics · Gain Staging & Levels · AI Mixing Assistant · Mix Console View · Mix Scene Saver · FX Chains · FX Chain Presets · Macro Mapper Pro · Rack Builder
 - **Arrangement & performance:** Arrangement & Navigation · Arrangement Sections · Generative Arranger · Performance & Looper · Takes & Comping · Clip Colorizer · Clip Versions · Clip Relation Graph · Clip Launch Quantizer · Setlist Manager
 - **Tempo & time:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator
 - **Sound design:** Synth Patchbay · SFX & Textures · Vocal Chain & FX
