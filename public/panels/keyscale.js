@@ -12,13 +12,15 @@ window.LiveStudioPanels.keyscale = function (panel, helpers) {
       <button class="btn" id="ks-detect"><i class="ti ti-search" aria-hidden="true"></i> Detect</button>
       <label class="hint">Scope</label><input id="ks-trk" type="number" placeholder="all" style="width:64px" />
       <button class="btn ghost" id="ks-foreign">Find foreign notes</button>
+      <button class="btn ghost" id="ks-conform"><i class="ti ti-wand" aria-hidden="true"></i> Force to key</button>
       <span class="hint" id="ks-info"></span>
     </div>
     <div style="display:grid;grid-template-columns:230px 1fr;gap:14px;margin-top:6px">
       <div id="ks-result"></div>
       <div id="ks-hist"></div>
     </div>
-    <div id="ks-foreign-box" style="margin-top:12px"></div>`;
+    <div id="ks-foreign-box" style="margin-top:12px"></div>
+    <div id="ks-heat" style="margin-top:12px"></div>`;
 
   let lastRoot = 9, lastScale = "minor";
 
@@ -66,6 +68,35 @@ window.LiveStudioPanels.keyscale = function (panel, helpers) {
     if (!r.success) { r = await exec("detect_key", { demo: true }); panel.querySelector("#ks-info").textContent = "Demo (no MIDI found) — synthetic A-minor"; }
     if (r.success) render(r.data);
     else panel.querySelector("#ks-info").textContent = r.error;
+    heatmap();
+  }
+
+  async function heatmap() {
+    const r = await exec("project_heatmap", {});
+    const box = panel.querySelector("#ks-heat");
+    if (!r.success || !r.data.tracks.length) { box.innerHTML = ""; return; }
+    const g = r.data.globalKey;
+    box.innerHTML = `
+      <div style="font-size:12px;color:#9a9aa2;margin-bottom:6px">Per-track fit to the project key ${g ? `(<span style="color:#6cc6ff">${g.name}</span>, ${g.source})` : ""}</div>
+      ${r.data.tracks.map((t) => {
+        const pct = t.inKeyPct == null ? 0 : t.inKeyPct;
+        const col = pct >= 95 ? "#5ad17a" : pct >= 80 ? "#ffb347" : "#e24b4a";
+        return `<div style="display:grid;grid-template-columns:110px 1fr 60px 86px;gap:10px;align-items:center;padding:4px 2px">
+          <span style="color:#e8e8ea;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name}</span>
+          <span style="height:12px;background:#202026;border:1px solid #34343b;border-radius:6px;overflow:hidden"><span style="display:block;height:100%;width:${pct}%;background:${col}"></span></span>
+          <span class="hint" style="font-size:11px;text-align:right">${t.inKeyPct == null ? "—" : pct + "%"}</span>
+          <span class="hint" style="font-size:11px;text-align:right">${t.key || ""}</span>
+        </div>`;
+      }).join("")}`;
+  }
+
+  async function conform() {
+    const trk = panel.querySelector("#ks-trk").value;
+    const args = trk !== "" ? { track_index: Number(trk) } : {};
+    const r = await exec("conform_to_scale", args);
+    if (!r.success) { panel.querySelector("#ks-info").textContent = r.error; return; }
+    panel.querySelector("#ks-info").textContent = `Forced to ${r.data.key}: moved ${r.data.notesMoved}/${r.data.notesTotal} notes in ${r.data.clipsAffected} clips`;
+    detect();
   }
   async function foreign() {
     const trk = panel.querySelector("#ks-trk").value;
@@ -82,5 +113,6 @@ window.LiveStudioPanels.keyscale = function (panel, helpers) {
   }
   panel.querySelector("#ks-detect").onclick = detect;
   panel.querySelector("#ks-foreign").onclick = foreign;
+  panel.querySelector("#ks-conform").onclick = conform;
   detect();
 };

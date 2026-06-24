@@ -1,12 +1,12 @@
-// Rich panel: Session Health — score gauge + issue checklist with per-issue Fix buttons,
-// from the real run_checks / list_issues / fix_issue tools. A report with actions, not a form.
+// Rich panel: Session Health — REAL project scan (missing samples, empty tracks/scenes,
+// duplicate names, un-warped audio) with per-issue Fix buttons that mutate the real set.
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.health = function (panel, helpers) {
   const exec = helpers.execute;
   const SEV = { error: "#e24b4a", warning: "#ffb347", info: "#6cc6ff" };
 
   panel.innerHTML = `
-    <div class="panel-head"><h1>🩺 Session Health</h1><p>Run checks, see the score and fix issues. Each fix calls the real tool.</p></div>
+    <div class="panel-head"><h1>🩺 Session Health</h1><p>Scans the real project: missing samples, empty tracks/scenes, duplicate names, un-warped audio.</p></div>
     <div class="ss-toolbar">
       <button class="btn" id="h-run">Run checks</button>
       <span class="hint" id="h-info"></span>
@@ -29,25 +29,33 @@ window.LiveStudioPanels.health = function (panel, helpers) {
       </svg>`;
   }
 
+  const FIX_LABEL = { rename_track: "Rename", delete_track: "Delete track", delete_scene: "Delete scene", warp_clip: "Warp" };
+
   async function run() {
     const r = await exec("run_checks", {});
     if (!r.success) { panel.querySelector("#h-info").textContent = r.error; return; }
     gauge(r.data.score);
-    const issues = r.data.issues || [];
-    panel.querySelector("#h-info").textContent = `${issues.length} issues · score ${r.data.score}`;
+    const issues = r.data.issues || [], c = r.data.counts || {};
+    panel.querySelector("#h-info").textContent = `${issues.length} issues · ${c.error || 0}🟥 ${c.warning || 0}🟧 ${c.info || 0}🟦 · ${r.data.scanned.tracks} tracks scanned`;
     const box = panel.querySelector("#h-list");
-    box.innerHTML = "";
-    issues.forEach((iss, i) => {
+    box.innerHTML = issues.length ? "" : `<div class="hint">No issues found — the project is healthy 🎯</div>`;
+    issues.forEach((iss) => {
       const row = document.createElement("div");
       row.style.cssText = "display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid #2f2f36;border-radius:8px;margin-bottom:7px";
+      const btn = iss.fix
+        ? `<button class="btn ghost h-fix" style="padding:3px 10px">${FIX_LABEL[iss.fix.kind] || "Fix"}</button>`
+        : `<span class="hint" style="font-size:11px">manual</span>`;
       row.innerHTML = `
         <span style="width:9px;height:9px;border-radius:50%;background:${SEV[iss.severity] || "#888"};flex:0 0 auto"></span>
         <span style="flex:1;color:#e8e8ea;font-size:13px">${iss.message}</span>
         <span class="hint" style="font-size:11px;text-transform:uppercase">${iss.severity}</span>
-        <button class="btn ghost h-fix" style="padding:3px 10px">Fix</button>`;
-      row.querySelector(".h-fix").onclick = async (e) => {
-        const fr = await exec("fix_issue", { issue_id: i + 1 });
+        ${btn}`;
+      const fixBtn = row.querySelector(".h-fix");
+      if (fixBtn) fixBtn.onclick = async (e) => {
+        const f = iss.fix;
+        const fr = await exec("apply_fix", { kind: f.kind, track_index: f.trackIndex, scene_index: f.sceneIndex, clip_index: f.clipIndex, where: f.where, new_name: f.newName });
         if (fr.success) { e.target.textContent = "✓ Fixed"; e.target.disabled = true; row.style.opacity = "0.55"; }
+        else { e.target.textContent = "✗"; panel.querySelector("#h-info").textContent = fr.error; }
       };
       box.appendChild(row);
     });

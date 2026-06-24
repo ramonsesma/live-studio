@@ -7,6 +7,11 @@ import { createToolRegistry as keyscaleTools } from "../modules/keyscale/tools.j
 import { createToolRegistry as genrhythmTools } from "../modules/genrhythm/tools.js";
 import { createToolRegistry as texturemapTools } from "../modules/texturemap/tools.js";
 import { createToolRegistry as spectrumCompareTools } from "../modules/spectrumcompare/tools.js";
+import { createToolRegistry as projectSnapshotTools } from "../modules/projectsnapshot/tools.js";
+import { createToolRegistry as scoreEditorTools } from "../modules/scoreeditor/tools.js";
+import { createToolRegistry as clipVariationsTools } from "../modules/clipvariations/tools.js";
+import { createToolRegistry as stemAlignTools } from "../modules/stemalign/tools.js";
+import { createToolRegistry as sampleBrainTools } from "../modules/samplebrain/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -153,6 +158,11 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"genrhythm",   label:"Generative Rhythm", icon:"🎲", description:"Rule-based probabilistic drum patterns using the SDK's native note probability + velocity deviation.", registry: genrhythmTools() });
   m.addModule({ id:"texturemap",  label:"Audio Texture Mapper", icon:"🌫️", description:"Renders an audio stem and maps its dominant spectral peaks per window to MIDI notes.", registry: texturemapTools() });
   m.addModule({ id:"spectrumcompare", label:"Spectrum Match", icon:"🔀", description:"Overlays two tracks' spectra (render→FFT) and highlights overlapping/masking bands.", registry: spectrumCompareTools() });
+  m.addModule({ id:"projectsnapshot", label:"Project Snapshot · Git", icon:"📸", description:"Versions the whole Set to disk (storageDirectory): save, GitHub-style diff and restore.", registry: projectSnapshotTools() });
+  m.addModule({ id:"scoreeditor",  label:"Score Editor", icon:"🎼", description:"Renders a clip as notation and exports/imports MusicXML (engrave + PDF in MuseScore/Sibelius/Dorico).", registry: scoreEditorTools() });
+  m.addModule({ id:"clipvariations", label:"Clip Variation Engine", icon:"🎰", description:"Generates N algorithmic variations of a MIDI clip (rotate, reverse, humanize, arpeggiate…) as new clips.", registry: clipVariationsTools() });
+  m.addModule({ id:"stemalign",   label:"Stem Aligner", icon:"🎯", description:"Cross-correlates two audio stems to find their time offset and shift the target into alignment.", registry: stemAlignTools() });
+  m.addModule({ id:"samplebrain", label:"Sample Library Brain", icon:"🧠", description:"Indexes your samples to a JSON brain with a perceptual fingerprint; search by BPM/key/similarity and drop into the project.", registry: sampleBrainTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"Vocabulary of 1293 micro-actions (from the 215 *-action extensions).", hidden:true, registry: quickActionsTools() });

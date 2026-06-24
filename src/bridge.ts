@@ -1,7 +1,11 @@
 import { MasterRegistry } from "./core/registry.js";
 import type { LLMClient, LLMMessage } from "./core/llm.js";
-import { analyzeWavFile, analyzePcm, synthPcm, faderDbToValue, peakFrequencies, decodeWav, type Analysis } from "./core/dsp.js";
-import { readFileSync } from "node:fs";
+import { analyzeWavFile, analyzePcm, synthPcm, faderDbToValue, peakFrequencies, decodeWav, energyEnvelope, crossCorrelate, type Analysis } from "./core/dsp.js";
+import { buildSnapshot, diffSnapshots, applySnapshot, summarize, type Snapshot } from "./core/snapshot.js";
+import { extractFeatures, cosine, tagsFromName } from "./core/samplebrain.js";
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
+import { join, basename } from "node:path";
+import { tmpdir } from "node:os";
 
 const SYSTEM_PROMPT = `You are the Live Studio copilot, integrated into Ableton Live 12. You control Live with the full Live Studio toolset — 242 tools across 57 modules (session, chords, drums, eq, mixconsole, miditransform, randomizer, organizer, fxchain, …).
 
@@ -223,6 +227,158 @@ export class Bridge {
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
+  }
+
+  // Project Snapshot ("git for Live Sets"): serialize the whole Set to JSON on disk
+  // (environment.storageDirectory), list, diff two snapshots, and restore one.
+  private snapDir(): string {
+    const base = this.environment?.storageDirectory || join(tmpdir(), "live-studio");
+    const dir = join(base, ".snapshots");
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    return dir;
+  }
+  private loadSnap(dir: string, id: string): Snapshot | null {
+    try { const p = join(dir, id + ".json"); return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : null; } catch { return null; }
+  }
+  async snapshot(req: { action: string; label?: string; id?: string; idA?: string; idB?: string }): Promise<any> {
+    try {
+      const dir = this.snapDir();
+      if (req.action === "save") {
+        const snap = await buildSnapshot(this.song, req.label || "snapshot");
+        const id = `${Date.now()}_${(req.label || "snap").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 24)}`;
+        writeFileSync(join(dir, id + ".json"), JSON.stringify(snap));
+        return { success: true, data: { id, timestamp: snap.timestamp, summary: summarize(snap) } };
+      }
+      if (req.action === "list") {
+        const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".json")) : [];
+        const snapshots = files.map((f) => { try { const s = JSON.parse(readFileSync(join(dir, f), "utf8")); return { id: f.replace(/\.json$/, ""), label: s.label, timestamp: s.timestamp, summary: summarize(s) }; } catch { return null; } })
+          .filter(Boolean).sort((a: any, b: any) => (a.timestamp < b.timestamp ? 1 : -1));
+        return { success: true, data: { snapshots, dir } };
+      }
+      if (req.action === "diff") {
+        const a = this.loadSnap(dir, String(req.idA)), b = this.loadSnap(dir, String(req.idB));
+        if (!a || !b) return { success: false, error: "Snapshot not found" };
+        return { success: true, data: diffSnapshots(a, b) };
+      }
+      if (req.action === "restore") {
+        const s = this.loadSnap(dir, String(req.id)); if (!s) return { success: false, error: "Snapshot not found" };
+        return { success: true, data: await applySnapshot(this.song, s) };
+      }
+      if (req.action === "delete") {
+        const p = join(dir, String(req.id) + ".json"); if (existsSync(p)) unlinkSync(p);
+        return { success: true, data: { deleted: true } };
+      }
+      return { success: false, error: `Unknown snapshot action: ${req.action}` };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Write an exported document (MusicXML / SVG) to disk so the user can open it in a
+  // notation editor (MuseScore/Sibelius/Dorico) and engrave/print a PDF.
+  async scoreExport(req: { filename: string; content: string }): Promise<any> {
+    try {
+      const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio");
+      const dir = join(base, "scores");
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      const safe = String(req.filename || "score.musicxml").replace(/[^a-z0-9._-]+/gi, "_");
+      const path = join(dir, safe);
+      writeFileSync(path, req.content || "");
+      return { success: true, data: { path } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Stem Aligner: cross-correlate the energy envelopes of a guide and a target audio track
+  // to find their time offset (Live has no such tool). Apply shifts the target clip (offset
+  // only — the SDK can't write warp markers, so internal timing isn't stretched).
+  async stemAlign(req: { guideIndex?: number; targetIndex?: number; startBeat?: number; endBeat?: number; demo?: boolean; apply?: boolean }): Promise<any> {
+    try {
+      const envHz = 100, maxLagSec = 2.5;
+      let guideEnv: Float32Array, targetEnv: Float32Array, guideName = "Guide", targetName = "Target";
+      if (req.demo) {
+        const sr = 44100, dur = 3, delay = 0.27;
+        const burst = (off: number) => { const s = new Float32Array(sr * dur); for (const on of [0, 0.5, 1.0, 1.5, 2.0]) { const start = Math.floor((on + off) * sr); for (let k = 0; k < Math.floor(0.08 * sr) && start + k < s.length; k++) s[start + k] = 0.8 * Math.sin((2 * Math.PI * 440 * k) / sr) * Math.exp(-k / (0.02 * sr)); } return s; };
+        guideEnv = energyEnvelope(burst(0), sr, envHz); targetEnv = energyEnvelope(burst(delay), sr, envHz);
+      } else {
+        const tracks = this.song?.tracks || [];
+        const g = tracks[req.guideIndex as number], t = tracks[req.targetIndex as number];
+        if (!g || !t) return { success: false, error: "Guide/target track not found" };
+        if (!("createAudioClip" in g) || !("createAudioClip" in t)) return { success: false, error: "Both guide and target must be audio tracks." };
+        if (!this.resources?.renderPreFxAudio) return { success: false, error: "Audio render is only available inside Live." };
+        const start = req.startBeat ?? 0, end = req.endBeat ?? 16;
+        const gw = decodeWav(readFileSync(await this.resources.renderPreFxAudio(g, start, end)));
+        const tw = decodeWav(readFileSync(await this.resources.renderPreFxAudio(t, start, end)));
+        guideEnv = energyEnvelope(gw.samples, gw.sampleRate, envHz); targetEnv = energyEnvelope(tw.samples, tw.sampleRate, envHz);
+        guideName = g.name; targetName = t.name;
+      }
+      const cc = crossCorrelate(targetEnv, guideEnv, Math.floor(maxLagSec * envHz));
+      const offsetSec = cc.lag / envHz;
+      const tempo = this.song?.tempo || 120;
+      const offsetBeats = offsetSec * (tempo / 60);
+      let applied = false, newStartBeats: number | null = null;
+      if (req.apply && !req.demo) {
+        const tt = this.song.tracks[req.targetIndex as number];
+        const arr = (tt.arrangementClips || []).find((c: any) => typeof c.filePath === "string");
+        if (arr && tt.createAudioClip && tt.deleteClip) {
+          try { const fp = arr.filePath; newStartBeats = Math.max(0, (arr.startTime || 0) - offsetBeats); await tt.deleteClip(arr); await tt.createAudioClip({ filePath: fp, startTime: newStartBeats }); applied = true; } catch { /* best-effort */ }
+        }
+      }
+      return { success: true, data: { guideName, targetName, offsetMs: Math.round(offsetSec * 1000), offsetBeats: Number(offsetBeats.toFixed(3)), confidence: Number(cc.score.toFixed(3)), applied, newStartBeats } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Sample Library Brain: index audio samples (project clips + an optional folder of WAVs) to
+  // a JSON index in storageDirectory with a perceptual fingerprint, then search by text/BPM/
+  // key or "similar samples" (cosine distance) and drop one into the project.
+  private brainPath(): string {
+    const base = this.environment?.storageDirectory || join(tmpdir(), "live-studio");
+    const dir = join(base, ".sample-brain"); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    return join(dir, "index.json");
+  }
+  private loadBrain(): any { try { const p = this.brainPath(); return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : { samples: [] }; } catch { return { samples: [] }; } }
+
+  async sampleBrain(req: any): Promise<any> {
+    try {
+      if (req.action === "index") {
+        let entries: any[] = [];
+        if (req.demo) {
+          const sr = 44100;
+          const make = (name: string, parts: { hz: number; a: number }[], dur: number) => { const s = new Float32Array(Math.floor(sr * dur)); for (let i = 0; i < s.length; i++) { let v = 0; for (const p of parts) v += p.a * Math.sin((2 * Math.PI * p.hz * i) / sr); s[i] = v; } return { name, path: `/demo/${name}`, samples: s }; };
+          const demo = [make("deep_sub_kick.wav", [{ hz: 55, a: 0.8 }, { hz: 110, a: 0.3 }], 1.2), make("bright_hat_perc.wav", [{ hz: 6000, a: 0.5 }, { hz: 9000, a: 0.4 }], 0.5), make("warm_pad_Cmaj.wav", [{ hz: 261, a: 0.5 }, { hz: 329, a: 0.4 }, { hz: 392, a: 0.4 }], 3), make("bass_loop_124.wav", [{ hz: 80, a: 0.7 }, { hz: 160, a: 0.3 }], 4)];
+          entries = demo.map((d) => ({ path: d.path, name: d.name, tags: tagsFromName(d.name), ...extractFeatures(d.samples, sr) }));
+        } else {
+          const paths = new Set<string>();
+          if (req.folder && existsSync(req.folder)) for (const f of readdirSync(req.folder)) if (/\.wav$/i.test(f)) paths.add(join(req.folder, f));
+          for (const t of this.song?.tracks || []) { for (const sl of t.clipSlots || []) { const c = sl?.clip; if (c && typeof c.filePath === "string") paths.add(c.filePath); } for (const c of t.arrangementClips || []) if (c && typeof c.filePath === "string") paths.add(c.filePath); }
+          for (const p of paths) {
+            const name = basename(p);
+            if (!/\.wav$/i.test(p) || !existsSync(p)) { entries.push({ path: p, name, tags: tagsFromName(name), fingerprint: null, note: "non-WAV or missing — metadata only" }); continue; }
+            try { const dec = decodeWav(readFileSync(p)); entries.push({ path: p, name, tags: tagsFromName(name), ...extractFeatures(dec.samples, dec.sampleRate) }); }
+            catch { entries.push({ path: p, name, tags: tagsFromName(name), fingerprint: null, note: "decode failed" }); }
+          }
+        }
+        writeFileSync(this.brainPath(), JSON.stringify({ version: 1, indexedAt: new Date().toISOString(), samples: entries }));
+        return { success: true, data: { indexed: entries.length, withFeatures: entries.filter((e) => e.fingerprint).length } };
+      }
+      if (req.action === "search") {
+        const idx = this.loadBrain().samples || [];
+        let rows = idx.slice();
+        if (req.similarTo) { const ref = idx.find((s: any) => s.path === req.similarTo); if (ref?.fingerprint) rows = rows.filter((s: any) => s.fingerprint).map((s: any) => ({ ...s, score: cosine(ref.fingerprint, s.fingerprint) })).sort((a: any, b: any) => b.score - a.score); }
+        const q = (req.query || "").toLowerCase();
+        if (q) rows = rows.filter((s: any) => `${s.name} ${(s.tags || []).join(" ")} ${s.path}`.toLowerCase().includes(q));
+        if (req.bpmMin != null) rows = rows.filter((s: any) => s.bpm != null && s.bpm >= req.bpmMin);
+        if (req.bpmMax != null) rows = rows.filter((s: any) => s.bpm != null && s.bpm <= req.bpmMax);
+        if (req.key) rows = rows.filter((s: any) => (s.key || "").toLowerCase().includes(String(req.key).toLowerCase()));
+        return { success: true, data: { total: idx.length, count: rows.length, samples: rows.slice(0, req.limit || 60).map((s: any) => ({ path: s.path, name: s.name, tags: s.tags, duration: s.duration, bpm: s.bpm, key: s.key, brightness: s.brightness, score: s.score != null ? Number(s.score.toFixed(3)) : undefined })) } };
+      }
+      if (req.action === "drop") {
+        if (!this.resources?.importIntoProject) return { success: false, error: "Import is only available inside Live." };
+        const imported = await this.resources.importIntoProject(req.path);
+        const track = req.trackIndex != null ? this.song.tracks[req.trackIndex] : await this.song.createAudioTrack();
+        if (!track || !("createAudioClip" in track)) return { success: false, error: "Need an audio track." };
+        await track.createAudioClip({ filePath: imported, startTime: 0 });
+        return { success: true, data: { dropped: true, trackIndex: this.song.tracks.indexOf(track), path: imported } };
+      }
+      return { success: false, error: `Unknown sample-brain action: ${req.action}` };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
   }
 
   async processChat(req: ChatRequest, client: LLMClient): Promise<ChatResponse> {

@@ -98,6 +98,26 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         sendJson(res, 200, await bridge.textureMap(body as any));
         return;
       }
+      if (url.pathname === "/api/snapshot" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.snapshot(body as any));
+        return;
+      }
+      if (url.pathname === "/api/score/export" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.scoreExport(body as any));
+        return;
+      }
+      if (url.pathname === "/api/stemalign" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.stemAlign(body as any));
+        return;
+      }
+      if (url.pathname === "/api/samplebrain" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.sampleBrain(body as any));
+        return;
+      }
       if (url.pathname === "/api/config" && method === "POST") {
         const body = await parseBody(req);
         if (body.provider) config.provider = body.provider as string;

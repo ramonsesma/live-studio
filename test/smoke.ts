@@ -2,6 +2,7 @@
 import { createMasterRegistry } from "../src/registry/index.js";
 import { Bridge } from "../src/bridge.js";
 import { startServer } from "../src/server.js";
+import { toMusicXML, fromMusicXML } from "../src/core/musicxml.js";
 
 // ---- Mock del Song SDK ----
 // Refleja la forma REAL del SDK (clip.notes: NoteDescription[], mixer.volume.getValue/
@@ -58,9 +59,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 63 módulos", (mods.modules || []).length === 63, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 68 módulos", (mods.modules || []).length === 68, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("62 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 62);
+check("67 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 67);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -137,12 +138,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 27 paneles ricos", panelsOk);
+check("sirve los 32 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -170,7 +171,24 @@ check("chordpads__trigger_pad drops the assigned chord as a clip", cptr.success 
 const snp = await post("/api/execute", { name: "snapshots__save_snapshot", args: { name: "Mix v1" } });
 check("snapshots__save_snapshot", snp.success && snp.data.total === 1);
 const hlt = await post("/api/execute", { name: "health__run_checks", args: {} });
-check("health__run_checks (score)", hlt.success && hlt.data.score === 92);
+check("health__run_checks (real scan)", hlt.success && typeof hlt.data.score === "number" && Array.isArray(hlt.data.issues));
+// real health scan on a constructed broken project
+const healthSong: any = {
+  tracks: [
+    { name: "Lead", clipSlots: [{ clip: { notes: [] } }], arrangementClips: [] },
+    { name: "Lead", clipSlots: [], arrangementClips: [] },
+    { name: "Audio", clipSlots: [{ clip: { filePath: "/no/such/file_xyz.wav", warping: false, duration: 16 } }], arrangementClips: [] },
+  ],
+  scenes: [{ name: "Intro" }, { name: "Empty" }],
+  async deleteTrack() {}, async deleteScene() {},
+};
+const hc = await reg.execute("health__run_checks", {}, healthSong);
+check("health detecta sample faltante", hc.success && hc.data.issues.some((i: any) => i.type === "missing_sample"));
+check("health detecta duplicado + pista vacía + escena vacía", hc.data.issues.some((i: any) => i.type === "duplicate_name") && hc.data.issues.some((i: any) => i.type === "empty_track") && hc.data.issues.some((i: any) => i.type === "empty_scene"));
+check("health score baja con issues", hc.data.score < 100 && hc.data.score >= 0);
+const dup = hc.data.issues.find((i: any) => i.type === "duplicate_name");
+const af = await reg.execute("health__apply_fix", { kind: "rename_track", track_index: dup.fix.trackIndex, new_name: dup.fix.newName }, healthSong);
+check("health apply_fix renombra el duplicado real", af.success && healthSong.tracks[dup.fix.trackIndex].name === dup.fix.newName);
 
 // 5i. lote 8: hardware / conversión / live / routing
 const nta = await post("/api/execute", { name: "notation__get_clip_notes", args: { track_index: 0, clip_index: 0 } });
@@ -278,6 +296,15 @@ cmajSong.tracks[0].clipSlots[0].clip.notes.push({ pitch: 61, startTime: 99, dura
 const fr1 = await reg.execute("keyscale__find_foreign_notes", { track_index: 0, root: 0, scale: "major" }, cmajSong);
 check("keyscale marca la nota foránea (C#)", fr1.success && fr1.data.foreignCount === 1 && fr1.data.foreign[0].name.startsWith("C#"));
 
+// 7e2. Force to Global Key (conform) + project heatmap on Live's selected scale.
+const cclip: any = { notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 100 }, { pitch: 61, startTime: 1, duration: 1, velocity: 100 }, { pitch: 64, startTime: 2, duration: 1, velocity: 100 }] };
+const conformSong: any = { rootNote: 0, scaleMode: true, scaleName: "Major", scaleIntervals: [0,2,4,5,7,9,11], tracks: [{ name: "Lead", clipSlots: [{ clip: cclip }], arrangementClips: [] }] };
+const cf = await reg.execute("keyscale__conform_to_scale", {}, conformSong);
+const inScale = (p: number) => [0,2,4,5,7,9,11].includes(((p % 12) + 12) % 12);
+check("keyscale conform mueve la nota foránea a la escala", cf.success && cf.data.notesMoved === 1 && cclip.notes.every((n: any) => inScale(n.pitch)));
+const ph = await reg.execute("keyscale__project_heatmap", {}, conformSong);
+check("keyscale project_heatmap: 100% en clave tras conformar", ph.success && ph.data.globalKey && ph.data.tracks[0].inKeyPct === 100);
+
 // 7f. Generative Rhythm: writes notes with NATIVE probability + velocityDeviation.
 const gr = await post("/api/execute", { name: "genrhythm__generate", args: { bars: 2, density: 60 } });
 const grNotes = gr.success ? gr.data : null;
@@ -292,6 +319,49 @@ const tx = await post("/api/texturemap", { demo: true, noteCount: 8 });
 check("texturemap demo → notas MIDI desde audio", tx.success && tx.data.notes.length > 0 && tx.data.notes.every((n: any) => n.pitch >= 24 && n.pitch <= 100));
 const txHz = await post("/api/execute", { name: "texturemap__hz_to_pitch", args: { hz: 440 } });
 check("texturemap hz_to_pitch: 440 Hz → A4", txHz.success && txHz.data.pitch === 69 && txHz.data.name === "A4");
+
+// 7h. Project Snapshot: save → diff → restore on disk (storageDirectory / temp fallback).
+const t0 = song.tempo;
+const sv1 = await post("/api/snapshot", { action: "save", label: "v1" });
+check("snapshot save escribe en disco", sv1.success && !!sv1.data.id && sv1.data.summary.tracks > 0);
+song.tempo = t0 + 11;
+const sv2 = await post("/api/snapshot", { action: "save", label: "v2" });
+const df = await post("/api/snapshot", { action: "diff", idA: sv1.data.id, idB: sv2.data.id });
+check("snapshot diff detecta el cambio de tempo", df.success && df.data.lines.some((l: any) => /tempo/.test(l.text)));
+const rs = await post("/api/snapshot", { action: "restore", id: sv1.data.id });
+check("snapshot restore revierte el tempo", rs.success && song.tempo === t0);
+await post("/api/snapshot", { action: "delete", id: sv1.data.id });
+await post("/api/snapshot", { action: "delete", id: sv2.data.id });
+
+// 7i. Score Editor: MusicXML round-trip + get_score_data + import → clip.
+const srcNotes = [{ pitch: 60, startTime: 0, duration: 1, velocity: 100 }, { pitch: 64, startTime: 1, duration: 0.5, velocity: 100 }, { pitch: 67, startTime: 1.5, duration: 0.5, velocity: 100 }, { pitch: 72, startTime: 2, duration: 2, velocity: 100 }];
+const xml = toMusicXML(srcNotes, { tempo: 120, num: 4, den: 4 });
+check("musicxml export es válido", /score-partwise/.test(xml) && /<step>C<\/step>/.test(xml) && /<clef>/.test(xml));
+const back = fromMusicXML(xml);
+check("musicxml round-trip conserva las notas", back.notes.length >= 4 && back.notes.some((n: any) => n.pitch === 60) && back.notes.some((n: any) => n.pitch === 72));
+const sd = await post("/api/execute", { name: "scoreeditor__get_score_data", args: { track_index: 0, clip_index: 0 } });
+check("scoreeditor get_score_data devuelve notas + compás", sd.success && Array.isArray(sd.data.notes) && sd.data.num === 4);
+const imp = await post("/api/execute", { name: "scoreeditor__from_musicxml", args: { xml } });
+check("scoreeditor from_musicxml crea un clip MIDI", imp.success && imp.data.noteCount >= 4);
+
+// 7j. Clip Variation Engine + Stem Aligner.
+const cvList = await post("/api/execute", { name: "clipvariations__list_transforms", args: {} });
+check("clipvariations lista los transforms", cvList.success && cvList.data.transforms.length >= 6);
+const cvBefore = song.tracks.length;
+const cv = await post("/api/execute", { name: "clipvariations__generate_variations", args: { track_index: 0, clip_index: 0, count: 3 } });
+check("clipvariations genera variaciones como clips nuevos", cv.success && cv.data.variations.length === 3 && cv.data.variations.every((v: any) => v.noteCount > 0) && song.tracks.length === cvBefore + 3);
+const sa = await post("/api/stemalign", { demo: true });
+check("stemalign demo detecta ~270 ms de offset", sa.success && Math.abs(sa.data.offsetMs - 270) < 60 && sa.data.confidence > 0.5);
+
+// 7k. Sample Library Brain: index → search → find-similar → text search.
+const sbIdx = await post("/api/samplebrain", { action: "index", demo: true });
+check("samplebrain indexa con fingerprint", sbIdx.success && sbIdx.data.indexed === 4 && sbIdx.data.withFeatures === 4);
+const sbAll = await post("/api/samplebrain", { action: "search" });
+check("samplebrain search lista los samples", sbAll.success && sbAll.data.count === 4);
+const sbSim = await post("/api/samplebrain", { action: "search", similarTo: "/demo/deep_sub_kick.wav", limit: 5 });
+check("samplebrain find-similar ordena por cosine", sbSim.success && sbSim.data.samples[0].path === "/demo/deep_sub_kick.wav" && typeof sbSim.data.samples[0].score === "number");
+const sbQ = await post("/api/samplebrain", { action: "search", query: "bass" });
+check("samplebrain busca por texto/tags", sbQ.success && sbQ.data.samples.some((s: any) => s.name.includes("bass")));
 
 // 8. estáticos
 const html = await (await fetch(base + "/")).text();

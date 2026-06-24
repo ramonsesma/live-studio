@@ -177,6 +177,31 @@ export function peakFrequencies(samples: Float32Array, sampleRate: number, k = 1
   return peaks.sort((a, b) => b.mag - a.mag).slice(0, k);
 }
 
+// Down-sampled RMS energy envelope (envHz frames/sec), normalized to its peak. Used to
+// cross-correlate two stems and find their time offset (Stem Aligner).
+export function energyEnvelope(samples: Float32Array, sampleRate: number, envHz = 100): Float32Array {
+  const win = Math.max(1, Math.floor(sampleRate / envHz));
+  const n = Math.floor(samples.length / win);
+  const env = new Float32Array(n);
+  let max = 0;
+  for (let i = 0; i < n; i++) { let s = 0; for (let j = 0; j < win; j++) { const v = samples[i * win + j] || 0; s += v * v; } env[i] = Math.sqrt(s / win); if (env[i] > max) max = env[i]; }
+  if (max > 0) for (let i = 0; i < n; i++) env[i] /= max;
+  return env;
+}
+
+// Normalized cross-correlation of two envelopes over a lag range. A positive returned lag
+// means `a` is late relative to `b` by that many envelope frames.
+export function crossCorrelate(a: Float32Array, b: Float32Array, maxLag: number): { lag: number; score: number } {
+  let bestLag = 0, best = -1;
+  for (let lag = -maxLag; lag <= maxLag; lag++) {
+    let sab = 0, sa = 0, sb = 0;
+    for (let i = 0; i < a.length; i++) { const j = i - lag; if (j < 0 || j >= b.length) continue; sab += a[i] * b[j]; sa += a[i] * a[i]; sb += b[j] * b[j]; }
+    const score = sa && sb ? sab / Math.sqrt(sa * sb) : 0;
+    if (score > best) { best = score; bestLag = lag; }
+  }
+  return { lag: bestLag, score: Math.max(0, best) };
+}
+
 // --- test/demo helpers: synthesize PCM and a 16-bit WAV ---
 export function synthPcm(sampleRate: number, durSec: number, parts: { hz: number; amp: number }[]): Float32Array {
   const n = Math.floor(sampleRate * durSec);
