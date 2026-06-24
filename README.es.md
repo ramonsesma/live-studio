@@ -17,7 +17,7 @@
   <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-27-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-90%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-blue" />
+  <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.md"><img alt="readme in English" src="https://img.shields.io/badge/README-English-yellow" /></a>
 </p>
 
@@ -207,4 +207,10 @@ consolidando lo mejor de cada concepto en una sola super-app.
 
 ## 📄 Licencia
 
-[MIT](LICENSE) © 2026 Ramón Sesma
+[GNU GPL v3](LICENSE) © 2026 Ramón Sesma.
+
+Software libre con copyleft fuerte: puedes usarlo, estudiarlo, modificarlo y compartirlo —
+pero cualquier versión distribuida (incluidas las modificadas o comerciales) debe seguir
+siendo abierta bajo la GPL; no se puede convertir en un producto cerrado y propietario. Por
+un término adicional (GPL v3 §7(b)), debes mantener siempre visible la atribución
+**«Live Studio — creado por Ramón Sesma»** en la app, su documentación y su código.

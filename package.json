@@ -12,7 +12,7 @@
     "daw",
     "ai"
   ],
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "main": "dist/extension.js",
   "type": "module",
   "scripts": {
