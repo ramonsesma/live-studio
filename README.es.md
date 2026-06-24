@@ -23,23 +23,6 @@
 
 ---
 
----
-
-## ⭐ Destacado — Resonance · Mix Radar
-
-<p align="center">
-  <img src="assets/demo-mix-radar.gif" alt="Resonance Mix Radar — escucha, detecta colisiones de masking y las talla" width="100%" />
-</p>
-
-**La primera extensión de Live que renderiza tu set a audio, lo _escucha_ y produce de vuelta dentro de él.** Los plugins de un solo canal (Neutron, Gullfoss, smart:EQ) solo ven una pista — Resonance ve el **set completo**.
-
-- **Listen** — renderiza cada stem de audio con `resources.renderPreFxAudio` y corre una **FFT real dentro del host** (cero dependencias nativas): 30 bandas log, frecuencia dominante y loudness por pista.
-- **Ver el masking** — funde los espectros en una **matriz frecuencia × pista**; donde dos pistas pelean en la misma banda, la celda se pone roja.
-- **Actuar** — convierte cada colisión en un **move** correctivo de un clic (tallar EQ, bajar, panear) escrito de vuelta con `DeviceParameter.setValue`, todo en un solo undo (`withinTransaction`).
-- **Recordar** — cachea huellas espectrales por proyecto en `environment.storageDirectory`.
-
-Exprime lo que nada más toca del SDK — el bucle renderizar → analizar → escribir, a nivel de set y dentro del DAW. El Mix Radar es el más elaborado de los 22 paneles ricos.
-
 ## ¿Qué es?
 
 **Live Studio** reúne decenas de extensiones de producción musical para Ableton Live en **una sola
@@ -82,6 +65,23 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 > - **Paneles ricos** — Mix Console (faders/VU), Notation (piano-roll), Step Sequencer, grafo de clips…
 
 *(Captura las pantallas reales desde Live y colócalas en `assets/` para enriquecer esta sección.)*
+
+---
+
+## ⭐ Destacado — Resonance · Mix Radar
+
+<p align="center">
+  <img src="assets/demo-mix-radar.gif" alt="Resonance Mix Radar — escucha, detecta colisiones de masking y las talla" width="100%" />
+</p>
+
+**La primera extensión de Live que renderiza tu set a audio, lo _escucha_ y produce de vuelta dentro de él.** Los plugins de un solo canal (Neutron, Gullfoss, smart:EQ) solo ven una pista — Resonance ve el **set completo**.
+
+- **Listen** — renderiza cada stem de audio con `resources.renderPreFxAudio` y corre una **FFT real dentro del host** (cero dependencias nativas): 30 bandas log, frecuencia dominante y loudness por pista.
+- **Ver el masking** — funde los espectros en una **matriz frecuencia × pista**; donde dos pistas pelean en la misma banda, la celda se pone roja.
+- **Actuar** — convierte cada colisión en un **move** correctivo de un clic (tallar EQ, bajar, panear) escrito de vuelta con `DeviceParameter.setValue`, todo en un solo undo (`withinTransaction`).
+- **Recordar** — cachea huellas espectrales por proyecto en `environment.storageDirectory`.
+
+Exprime lo que nada más toca del SDK — el bucle renderizar → analizar → escribir, a nivel de set y dentro del DAW. El Mix Radar es el más elaborado de los 22 paneles ricos.
 
 ## 🚀 Instalación
 
