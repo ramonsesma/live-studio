@@ -22,12 +22,10 @@ const SFX_CATEGORIES: any = {
 };
 
 
-// Real MidiClip API: notes are written via the `notes` setter (NoteDescription[]),
-// not a non-existent addNote(clip, ). This shim appends one note to the real array.
-function addNote(clip: any, pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
-  const ns = clip.notes || [];
-  ns.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
-  clip.notes = ns;
+// Collect notes into a buffer, then write clip.notes ONCE. The real MidiClip setter
+// replaces the whole list, so writing note-by-note only kept the last note in Live.
+function addNote(buf: any[], pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
+  buf.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
 }
 
 export function createToolRegistry() {
@@ -48,8 +46,10 @@ export function createToolRegistry() {
       if (trackIdx === undefined) { track.name = `SFX ${args.category}`; }
       const clip = await track.createMidiClip(0, duration);
       clip.name = `${args.sound} SFX`;
-      addNote(clip, 60, 0, duration * 0.1, 100, 0);
-      if (duration > 1) addNote(clip, 64, 0.5, duration * 0.1, 80, 0);
+      const notes: any[] = [];
+      addNote(notes, 60, 0, duration * 0.1, 100, 0);
+      if (duration > 1) addNote(notes, 64, 0.5, duration * 0.1, 80, 0);
+      clip.notes = notes;
       return { success:true, data:{ category:args.category, sound:args.sound, duration, trackIndex:song.tracks.indexOf(track), clipName:clip.name } };
     }
   );
@@ -62,10 +62,12 @@ export function createToolRegistry() {
       if (trackIdx === undefined) { track.name = `${args.type} Texture`; }
       const clip = await track.createMidiClip(0, bars * 4);
       clip.name = `${args.type} Texture ${bars} bars`;
+      const notes: any[] = [];
       for (let i = 0; i < bars * 4; i += 2) {
-        addNote(clip, 36 + Math.floor(Math.random()*12), i, 2, 40 + Math.random()*30, 0);
+        addNote(notes, 36 + Math.floor(Math.random()*12), i, 2, 40 + Math.random()*30, 0);
       }
-      return { success:true, data:{ type:args.type, bars, trackIndex:song.tracks.indexOf(track), notes:bars*2 } };
+      clip.notes = notes;
+      return { success:true, data:{ type:args.type, bars, trackIndex:song.tracks.indexOf(track), notes:notes.length } };
     }
   );
 

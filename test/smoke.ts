@@ -266,6 +266,25 @@ check("sirve index.html (shell)", html.includes("Live Studio") && html.includes(
 const js = await fetch(base + "/shell.js");
 check("sirve shell.js con mime correcto", (js.headers.get("content-type") || "").includes("javascript"));
 
+// 9. regresión: los generadores deben escribir TODAS las notas en un único `clip.notes`.
+// El MidiClip real reemplaza la lista y su setter no se refleja en un getter inmediato;
+// escribir nota a nota dejaba solo la última (el bug "una sola nota" del tester). Este
+// clip mock modela ese setter (commit diferido) para que el patrón read-modify-write falle.
+function asyncClip(): any {
+  let committed: any[] = [];
+  return {
+    name: "", duration: 16,
+    get notes() { return committed.slice(); },
+    set notes(n: any[]) { const v = n.slice(); queueMicrotask(() => { committed = v; }); },
+  };
+}
+const rClip = asyncClip();
+const miniSong: any = { tracks: [], async createMidiTrack() { const t = { name: "", async createMidiClip() { return rClip; } }; miniSong.tracks.push(t); return t; } };
+const cg = await reg.execute("chords__generate_chords", { key: "C", scale: "major", genre: "pop" }, miniSong);
+await new Promise((r) => setTimeout(r, 0)); // deja que el setter diferido haga commit
+check("chords escribe el acorde completo, no una sola nota", cg.success && rClip.notes.length === 12);
+check("chords genera acordes distintos (no la tónica repetida)", new Set(rClip.notes.map((n: any) => n.pitch)).size > 3);
+
 console.log(`\n=== Resultado: ${pass} OK, ${fail} fallos ===`);
 await server.close();
 process.exit(fail ? 1 : 0);

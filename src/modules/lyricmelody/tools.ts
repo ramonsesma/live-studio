@@ -27,12 +27,10 @@ function analyzeLyrics(text: string) {
 }
 
 
-// Real MidiClip API: notes are written via the `notes` setter (NoteDescription[]),
-// not a non-existent addNote(clip, ). This shim appends one note to the real array.
-function addNote(clip: any, pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
-  const ns = clip.notes || [];
-  ns.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
-  clip.notes = ns;
+// Collect notes into a buffer, then write clip.notes ONCE. The real MidiClip setter
+// replaces the whole list, so writing note-by-note only kept the last note in Live.
+function addNote(buf: any[], pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
+  buf.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
 }
 
 export function createToolRegistry() {
@@ -60,16 +58,18 @@ export function createToolRegistry() {
       const clip = await track.createMidiClip(0, Math.max(totalBeats, 4));
       clip.name = `${key} LyricMelody`;
       let beat = 0;
+      const notes: any[] = [];
       for (let i = 0; i < analysis.words.length; i++) {
         const noteIdx = i % scaleNotes.length;
         const octave = Math.floor(i / scaleNotes.length);
         const midiNote = 60 + scaleNotes[noteIdx] + (octave * 12);
         const dur = analysis.stress[i] === "strong" ? 1 : 0.5;
         const vel = analysis.stress[i] === "strong" ? 100 : 70;
-        if (beat + dur <= totalBeats) { addNote(clip, midiNote, beat, dur, vel, 0); }
+        if (beat + dur <= totalBeats) { addNote(notes, midiNote, beat, dur, vel, 0); }
         beat += dur;
       }
-      return { success:true, data:{ key, scale:scaleName, words:analysis.words, totalNotes:analysis.words.length, trackIndex:song.tracks.indexOf(track), clipName:clip.name, phraseCount:analysis.syllables.filter((s: any)=>s.syllables>2).length } };
+      clip.notes = notes;
+      return { success:true, data:{ key, scale:scaleName, words:analysis.words, totalNotes:notes.length, trackIndex:song.tracks.indexOf(track), clipName:clip.name, phraseCount:analysis.syllables.filter((s: any)=>s.syllables>2).length } };
     }
   );
 

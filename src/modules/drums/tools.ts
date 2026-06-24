@@ -26,12 +26,10 @@ const GENRE_PATTERNS: any = {
 const DRUM_MAP: any = { kick:36, snare:38, hat:42, open_hat:46, clap:39, rim:37, tom_hi:48, tom_mid:47, tom_lo:45, crash:49, ride:51 };
 
 
-// Real MidiClip API: notes are written via the `notes` setter (NoteDescription[]),
-// not a non-existent addNote(clip, ). This shim appends one note to the real array.
-function addNote(clip: any, pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
-  const ns = clip.notes || [];
-  ns.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
-  clip.notes = ns;
+// Collect notes into a buffer, then write clip.notes ONCE. The real MidiClip setter
+// replaces the whole list, so writing note-by-note only kept the last note in Live.
+function addNote(buf: any[], pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
+  buf.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
 }
 
 export function createToolRegistry() {
@@ -52,17 +50,19 @@ export function createToolRegistry() {
       const steps = pattern.kick.length;
       const clip = await track.createMidiClip(0, 4);
       clip.name = `${pattern.name} Pattern`;
+      const notes: any[] = [];
       for (let i = 0; i < steps; i++) {
         const stepDur = 4 / steps;
-        if (pattern.kick[i]) addNote(clip, DRUM_MAP.kick, i * stepDur, stepDur * 0.9, 100 + Math.random() * 20, 0);
-        if (pattern.snare[i]) addNote(clip, DRUM_MAP.snare, i * stepDur, stepDur * 0.9, 100 + Math.random() * 20, 0);
-        if (pattern.hat[i]) addNote(clip, DRUM_MAP.hat, i * stepDur, stepDur * 0.5, 80 + Math.random() * 30, 0);
+        if (pattern.kick[i]) addNote(notes, DRUM_MAP.kick, i * stepDur, stepDur * 0.9, 100 + Math.random() * 20, 0);
+        if (pattern.snare[i]) addNote(notes, DRUM_MAP.snare, i * stepDur, stepDur * 0.9, 100 + Math.random() * 20, 0);
+        if (pattern.hat[i]) addNote(notes, DRUM_MAP.hat, i * stepDur, stepDur * 0.5, 80 + Math.random() * 30, 0);
         if (complexity > 3) {
-          if (Math.random() > 0.7) addNote(clip, DRUM_MAP.open_hat, i * stepDur, stepDur * 0.3, 70, 0);
-          if (Math.random() > 0.8) addNote(clip, DRUM_MAP.clap, i * stepDur, stepDur * 0.7, 90, 0);
+          if (Math.random() > 0.7) addNote(notes, DRUM_MAP.open_hat, i * stepDur, stepDur * 0.3, 70, 0);
+          if (Math.random() > 0.8) addNote(notes, DRUM_MAP.clap, i * stepDur, stepDur * 0.7, 90, 0);
         }
       }
-      return { success:true, data:{ genre, complexity, swing, trackIndex:song.tracks.indexOf(track), clipName:clip.name, steps } };
+      clip.notes = notes;
+      return { success:true, data:{ genre, complexity, swing, trackIndex:song.tracks.indexOf(track), clipName:clip.name, steps, notes:notes.length } };
     }
   );
 

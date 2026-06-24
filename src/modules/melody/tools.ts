@@ -25,12 +25,10 @@ const SCALES: any = {
 const NOTES = ["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
 
 
-// Real MidiClip API: notes are written via the `notes` setter (NoteDescription[]),
-// not a non-existent addNote(clip, ). This shim appends one note to the real array.
-function addNote(clip: any, pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
-  const ns = clip.notes || [];
-  ns.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
-  clip.notes = ns;
+// Collect notes into a buffer, then write clip.notes ONCE. The real MidiClip setter
+// replaces the whole list, so writing note-by-note only kept the last note in Live.
+function addNote(buf: any[], pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
+  buf.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
 }
 
 export function createToolRegistry() {
@@ -58,17 +56,19 @@ export function createToolRegistry() {
       clip.name = `${key} ${scaleName} Melody`;
 
       const noteDurs = [0.25, 0.5, 1, 2, 4];
+      const notes: any[] = [];
       for (let beat = 0; beat < totalBeats; ) {
         const noteIdx = Math.floor(Math.random() * scaleNotes.length);
         const octaveShift = Math.random() > 0.8 ? 12 : 0;
         const midiNote = 60 + scaleNotes[noteIdx] + octaveShift;
         const dur = noteDurs[Math.floor(Math.random() * Math.min(complexity, noteDurs.length))];
         const vel = 60 + Math.random() * 40;
-        if (beat + dur <= totalBeats) { addNote(clip, midiNote, beat, dur, vel, 0); }
+        if (beat + dur <= totalBeats) { addNote(notes, midiNote, beat, dur, vel, 0); }
         beat += dur;
       }
+      clip.notes = notes;
 
-      return { success:true, data:{ key, scale:scaleName, bars, complexity, trackIndex:song.tracks.indexOf(track), clipName:clip.name } };
+      return { success:true, data:{ key, scale:scaleName, bars, complexity, trackIndex:song.tracks.indexOf(track), clipName:clip.name, notes:notes.length } };
     }
   );
 

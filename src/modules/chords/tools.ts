@@ -26,15 +26,14 @@ const PROGRESSIONS: any = {
   ambient: { major:["I","iii","IV","V","I"], minor:["i","VII","VI","v","i"] }
 };
 
-const SCALE_DEGREES: any = { I:0, ii:1, iii:2, IV:3, V:4, vi:5, vii:7, i:0, "iiø":1, III:2, iv:3, v:4, VI:5, VII:6 };
+// Roman-numeral → 0-based scale degree (quality is taken from the diatonic scale below).
+const SCALE_DEGREES: any = { I:0, i:0, II:1, ii:1, "iiø":1, iii:2, III:2, IV:3, iv:3, V:4, v:4, vi:5, VI:5, vii:6, VII:6 };
+const SCALE_SEMIS: any = { major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10] };
 
-
-// Real MidiClip API: notes are written via the `notes` setter (NoteDescription[]),
-// not a non-existent addNote(clip, ). This shim appends one note to the real array.
-function addNote(clip: any, pitch: number, startTime: number, duration: number, velocity: number, _prob?: number) {
-  const ns = clip.notes || [];
-  ns.push({ pitch, startTime, duration, velocity: Math.max(1, Math.min(127, Math.round(velocity))) });
-  clip.notes = ns;
+// A diatonic triad on `degree` of the scale, stacking thirds (degree, +2, +4 scale steps).
+function diatonicTriad(rootMidi: number, scale: string, degree: number): number[] {
+  const semis = SCALE_SEMIS[scale] || SCALE_SEMIS.major;
+  return [degree, degree + 2, degree + 4].map((s) => rootMidi + semis[((s % 7) + 7) % 7] + 12 * Math.floor(s / 7));
 }
 
 export function createToolRegistry() {
@@ -57,14 +56,22 @@ export function createToolRegistry() {
       const trackIdx = args.track_index;
       const track = trackIdx !== undefined ? song.tracks[trackIdx] : await song.createMidiTrack();
       if (trackIdx === undefined) { track.name = `Chords ${key} ${genre}`; }
-      const duration = 4; const totalBars = progression.length;
-      const clip = await track.createMidiClip(0, totalBars * 4);
+      const duration = 4;
+      const clip = await track.createMidiClip(0, progression.length * 4);
       clip.name = `${key} ${genre}`;
-      for (let i = 0; i < progression.length; i++) {
-        const note = chordSet[key];
-        if (note) { for (const n of note) { addNote(clip, n, i * duration, duration, 100, 0); } }
-      }
-      return { success:true, data:{ key, scale, genre, progression, trackIndex:song.tracks.indexOf(track), clipName:clip.name, notes:progression.length * 3 } };
+      const rootMidi = chordSet[key][0]; // tonic root for this key
+      // Build every chord-tone first, then write the whole array once. The real MidiClip
+      // setter REPLACES the note list; writing note-by-note (read-modify-write) only kept
+      // the last note in Live, which is the "single note" the tester saw.
+      const notes: any[] = [];
+      progression.forEach((sym: string, i: number) => {
+        const degree = SCALE_DEGREES[sym] ?? 0;
+        for (const pitch of diatonicTriad(rootMidi, scale, degree)) {
+          notes.push({ pitch, startTime: i * duration, duration, velocity: 100 });
+        }
+      });
+      clip.notes = notes;
+      return { success:true, data:{ key, scale, genre, progression, trackIndex:song.tracks.indexOf(track), clipName:clip.name, notes:notes.length } };
     }
   );
 
