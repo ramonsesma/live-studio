@@ -6,14 +6,14 @@
 
 <p align="center">
   <b>Una super-extensión modular para Ableton Live.</b><br/>
-  57 módulos · 242 tools · 1293 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
+  57 módulos · 242 tools · 84 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-56-ffb347" />
   <img alt="tools" src="https://img.shields.io/badge/tools-242-6cc6ff" />
-  <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-1293-5ad17a" />
+  <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-84-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-10-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-76%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
@@ -43,8 +43,8 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
   performance/live, MIDI, hardware/control, gestión de proyectos, conversión audio↔MIDI y más.
 - **Copiloto IA** (OpenRouter / OpenAI / OpenCode Zen) con loop de *tool-calling*: recibe las
   definiciones de los 242 tools y orquesta los módulos por lenguaje natural.
-- **Paleta de comandos rápidos** (`⌘K`): indexa los **242 tools** + **1293 micro-acciones**
-  (extraídas de 215 micro-extensiones) y las ejecuta con teclado.
+- **Paleta de comandos rápidos** (`⌘K`): indexa los **242 tools** + **84 quick actions**
+  (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
 - **10 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
   grafo de clips, mixer con faders/VU, rejillas de pasos y pads,
   mapa de drums, comping…
@@ -174,7 +174,7 @@ npm run package     # build + empaqueta .ablx con la UI
 - **Tempo & tiempo:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator
 - **Diseño de sonido:** Synth Patchbay · SFX & Texturas · Vocal Chain & FX
 - **Routing & dev:** Group Routing · API Console · Live Coding Sandbox
-- **Oculto:** Quick Actions — las 1293 micro-acciones que indexa la paleta ⌘K
+- **Oculto:** Quick Actions — las 84 micro-acciones que indexa la paleta ⌘K
 
 > Los módulos que dependían de capacidades que el SDK de extensiones no expone (DSP/análisis
 > de audio, transporte/grabación, hardware/controladores, acceso a archivos/librería, escaneo

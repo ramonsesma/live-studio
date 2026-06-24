@@ -255,11 +255,11 @@ async function ensurePaletteData() {
     title: (t.originalName || t.name), subtitle: t.description || "",
     badge: t.module, required: Object.entries(t.parameters || {}).filter(([, v]) => v.required).map(([k]) => k),
   }));
-  // 2) micro-acciones (vocabulario)
+  // 2) quick actions — each routes to a real tool with preset args
   const qa = await api.post("/api/execute", { name: "quickactions__list_quick_actions", args: {} });
   const quickItems = (qa.success ? qa.data.actions : []).map((a) => ({
-    kind: "quick", group: a.group, action: a.name,
-    title: `${a.group}: ${a.name}`, subtitle: a.action, badge: "acción",
+    kind: "quick", group: a.group, action: a.name, tool: a.tool, targs: a.args,
+    title: `${a.group}: ${a.name}`, subtitle: a.tool, badge: "action",
   }));
   palette.items = [...toolItems, ...quickItems];
   palette.loaded = true;
@@ -330,7 +330,8 @@ async function runPaletteItem(it) {
     const res = await api.post("/api/execute", { name: it.id, args: {} });
     toast(res.success ? `✓ ${it.title}` : `✗ ${res.error || "error"}`, res.success);
   } else {
-    const res = await api.post("/api/execute", { name: "quickactions__run_quick_action", args: { group: it.group, action: it.action } });
+    // Quick action → run its real target tool directly.
+    const res = await api.post("/api/execute", { name: it.tool, args: it.targs || {} });
     toast(res.success ? `✓ ${it.title}` : `✗ ${res.error || "error"}`, res.success);
   }
 }

@@ -230,11 +230,11 @@ check("tempotap__tap", ttp.success && ttp.data.tapRecorded);
 
 // 5f. paleta de comandos rápidos (micro-acciones)
 const qa = await post("/api/execute", { name: "quickactions__list_quick_actions", args: {} });
-check("quickactions__list_quick_actions (1293 acciones)", qa.success && qa.data.total === 1293 && qa.data.groups === 215);
-const qaf = await post("/api/execute", { name: "quickactions__list_quick_actions", args: { query: "octave" } });
+check("quickactions__list_quick_actions", qa.success && qa.data.total >= 80 && qa.data.actions.every((a: any) => a.tool));
+const qaf = await post("/api/execute", { name: "quickactions__list_quick_actions", args: { query: "tempo" } });
 check("quickactions filtra por query", qaf.success && qaf.data.count > 0 && qaf.data.count < qa.data.total);
-const qrun = await post("/api/execute", { name: "quickactions__run_quick_action", args: { group: "Transpose", action: "Octave Up" } });
-check("quickactions__run_quick_action ejecuta", qrun.success && qrun.data.ran && qrun.data.group === "Transpose");
+const qrun = await post("/api/execute", { name: "quickactions__run_quick_action", args: { group: "Tempo", action: "128 BPM" } });
+check("quickactions__run_quick_action resuelve a un tool real", qrun.success && qrun.data.route.name === "temposync__set_tempo");
 const qbad = await post("/api/execute", { name: "quickactions__run_quick_action", args: { group: "Nope", action: "Nope" } });
 check("quickactions acción inexistente → error", qbad.success === false);
 
