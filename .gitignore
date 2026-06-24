@@ -16,3 +16,4 @@ dist/
 *.log
 .vscode/
 .idea/
+tools/remotion-demo/node_modules

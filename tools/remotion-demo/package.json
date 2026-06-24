@@ -1,0 +1,12 @@
+{
+  "name": "live-studio-remotion-demo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": { "render": "remotion render src/index.ts MixRadar ../../assets/demo-mix-radar.gif" },
+  "dependencies": {
+    "@remotion/cli": "4.0.469",
+    "remotion": "4.0.469",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  }
+}
