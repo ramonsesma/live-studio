@@ -41,8 +41,9 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 - **57 módulos** (56 visibles + 1 oculto) con **242 tools reales** repartidos por categorías:
   generación musical, drums, mezcla/mastering, EQ/análisis, síntesis, sampling, arreglo,
   performance/live, MIDI, hardware/control, gestión de proyectos, conversión audio↔MIDI y más.
-- **Copiloto IA** (OpenRouter / OpenAI / OpenCode Zen) con loop de *tool-calling*: recibe las
-  definiciones de los 242 tools y orquesta los módulos por lenguaje natural.
+- **Copiloto IA** (OpenRouter / OpenAI / OpenCode Zen) con loop de *tool-calling*: descubre y
+  ejecuta **cualquiera de los 242 tools** mediante un kit de meta-tools (`find_tools` busca en
+  toda la suite, `list_modules` navega, `run_tool` ejecuta) — alcanza todo sin saturar al modelo.
 - **Paleta de comandos rápidos** (`⌘K`): indexa los **242 tools** + **84 quick actions**
   (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
 - **10 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,

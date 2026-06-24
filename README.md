@@ -42,8 +42,9 @@ of each concept into one place.
 - **57 modules** (56 visible + 1 hidden) with **242 real tools** across categories: music
   generation, drums, mixing/mastering, EQ/analysis, synthesis, sampling, arrangement,
   performance/live, MIDI, hardware/control, project management, audio↔MIDI conversion and more.
-- **AI copilot** (OpenRouter / OpenAI / OpenCode Zen) with a *tool-calling* loop: it receives
-  the definitions of all 242 tools and orchestrates modules via natural language.
+- **AI copilot** (OpenRouter / OpenAI / OpenCode Zen) with a *tool-calling* loop: it discovers and
+  runs **any of the 242 tools** through a meta-toolkit (`find_tools` searches the whole suite,
+  `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
 - **Quick command palette** (`⌘K`): indexes the **242 tools** + **84 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
 - **10 curated rich panels** where the auto-generated form falls short: piano-roll, clip

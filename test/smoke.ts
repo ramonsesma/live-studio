@@ -246,6 +246,13 @@ check("tool inexistente → error controlado", bad.success === false && /Unknown
 const chat = await post("/api/chat", { messages: [{ role: "user", content: "hola" }] });
 check("chat sin API key → error claro", chat.success === false && /API key/i.test(chat.error));
 
+// 7b. copilot meta-toolkit: find_tools alcanza toda la suite y run_tool ejecuta
+const ft = bridge.findTools("generate techno drums");
+check("copilot find_tools encuentra el tool real", ft.some((t: any) => t.name === "drums__generate_pattern"));
+const ftHit = ft.find((t: any) => t.name === "drums__generate_pattern");
+const ftRun = await reg.execute(ftHit.name, { genre: "techno" }, song);
+check("copilot run_tool ejecuta lo que find_tools devuelve", ftRun.success === true);
+
 // 8. estáticos
 const html = await (await fetch(base + "/")).text();
 check("sirve index.html (shell)", html.includes("Live Studio") && html.includes("shell.js"));
