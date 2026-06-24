@@ -106,7 +106,7 @@ of each concept into one place.
 - **Act** — turns each collision into a one-click corrective **move** (carve EQ, trim, pan) written back via `DeviceParameter.setValue`, all collapsed into a single undo (`withinTransaction`).
 - **Remember** — caches spectral fingerprints per project in `environment.storageDirectory`.
 
-It exploits the parts of the SDK nothing else touches — the render → analyze → write-back loop, set-wide and in-DAW. The Mix Radar is the most elaborate of the 27 rich panels.
+The Mix Radar is the most elaborate of the 27.
 
 ---
 

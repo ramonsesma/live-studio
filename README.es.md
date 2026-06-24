@@ -81,7 +81,7 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 - **Actuar** — convierte cada colisión en un **move** correctivo de un clic (tallar EQ, bajar, panear) escrito de vuelta con `DeviceParameter.setValue`, todo en un solo undo (`withinTransaction`).
 - **Recordar** — cachea huellas espectrales por proyecto en `environment.storageDirectory`.
 
-Exprime lo que nada más toca del SDK — el bucle renderizar → analizar → escribir, a nivel de set y dentro del DAW. El Mix Radar es el más elaborado de los 27 paneles ricos.
+El Mix Radar es el más elaborado de los 27.
 
 ## 🚀 Instalación
 
