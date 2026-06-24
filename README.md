@@ -99,14 +99,14 @@ of each concept into one place.
   <img src="assets/demo-mix-radar.gif" alt="Resonance Mix Radar — listen, find masking collisions, carve them" width="100%" />
 </p>
 
-**The first Live extension that renders your set to audio, _listens_, and produces back into it.** Single-channel plugins (Neutron, Gullfoss, smart:EQ) only ever see one track — Resonance sees the **whole set**.
+**The first Live extension that renders your set to audio, _listens_, and produces back into it.** Single-channel plugins only ever see one track — Resonance sees the **whole set**.
 
 - **Listen** — renders each audio stem with `resources.renderPreFxAudio`, then runs a real **FFT inside the extension host** (zero native deps): 30 log bands, dominant frequency and loudness per track.
 - **See the masking** — fuses the per-track spectra into a **frequency × track collision matrix**; where two tracks fight in the same band, the cell turns red.
 - **Act** — turns each collision into a one-click corrective **move** (carve EQ, trim, pan) written back via `DeviceParameter.setValue`, all collapsed into a single undo (`withinTransaction`).
 - **Remember** — caches spectral fingerprints per project in `environment.storageDirectory`.
 
-It exploits the parts of the SDK nothing else touches — the render → analyze → write-back loop, set-wide and in-DAW. The Mix Radar is the most elaborate of the 22 rich panels.
+ The Mix Radar is the most elaborate of the 22.
 
 ---
 
