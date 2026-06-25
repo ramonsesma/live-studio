@@ -1,7 +1,8 @@
 import { MasterRegistry } from "./core/registry.js";
 import type { LLMClient, LLMMessage } from "./core/llm.js";
-import { analyzeWavFile, analyzePcm, synthPcm, faderDbToValue, peakFrequencies, decodeWav, energyEnvelope, crossCorrelate, type Analysis } from "./core/dsp.js";
+import { analyzeWavFile, analyzePcm, synthPcm, faderDbToValue, peakFrequencies, decodeWav, energyEnvelope, crossCorrelate, detectOnsets, type Analysis } from "./core/dsp.js";
 import { trackPitches, framesToNotes } from "./core/pitch.js";
+import { recordNotes } from "./core/history.js";
 import { buildSnapshot, diffSnapshots, applySnapshot, summarize, type Snapshot } from "./core/snapshot.js";
 import { extractFeatures, cosine, tagsFromName, estimateBpm } from "./core/samplebrain.js";
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, unlinkSync, copyFileSync } from "node:fs";
@@ -268,6 +269,53 @@ export class Bridge {
         clip.notes = notes; trackIndex = this.song.tracks.indexOf(nt); clipName = clip.name;
       }
       return { success: true, data: { source: req.demo ? "demo" : "render", srcName, tempo, frames: frames.length, noteCount: notes.length, trackIndex, clipName, notes: preview } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // Groove from audio: render a source audio loop, detect onsets, derive a per-step micro-timing
+  // template (deviation from the grid) and optionally apply it to a target MIDI clip's notes.
+  async grooveFromAudio(req: { sourceTrack?: number; startBeat?: number; endBeat?: number; grid?: number; targetTrack?: number; targetClip?: number; strength?: number; sensitivity?: number; demo?: boolean }): Promise<any> {
+    try {
+      const startBeat = req.startBeat ?? 0, endBeat = req.endBeat ?? 4;
+      const tempo = this.song?.tempo || 120;
+      const secPerBeat = 60 / tempo;
+      const grid = req.grid ?? 0.25;
+      let samples: Float32Array, sampleRate: number, srcName = "Demo";
+      if (req.demo) {
+        sampleRate = 44100;
+        const dur = 4 * secPerBeat; samples = new Float32Array(Math.floor(sampleRate * dur));
+        for (let b = 0; b < 8; b++) { const beat = b * 0.5, sw = b % 2 === 1 ? 0.08 : 0; const t = (beat + sw) * secPerBeat; const i0 = Math.floor(t * sampleRate); for (let k = 0; k < 1500; k++) { const i = i0 + k; if (i < samples.length) samples[i] += Math.exp(-k / 300) * Math.sin((2 * Math.PI * 4000 * k) / sampleRate) * 0.8; } }
+        srcName = "Demo loop";
+      } else {
+        const t = (this.song?.tracks || [])[req.sourceTrack as number];
+        if (!t) return { success: false, error: `Track ${req.sourceTrack} not found` };
+        if (!("createAudioClip" in t)) return { success: false, error: "Groove-from-audio reads an audio track." };
+        if (!this.resources?.renderPreFxAudio) return { success: false, error: "Audio render is only available inside Live." };
+        const wav: string = await this.resources.renderPreFxAudio(t, startBeat, endBeat);
+        const dec = decodeWav(readFileSync(wav)); samples = dec.samples; sampleRate = dec.sampleRate; srcName = t.name;
+      }
+      const onsets = detectOnsets(samples, sampleRate, req.sensitivity ?? 0.18);
+      const period = 16;
+      const sumOff = new Array(period).fill(0), count = new Array(period).fill(0);
+      for (const o of onsets) { const beat = startBeat + o.timeSec / secPerBeat; const gridIdx = Math.round(beat / grid); const step = ((gridIdx % period) + period) % period; sumOff[step] += beat - gridIdx * grid; count[step]++; }
+      const steps = Array.from({ length: period }, (_, s) => ({ step: s, avgOffset: count[s] ? sumOff[s] / count[s] : 0, count: count[s] }));
+      const off = steps.filter((s) => s.count > 0 && s.step % 4 !== 0);
+      const swingMs = off.length ? Math.round((off.reduce((a, s) => a + s.avgOffset, 0) / off.length) * secPerBeat * 1000) : 0;
+      let applied: any = null;
+      if (req.targetTrack != null) {
+        const tt = (this.song?.tracks || [])[req.targetTrack];
+        const tgt = tt?.clipSlots?.[req.targetClip ?? 0]?.clip ?? tt?.arrangementClips?.[req.targetClip ?? 0];
+        if (tgt && Array.isArray(tgt.notes) && tgt.notes.length) {
+          const strength = Math.max(0, Math.min(1, (req.strength ?? 100) / 100));
+          recordNotes(tgt, req.targetTrack, req.targetClip ?? 0, "groovetemplate.extract_from_audio");
+          let moved = 0;
+          tgt.notes = tgt.notes.map((n: any) => { const gi = Math.round(n.startTime / grid), st = ((gi % period) + period) % period, o = steps[st]?.avgOffset ?? 0, ns = Math.max(0, gi * grid + o * strength); if (Math.abs(ns - n.startTime) > 1e-6) moved++; return { ...n, startTime: ns }; });
+          applied = { targetClip: tgt.name, notesMoved: moved, notesTotal: tgt.notes.length, strength: Math.round(strength * 100) };
+        }
+      }
+      return { success: true, data: { source: req.demo ? "demo" : "render", srcName, onsets: onsets.length, swingMs, grid, steps: steps.map((s) => ({ ...s, offsetMs: Number((s.avgOffset * secPerBeat * 1000).toFixed(1)) })), applied } };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }

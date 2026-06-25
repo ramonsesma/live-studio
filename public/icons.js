@@ -69,6 +69,9 @@ window.LiveStudioIcons = (function () {
     takeorganizer: '<rect x="3" y="5" width="13" height="3.5" rx="1.5"/><rect x="3" y="10.5" width="10" height="3.5" rx="1.5"/><rect x="3" y="16" width="12" height="3.5" rx="1.5"/><path d="M19 4.5l1.8 1.8-4.5 4.5-1.8-1.8z"/>',
     audio2midi: '<path d="M3 13v-2M6 15V9M9 12v-1"/><path d="M11 12h3"/><path d="M14 9l-2.5 3 2.5 3" opacity=".6"/><path d="M18 6v9"/><circle cx="16.2" cy="15" r="1.8"/>',
     history: '<path d="M4 12a8 8 0 1 1 2.3 5.6"/><path d="M4 17v-5h5"/><path d="M12 8v4l3 2"/>',
+    bassengine: '<path d="M5 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M11 16V5l8-2v3"/><path d="M11 8l8-2"/>',
+    sessionbridge: '<rect x="3" y="4" width="6" height="6" rx="1"/><rect x="3" y="14" width="6" height="6" rx="1"/><path d="M9 7h7M9 17h11M16 7l-2-2M16 7l-2 2M20 17l-2-2M20 17l-2 2"/>',
+    patternlang: '<path d="M5 4l2 2-2 2M10 4h9M10 8h6"/><path d="M5 13l2 2-2 2M10 13h9M10 17h4"/><path d="M19 11l1.6.6.6 1.6.6-1.6 1.6-.6-1.6-.6-.6-1.6-.6 1.6z"/>',
 
     arrangement: '<path d="M3 6h18M3 18h18"/><rect x="4" y="9" width="5" height="6" rx="1"/><rect x="11" y="9" width="8" height="6" rx="1"/>',
     sections: '<rect x="3" y="8" width="5" height="8" rx="1"/><rect x="9.5" y="8" width="5" height="8" rx="1"/><rect x="16" y="8" width="5" height="8" rx="1"/>',
@@ -100,11 +103,11 @@ window.LiveStudioIcons = (function () {
 
   const TINT = {
     session: "#f6a623", clips: "#f6a623", templates: "#f6a623", notes: "#f6a623", organizer: "#7bd88f", snapshots: "#f6a623", setlist: "#f6a623", health: "#5ad17a", trackmanager: "#f6a623", projectsnapshot: "#f6a623", clipversions: "#f6a623", trackcolor: "#c792ea",
-    chords: "#b58ce0", melody: "#b58ce0", lyricmelody: "#b58ce0", harmonizer: "#b58ce0", miditransform: "#b58ce0", randomizer: "#b58ce0", midigate: "#b58ce0", midilfo: "#b58ce0", chordpads: "#b58ce0", stepseq: "#b58ce0", quantizer: "#b58ce0", groove: "#b58ce0", groovetemplate: "#b58ce0", notation: "#b58ce0", genrhythm: "#b58ce0", scoreeditor: "#b58ce0", clipvariations: "#b58ce0", probabilitylab: "#b58ce0", phrasefinder: "#b58ce0", keyscale: "#b58ce0", velocompress: "#b58ce0", transposer: "#b58ce0",
-    drums: "#e8617a", drumreplace: "#e8617a", drummap: "#e8617a", drumbus: "#e8617a",
+    chords: "#b58ce0", melody: "#b58ce0", lyricmelody: "#b58ce0", harmonizer: "#b58ce0", miditransform: "#b58ce0", randomizer: "#b58ce0", midigate: "#b58ce0", midilfo: "#b58ce0", chordpads: "#b58ce0", stepseq: "#b58ce0", quantizer: "#b58ce0", groove: "#b58ce0", groovetemplate: "#b58ce0", notation: "#b58ce0", genrhythm: "#b58ce0", scoreeditor: "#b58ce0", clipvariations: "#b58ce0", probabilitylab: "#b58ce0", phrasefinder: "#b58ce0", keyscale: "#b58ce0", velocompress: "#b58ce0", transposer: "#b58ce0", patternlang: "#b58ce0",
+    drums: "#e8617a", drumreplace: "#e8617a", drummap: "#e8617a", drumbus: "#e8617a", bassengine: "#e0a23a",
     eq: "#6cc6ff", compressor: "#6cc6ff", mixassistant: "#6cc6ff", mixconsole: "#6cc6ff", mixscene: "#6cc6ff", fxchain: "#6cc6ff", fxpresets: "#6cc6ff", macros: "#6cc6ff", rackbuilder: "#6cc6ff", macromorph: "#6cc6ff", saferandom: "#6cc6ff", paramdiff: "#6cc6ff", mastering: "#5ec4a8", autogain: "#5ec4a8",
     resonance: "#57c7e0", spectrumcompare: "#57c7e0", texturemap: "#57c7e0", stemalign: "#74b8e0", samplebrain: "#74b8e0", warpcompare: "#74b8e0", loopdetect: "#f0a04b",
-    arrangement: "#82c98a", sections: "#82c98a", genarranger: "#82c98a", performance: "#82c98a", takes: "#82c98a", colorizer: "#82c98a", colortheory: "#82c98a", takeorganizer: "#82c98a", clipgraph: "#82c98a", launchquant: "#82c98a",
+    arrangement: "#82c98a", sections: "#82c98a", genarranger: "#82c98a", performance: "#82c98a", takes: "#82c98a", colorizer: "#82c98a", colortheory: "#82c98a", takeorganizer: "#82c98a", clipgraph: "#82c98a", launchquant: "#82c98a", sessionbridge: "#82c98a",
     audio2midi: "#74b8e0",
     temposync: "#f0a04b", tempotap: "#f0a04b", timesig: "#f0a04b", delaycalc: "#f0a04b",
     synth: "#9d8cff", sfx: "#9d8cff", vocal: "#9d8cff",

@@ -3,6 +3,7 @@
 window.LiveStudioPanels = window.LiveStudioPanels || {};
 window.LiveStudioPanels.groovetemplate = function (panel, helpers) {
   const exec = helpers.execute;
+  const api = helpers.api;
 
   panel.innerHTML = `
     <div class="panel-head"><h1>🫀 Groove Template Extractor</h1><p>Reads a clip's micro-timing groove and applies it to another clip — the .agr-free way to move a feel.</p></div>
@@ -24,6 +25,12 @@ window.LiveStudioPanels.groovetemplate = function (panel, helpers) {
       <input id="gt-lanes" type="text" value="36:96-104,38:90-110,42:55-95:18" style="width:240px" />
       <button class="btn ghost" id="gt-dyn"><i class="ti ti-adjustments" aria-hidden="true"></i> Set dynamics</button>
       <span class="hint" id="gt-dyninfo">pitch:min-max[:dev] per drum element</span>
+    </div>
+    <div class="ss-toolbar" style="margin-top:10px">
+      <label class="hint" title="Extract groove from an audio loop's transients">From audio</label>
+      <label class="hint">Src track</label><input id="gt-atrk" type="number" value="0" style="width:46px" />
+      <button class="btn ghost" id="gt-audio"><i class="ti ti-waveform" aria-hidden="true"></i> Extract from audio → apply</button>
+      <span class="hint" id="gt-audioinfo">renders the loop, detects onsets, grooves the target clip</span>
     </div>`;
 
   function viz(steps, swingMs) {
@@ -61,6 +68,11 @@ window.LiveStudioPanels.groovetemplate = function (panel, helpers) {
   panel.querySelector("#gt-dyn").onclick = async () => {
     const r = await exec("set_lane_dynamics", { track_index: Number(panel.querySelector("#gt-ttrk").value), clip_index: Number(panel.querySelector("#gt-tclip").value), lanes: panel.querySelector("#gt-lanes").value });
     panel.querySelector("#gt-dyninfo").textContent = r.success ? `${r.data.affected} notes · ${r.data.lanes.map((l) => `${l.pitch}±${l.deviation}`).join(", ")}` : (r.error || "Open a drum clip in Live");
+  };
+  panel.querySelector("#gt-audio").onclick = async () => {
+    const r = await api.post("/api/groovefromaudio", { sourceTrack: Number(panel.querySelector("#gt-atrk").value), targetTrack: Number(panel.querySelector("#gt-ttrk").value), targetClip: Number(panel.querySelector("#gt-tclip").value), strength: Number(panel.querySelector("#gt-str").value), demo: false });
+    if (r.success) { viz(r.data.steps, r.data.swingMs); panel.querySelector("#gt-audioinfo").textContent = `${r.data.onsets} onsets · swing ${r.data.swingMs > 0 ? "+" : ""}${r.data.swingMs}ms${r.data.applied ? ` · grooved ${r.data.applied.notesMoved} notes` : ""}`; }
+    else { const d = await api.post("/api/groovefromaudio", { demo: true }); if (d.success) viz(d.data.steps, d.data.swingMs); panel.querySelector("#gt-audioinfo").textContent = (r.error || "Demo (offline) — swung loop") + (d.success ? ` · swing +${d.data.swingMs}ms` : ""); }
   };
   extract();
 };

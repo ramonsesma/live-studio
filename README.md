@@ -6,13 +6,13 @@
 
 <p align="center">
   <b>A modular super-extension for Ableton Live.</b><br/>
-  82 modules · 291 tools · 84 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
+  85 modules · 302 tools · 84 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/modules-75-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-291-6cc6ff" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-302-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-84-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-40-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-124%20%E2%9C%93-2ea043" />
@@ -39,13 +39,13 @@ of each concept into one place.
 
 ## ✨ Features
 
-- **82 modules** (75 visible + 1 hidden) with **291 real tools** across categories: music
+- **85 modules** (75 visible + 1 hidden) with **302 real tools** across categories: music
   generation, drums, mixing/mastering, EQ/analysis, synthesis, sampling, arrangement,
   performance/live, MIDI, hardware/control, project management, audio↔MIDI conversion and more.
 - **AI copilot** (OpenRouter / OpenAI / OpenCode Zen) with a *tool-calling* loop: it discovers and
-  runs **any of the 291 tools** through a meta-toolkit (`find_tools` searches the whole suite,
+  runs **any of the 302 tools** through a meta-toolkit (`find_tools` searches the whole suite,
   `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
-- **Quick command palette** (`⌘K`): indexes the **291 tools** + **84 quick actions**
+- **Quick command palette** (`⌘K`): indexes the **302 tools** + **84 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
 - **40 curated rich panels** where the auto-generated form falls short: piano-roll, clip
   graph, mixer with faders/VU, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
@@ -72,7 +72,7 @@ of each concept into one place.
   <tr>
     <td align="center">
       <img src="assets/screenshots/03-palette.svg" alt="Command palette" width="100%" /><br/>
-      <sub><b>⌘K command palette</b> — mixes 291 real tools and 84 quick actions in one search.</sub>
+      <sub><b>⌘K command palette</b> — mixes 302 real tools and 84 quick actions in one search.</sub>
     </td>
     <td align="center">
       <img src="assets/screenshots/04-mixconsole.svg" alt="Mix Console" width="100%" /><br/>
@@ -180,7 +180,7 @@ src/
 └── modules/<id>/tools.ts # each module = its own toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + palette
-└── panels/<id>.js                        # 46 rich panels
+└── panels/<id>.js                        # 49 rich panels
 ```
 
 ### Adding a module (3 steps)

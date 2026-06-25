@@ -189,6 +189,25 @@ export function energyEnvelope(samples: Float32Array, sampleRate: number, envHz 
   return env;
 }
 
+// Onset detection: an energy envelope, then a half-wave-rectified difference (spectral-flux-ish)
+// whose local peaks above a sensitivity threshold are note onsets. Returns times in seconds.
+export function detectOnsets(samples: Float32Array, sampleRate: number, sensitivity = 0.18, envHz = 200): { timeSec: number; strength: number }[] {
+  const env = energyEnvelope(samples, sampleRate, envHz);
+  const frameSec = 1 / envHz;
+  const flux = new Float32Array(env.length);
+  for (let i = 1; i < env.length; i++) flux[i] = Math.max(0, env[i] - env[i - 1]);
+  const onsets: { timeSec: number; strength: number }[] = [];
+  const minGap = Math.round(envHz * 0.05); // 50ms refractory
+  let last = -minGap;
+  for (let i = 1; i < flux.length - 1; i++) {
+    if (flux[i] >= sensitivity && flux[i] >= flux[i - 1] && flux[i] >= flux[i + 1] && i - last >= minGap) {
+      onsets.push({ timeSec: i * frameSec, strength: Number(flux[i].toFixed(3)) });
+      last = i;
+    }
+  }
+  return onsets;
+}
+
 // Normalized cross-correlation of two envelopes over a lag range. A positive returned lag
 // means `a` is late relative to `b` by that many envelope frames.
 export function crossCorrelate(a: Float32Array, b: Float32Array, maxLag: number): { lag: number; score: number } {

@@ -26,6 +26,9 @@ import { createToolRegistry as colorTheoryTools } from "../modules/colortheory/t
 import { createToolRegistry as takeOrganizerTools } from "../modules/takeorganizer/tools.js";
 import { createToolRegistry as audio2midiTools } from "../modules/audio2midi/tools.js";
 import { createToolRegistry as historyTools } from "../modules/history/tools.js";
+import { createToolRegistry as bassEngineTools } from "../modules/bassengine/tools.js";
+import { createToolRegistry as sessionBridgeTools } from "../modules/sessionbridge/tools.js";
+import { createToolRegistry as patternLangTools } from "../modules/patternlang/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -118,7 +121,7 @@ export function createMasterRegistry(): MasterRegistry {
   // --- Batch 6 (mixing / analysis / MIDI / arrangement) ---
   m.addModule({ id:"compressor",  label:"Compression & Dynamics", icon:"🗜️", description:"Dynamic range analysis, compression presets and multiband.", registry: compressorTools() });
   m.addModule({ id:"mixassistant",label:"AI Mixing Assistant", icon:"🎚️", description:"Analyze the mix, suggest EQ/compression and loudness targets.", registry: mixAssistantTools() });
-  m.addModule({ id:"harmonizer",  label:"MIDI Harmonizer", icon:"🎵", description:"Harmony voices, voice leading and chord clips by scale degrees.", registry: harmonizerTools() });
+  m.addModule({ id:"harmonizer",  label:"MIDI Harmonizer", icon:"🎵", description:"Harmony voices, voice leading and expressive chord progressions (spread, tensions, inversions, human feel, bass root, top line, arp).", registry: harmonizerTools() });
   m.addModule({ id:"quantizer",   label:"Quantize & Swing", icon:"📐", description:"Quantize with strength and swing, groove presets by genre.", registry: quantizerTools() });
   m.addModule({ id:"delaycalc",   label:"Delay Calculator", icon:"⏱️", description:"Delay/reverb times from BPM and tap tempo.", registry: delayCalcTools() });
   m.addModule({ id:"randomizer",  label:"MIDI Randomizer", icon:"🎲", description:"Randomize pitch, velocity, timing and duration with constraints.", registry: randomizerTools() });
@@ -157,7 +160,7 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"mixconsole",  label:"Mix Console View", icon:"🎛️", description:"Full mixer: faders, pan, sends, mute/solo and VU.", registry: mixConsoleTools() });
   m.addModule({ id:"trackcolor",  label:"Track Color Coordinator", icon:"🌈", description:"Color schemes for tracks and color map export.", registry: trackColorTools() });
   m.addModule({ id:"rackbuilder", label:"Rack Builder", icon:"🧰", description:"Create racks, add chains with zones and configure macros.", registry: rackBuilderTools() });
-  m.addModule({ id:"miditransform",label:"MIDI Transformer", icon:"🔧", description:"Transpose, quantize, humanize, invert and arpeggiate MIDI.", registry: midiTransformTools() });
+  m.addModule({ id:"miditransform",label:"MIDI Transformer", icon:"🔧", description:"Transpose, quantize, humanize, invert and arpeggiate MIDI — plus a generative arp engine (modes, rate, octaves, variations).", registry: midiTransformTools() });
   m.addModule({ id:"midilfo",     label:"MIDI LFO", icon:"〰️", description:"MIDI LFO: target, waveform, bipolar and multi-target.", registry: midiLfoTools() });
 
   // --- Batch 12 (live / utilities / analysis / MIDI) ---
@@ -191,6 +194,9 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"takeorganizer", label:"Take Lane Organizer", icon:"🗄️", description:"Enumerates a track's take lanes and auto-labels them by content (register + note density).", registry: takeOrganizerTools() });
   m.addModule({ id:"audio2midi", label:"Audio → MIDI Melody", icon:"🎤", description:"Renders a monophonic audio part and transcribes it to a new MIDI clip via in-host YIN pitch tracking.", registry: audio2midiTools() });
   m.addModule({ id:"history", label:"Edit History", icon:"↩️", description:"Global undo for every destructive edit across the toolkit — undo the last change from any module, or per clip/track/device.", registry: historyTools() });
+  m.addModule({ id:"bassengine", label:"Bass Engine", icon:"🎸", description:"Generates physical-feeling basslines (octave jumps, ghost hits, sub-hold) and mutates them while keeping the contour.", registry: bassEngineTools() });
+  m.addModule({ id:"sessionbridge", label:"Session → Arrangement", icon:"🌉", description:"Lays every Session-view clip onto the Arrangement timeline scene by scene (MIDI notes + audio from file).", registry: sessionBridgeTools() });
+  m.addModule({ id:"patternlang", label:"Pattern Language", icon:"🪄", description:"A TidalCycles-style mini-notation (notes, rests, [subdivisions], repeats*N) that compiles to a MIDI clip.", registry: patternLangTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"Vocabulary of 1293 micro-actions (from the 215 *-action extensions).", hidden:true, registry: quickActionsTools() });

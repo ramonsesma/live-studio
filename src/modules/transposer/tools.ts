@@ -56,5 +56,28 @@ export function createToolRegistry() {
     }
   );
 
+  reg.register({ name:"transpose_all", description:"Transpose EVERY MIDI clip in the Set by N semitones (session + arrangement), undoable via Edit History", category:"midi", parameters:{ semitones:{type:"number",description:"Semitones to shift (-24 to +24)",required:true} } },
+    async (args: any, song: any) => {
+      const s = Math.round(args.semitones || 0);
+      if (!s) return { success:false, error:"semitones is 0 — nothing to do." };
+      const tracks = song?.tracks || [];
+      let clipsAffected = 0, notesMoved = 0;
+      for (let ti = 0; ti < tracks.length; ti++) {
+        const t = tracks[ti];
+        const slots = t.clipSlots || [];
+        const targets: { clip: any; ci: number }[] = [];
+        for (let ci = 0; ci < slots.length; ci++) { const c = slots[ci]?.clip; if (c && Array.isArray(c.notes) && c.notes.length) targets.push({ clip: c, ci }); }
+        (t.arrangementClips || []).forEach((c: any, i: number) => { if (c && Array.isArray(c.notes) && c.notes.length) targets.push({ clip: c, ci: 1000 + i }); });
+        for (const { clip, ci } of targets) {
+          recordNotes(clip, ti, ci, "transposer.transpose_all");
+          clip.notes = clip.notes.map((n: any) => ({ ...n, pitch: Math.max(0, Math.min(127, n.pitch + s)) }));
+          clipsAffected++; notesMoved += clip.notes.length;
+        }
+      }
+      if (!clipsAffected) return { success:false, error:"No MIDI clips with notes in the Set." };
+      return { success:true, data:{ semitones:s, clipsAffected, notesMoved } };
+    }
+  );
+
   return reg;
 }

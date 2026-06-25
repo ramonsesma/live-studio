@@ -143,6 +143,11 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         sendJson(res, 200, await bridge.audioToMidi(body as any));
         return;
       }
+      if (url.pathname === "/api/groovefromaudio" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.grooveFromAudio(body as any));
+        return;
+      }
       if (url.pathname === "/api/warpaudio" && method === "GET") {
         const buf = bridge.warpAudio(url.searchParams.get("id") || "");
         if (!buf) { res.writeHead(404); res.end("Not found"); return; }

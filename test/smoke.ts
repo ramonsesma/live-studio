@@ -59,9 +59,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 82 módulos", (mods.modules || []).length === 82, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 85 módulos", (mods.modules || []).length === 85, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("81 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 81);
+check("84 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 84);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -138,12 +138,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 46 paneles ricos", panelsOk);
+check("sirve los 49 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -319,7 +319,7 @@ check("genrhythm auto-fills cada N compases", grFill.success && grFill.data.fill
 const grTi = gr.data.trackIndex;
 const grBefore = grClip.notes.length;
 const grAf = await post("/api/execute", { name: "genrhythm__add_fill", args: { track_index: grTi, clip_index: 0, beats: 1, style: "tom" } });
-check("genrhythm add_fill inserta un redoble", grAf.success && grAf.data.fillNotes > 0 && grClip.notes.length !== grBefore);
+check("genrhythm add_fill inserta un redoble", grAf.success && grAf.data.fillNotes > 0 && grClip.notes.length === grAf.data.totalNotes);
 const grUn = await post("/api/execute", { name: "genrhythm__undo", args: { track_index: grTi, clip_index: 0 } });
 check("genrhythm undo restaura el estado previo al fill", grUn.success && grClip.notes.length === grBefore);
 const grRs = await post("/api/execute", { name: "genrhythm__reshuffle", args: { track_index: grTi, clip_index: 0, density: 70 } });
@@ -476,6 +476,42 @@ check("takeorganizer renombra por contenido", tlA.success && tlSong.tracks[0].ta
 
 const a2m = await post("/api/audio2midi", { demo: true });
 check("audio2midi transcribe el demo monofónico", a2m.success && a2m.data.noteCount >= 4 && a2m.data.notes[0].pitch >= 48);
+
+// 7q. Müsslin-inspired: Bass Engine (#1), expressive chords (#3), generative arp (#2).
+const beGen = await post("/api/execute", { name: "bassengine__generate", args: { root: "C", scale: "minor", style: "octave", bars: 2, density: 80, ghosts: 50 } });
+check("bassengine genera una bassline en rango de bajo", beGen.success && beGen.data.noteCount > 0 && beGen.data.baseNote >= 24 && beGen.data.baseNote <= 48);
+const beMut = await post("/api/execute", { name: "bassengine__mutate", args: { track_index: beGen.data.trackIndex, clip_index: 0, amount: 50 } });
+check("bassengine mutate conserva el conteo de notas (undoable)", beMut.success && beMut.data.noteCount === beGen.data.noteCount);
+const hcx = await post("/api/execute", { name: "harmonizer__generate_expressive", args: { key: "C", scale: "minor", degrees: "i,iv,v", complexity: "7th", spread: "open" } });
+check("harmonizer genera acordes expresivos (7th, 3 acordes)", hcx.success && hcx.data.chords.length === 3 && hcx.data.chords[0].tones.length === 4 && hcx.data.noteCount === 12);
+const arp = await post("/api/execute", { name: "miditransform__generate_arp", args: { root: "C", chord: "min7", bars: 2, variations: 3 } });
+check("miditransform genera arpegios con N variaciones distintas", arp.success && arp.data.arps.length === 3 && arp.data.arps[0].noteCount > 0 && arp.data.arps[0].pattern !== arp.data.arps[1].pattern);
+
+// 7r. federico-pepe-inspired: chord detection (#1), set-wide transpose (#2), Session→Arrangement (#3).
+const dcSong: any = { tracks: [{ name: "Keys", clipSlots: [{ clip: { name: "prog", notes: [
+  { pitch: 60, startTime: 0, duration: 1, velocity: 100 }, { pitch: 64, startTime: 0, duration: 1, velocity: 100 }, { pitch: 67, startTime: 0, duration: 1, velocity: 100 },
+  { pitch: 57, startTime: 2, duration: 1, velocity: 100 }, { pitch: 60, startTime: 2, duration: 1, velocity: 100 }, { pitch: 64, startTime: 2, duration: 1, velocity: 100 },
+] } }], arrangementClips: [] }] };
+const dc = await reg.execute("harmonizer__detect_chords", { track_index: 0, clip_index: 0 }, dcSong);
+check("harmonizer detecta C → Am en el clip", dc.success && dc.data.chordCount === 2 && dc.data.chords[0].chord === "C" && dc.data.chords[1].chord === "Am");
+const taSong: any = { tracks: [
+  { name: "A", clipSlots: [{ clip: { name: "a", get notes() { return (this as any)._n; }, set notes(v: any) { (this as any)._n = v; }, _n: [{ pitch: 60, startTime: 0, duration: 1, velocity: 100 }] } }], arrangementClips: [] },
+  { name: "B", clipSlots: [{ clip: { name: "b", get notes() { return (this as any)._n; }, set notes(v: any) { (this as any)._n = v; }, _n: [{ pitch: 48, startTime: 0, duration: 1, velocity: 100 }] } }], arrangementClips: [] },
+] };
+const ta = await reg.execute("transposer__transpose_all", { semitones: 3 }, taSong);
+check("transposer transpone todos los clips del set", ta.success && ta.data.clipsAffected === 2 && taSong.tracks[0].clipSlots[0].clip.notes[0].pitch === 63 && taSong.tracks[1].clipSlots[0].clip.notes[0].pitch === 51);
+const mkBridgeTrack = (name: string, clip: any) => { const t: any = { name, clipSlots: [{ clip }], arrangementClips: [] }; t.createMidiClip = async (start: number, dur: number) => { const c: any = { name: "", _n: [], get notes() { return this._n; }, set notes(v: any) { this._n = v; }, duration: dur, startTime: start }; t.arrangementClips.push(c); return c; }; return t; };
+const sbSong: any = { tracks: [mkBridgeTrack("T1", { name: "loop", notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 100 }], duration: 4 })] };
+const sb = await reg.execute("sessionbridge__flatten", {}, sbSong);
+check("sessionbridge vuelca el clip de session a arrangement", sb.success && sb.data.clipsCopied === 1 && sbSong.tracks[0].arrangementClips.length === 1 && sbSong.tracks[0].arrangementClips[0].notes.length === 1);
+
+// 7s. pnomolos-inspired: suggest next chord (#1), groove-from-audio (#2), pattern DSL (#3).
+const sn = await reg.execute("harmonizer__suggest_next", { key: "C", scale: "major", current: "V" }, { tracks: [] });
+check("harmonizer sugiere la resolución V→I", sn.success && sn.data.suggestions.some((s: any) => s.roman === "I" && s.chord === "C"));
+const gfa = await post("/api/groovefromaudio", { demo: true });
+check("groove-from-audio detecta onsets y swing del loop", gfa.success && gfa.data.onsets > 0 && gfa.data.swingMs > 0);
+const pl2 = await post("/api/execute", { name: "patternlang__compile", args: { pattern: "c3 e3 [g3 b3] c4", bars: 1 } });
+check("patternlang compila la mini-notación a notas", pl2.success && pl2.data.noteCount === 5 && pl2.data.notes.some((n: any) => n.pitch === 48));
 
 // 7p. Edit History — global undo backing every destructive edit.
 await reg.execute("history__clear", {}, song);

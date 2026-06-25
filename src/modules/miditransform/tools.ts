@@ -19,6 +19,20 @@ function getClip(song: any, ti: number, ci: number) {
   return t?.clipSlots?.[ci ?? 0]?.clip ?? t?.arrangementClips?.[ci ?? 0] ?? null;
 }
 
+const ARP_PC: Record<string, number> = { c:0, "c#":1, db:1, d:2, "d#":3, eb:3, e:4, f:5, "f#":6, gb:6, g:7, "g#":8, ab:8, a:9, "a#":10, bb:10, b:11 };
+const CHORD_TYPES: Record<string, number[]> = { maj:[0,4,7], min:[0,3,7], maj7:[0,4,7,11], min7:[0,3,7,10], dom7:[0,4,7,10], sus2:[0,2,7], sus4:[0,5,7], dim:[0,3,6], add9:[0,4,7,14] };
+// Order chord tones across `oct` octaves following an arp pattern.
+function arpOrder(tones: number[], oct: number, pattern: string): number[] {
+  let order: number[] = [];
+  for (let o = 0; o < oct; o++) for (const p of tones) order.push(p + o * 12);
+  order.sort((a, b) => a - b);
+  if (pattern === "down") order.reverse();
+  else if (pattern === "updown") order = [...order, ...order.slice(1, -1).reverse()];
+  else if (pattern === "converge") { const c: number[] = []; let lo = 0, hi = order.length - 1; while (lo <= hi) { c.push(order[lo++]); if (lo <= hi) c.push(order[hi--]); } order = c; }
+  else if (pattern === "random") order = order.sort(() => Math.random() - 0.5);
+  return order;
+}
+
 export function createToolRegistry() {
   const reg = new ToolRegistry();
 
@@ -105,6 +119,36 @@ export function createToolRegistry() {
       for (let t = 0, i = 0; t < span; t += rate, i++) out.push({ pitch: Math.min(127, order[i % order.length]), startTime: t, duration: rate * 0.9, velocity: 100 });
       clip.notes = out;
       return { success:true, data:{ arpeggiated:true, pattern:args.pattern || "up", rate:args.rate || "1/16", notesGenerated:out.length } };
+    }
+  );
+
+  reg.register({ name:"generate_arp", description:"Generate an arpeggio from a chord (root + type) into new clips, with modes, rate, octaves, gate and N musical variations", category:"transformer", parameters:{ root:{type:"string",description:"Chord root (C, F#, Bb…)",required:false}, chord:{type:"string",description:"Chord type",required:false,enum:Object.keys(CHORD_TYPES)}, bars:{type:"number",description:"Bars (default 2)",required:false}, pattern:{type:"string",description:"Arp pattern",required:false,enum:["up","down","updown","converge","random"]}, rate:{type:"string",description:"Arp rate",required:false,enum:["1/4","1/8","1/16","1/16t","1/32"]}, octaves:{type:"number",description:"Octave range 1-4 (default 2)",required:false}, gate:{type:"number",description:"Note length % of the step (default 90)",required:false}, variations:{type:"number",description:"How many alternative arps to generate 1-4 (default 1)",required:false} } },
+    async (args: any, song: any) => {
+      const pc = ARP_PC[String(args.root ?? "C").trim().toLowerCase()] ?? 0;
+      const intervals = CHORD_TYPES[args.chord] || CHORD_TYPES.min;
+      const base = 48 + pc;
+      const tones = intervals.map((i) => base + i);
+      const bars = Math.max(1, Math.min(8, args.bars || 2));
+      const span = bars * 4;
+      const gate = Math.max(10, Math.min(100, args.gate ?? 90)) / 100;
+      const count = Math.max(1, Math.min(4, args.variations || 1));
+      const PATTERNS = ["up", "down", "updown", "converge"];
+      const RATES = ["1/16", "1/8", "1/16t", "1/4"];
+      const out: any[] = [];
+      for (let v = 0; v < count; v++) {
+        const pattern = count > 1 ? PATTERNS[v % PATTERNS.length] : (args.pattern || "up");
+        const rate = count > 1 ? RATES[v % RATES.length] : (args.rate || "1/16");
+        const oct = count > 1 ? 1 + (v % 3) : Math.max(1, Math.min(4, args.octaves ?? 2));
+        const step = GRID[rate] ?? 0.25;
+        const order = arpOrder(tones, oct, pattern);
+        const notes: any[] = [];
+        for (let t = 0, i = 0; t < span - 1e-9; t += step, i++) notes.push({ pitch: Math.min(127, order[i % order.length]), startTime: Number(t.toFixed(4)), duration: step * gate, velocity: i % order.length === 0 ? 104 : 90 });
+        const track = await song.createMidiTrack(); track.name = `Arp ${String(args.root ?? "C")}${args.chord || "min"} ${pattern}`;
+        const clip = await track.createMidiClip(0, span); clip.name = `${pattern} ${rate} ×${oct}`;
+        clip.notes = notes;
+        out.push({ variation: v + 1, pattern, rate, octaves: oct, trackIndex: song.tracks.indexOf(track), clipName: clip.name, noteCount: notes.length, notes: notes.slice(0, 160).map((n) => ({ pitch: n.pitch, start: n.startTime, dur: Number(n.duration.toFixed(3)) })) });
+      }
+      return { success:true, data:{ root: args.root || "C", chord: args.chord || "min", bars, variations: out.length, arps: out } };
     }
   );
 
