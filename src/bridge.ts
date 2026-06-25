@@ -2,8 +2,8 @@ import { MasterRegistry } from "./core/registry.js";
 import type { LLMClient, LLMMessage } from "./core/llm.js";
 import { analyzeWavFile, analyzePcm, synthPcm, faderDbToValue, peakFrequencies, decodeWav, energyEnvelope, crossCorrelate, type Analysis } from "./core/dsp.js";
 import { buildSnapshot, diffSnapshots, applySnapshot, summarize, type Snapshot } from "./core/snapshot.js";
-import { extractFeatures, cosine, tagsFromName } from "./core/samplebrain.js";
-import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
+import { extractFeatures, cosine, tagsFromName, estimateBpm } from "./core/samplebrain.js";
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, unlinkSync, copyFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -378,6 +378,162 @@ export class Bridge {
         return { success: true, data: { dropped: true, trackIndex: this.song.tracks.indexOf(track), path: imported } };
       }
       return { success: false, error: `Unknown sample-brain action: ${req.action}` };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Macro Snapshot Morph: capture a device's parameter values to disk, then interpolate
+  // (lerp) between two snapshots and write the result back via DeviceParameter.setValue.
+  // Live has no preset morphing — this slides between two states you liked.
+  private macroDir(key: string): string {
+    const base = this.environment?.storageDirectory || join(tmpdir(), "live-studio");
+    const dir = join(base, ".macro-snapshots", key); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    return dir;
+  }
+  private loadMacro(dir: string, id: string): any { try { const p = join(dir, id + ".json"); return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : null; } catch { return null; } }
+
+  async macroMorph(req: any): Promise<any> {
+    try {
+      const tracks = this.song?.tracks || [];
+      const device = tracks[req.trackIndex]?.devices?.[req.deviceIndex];
+      const readParams = async (d: any) => Promise.all((d.parameters || []).map(async (p: any) => ({ name: p.name, value: await p.getValue(), min: p.min, max: p.max, quantized: p.isQuantized })));
+      if (req.action === "read") {
+        if (!device) return { success: false, error: "Device not found" };
+        const params = await readParams(device);
+        return { success: true, data: { deviceName: device.name, paramCount: params.length, params } };
+      }
+      const dir = this.macroDir(`t${req.trackIndex}_d${req.deviceIndex}`);
+      if (req.action === "capture") {
+        if (!device) return { success: false, error: "Device not found" };
+        const params = await readParams(device);
+        const id = `${Date.now()}_${(req.label || "snap").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 20)}`;
+        writeFileSync(join(dir, id + ".json"), JSON.stringify({ id, label: req.label || "snapshot", timestamp: new Date().toISOString(), deviceName: device.name, params }));
+        return { success: true, data: { id, paramCount: params.length } };
+      }
+      if (req.action === "list") {
+        const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".json")) : [];
+        const snapshots = files.map((f) => { try { const s = JSON.parse(readFileSync(join(dir, f), "utf8")); return { id: s.id, label: s.label, timestamp: s.timestamp, paramCount: s.params.length }; } catch { return null; } }).filter(Boolean).sort((a: any, b: any) => (a.timestamp < b.timestamp ? 1 : -1));
+        return { success: true, data: { snapshots } };
+      }
+      if (req.action === "get") { const s = this.loadMacro(dir, req.id); return s ? { success: true, data: s } : { success: false, error: "Snapshot not found" }; }
+      if (req.action === "morph" || req.action === "apply") {
+        if (!device) return { success: false, error: "Device not found" };
+        const a = this.loadMacro(dir, req.idA); const b = req.action === "apply" ? a : this.loadMacro(dir, req.idB);
+        if (!a || !b) return { success: false, error: "Snapshot not found" };
+        const t = req.action === "apply" ? 1 : Math.max(0, Math.min(1, req.t ?? 0));
+        const am = Object.fromEntries(a.params.map((p: any) => [p.name, p])), bm = Object.fromEntries(b.params.map((p: any) => [p.name, p]));
+        let n = 0;
+        for (const p of device.parameters || []) { const pa = am[p.name], pb = bm[p.name]; if (!pa || !pb) continue; let v = pa.value + (pb.value - pa.value) * t; if (p.isQuantized) v = Math.round(v); try { await p.setValue(v); n++; } catch { /* skip read-only */ } }
+        return { success: true, data: { morphed: true, t, paramsSet: n } };
+      }
+      if (req.action === "delete") { const p = join(dir, req.id + ".json"); if (existsSync(p)) unlinkSync(p); return { success: true, data: { deleted: true } }; }
+      return { success: false, error: `Unknown macro action: ${req.action}` };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Loop Length Detective: decode an audio clip (or render it) and estimate its tempo +
+  // bar-fit BPM candidates, then optionally apply one as the global song.tempo.
+  async loopDetect(req: any): Promise<any> {
+    try {
+      let samples: Float32Array, sampleRate: number, durationSec: number, clipName = "loop";
+      if (req.demo) {
+        const sr = 44100; durationSec = 4; samples = new Float32Array(sr * 4);
+        for (const on of [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]) { const st = Math.floor(on * sr); for (let k = 0; k < Math.floor(0.06 * sr) && st + k < samples.length; k++) samples[st + k] = 0.8 * Math.sin((2 * Math.PI * 330 * k) / sr) * Math.exp(-k / (0.015 * sr)); }
+        sampleRate = sr; clipName = "Demo loop (120 BPM)";
+      } else {
+        const t = this.song?.tracks?.[req.trackIndex]; if (!t) return { success: false, error: "Track not found" };
+        const clip = t.clipSlots?.[req.clipIndex ?? 0]?.clip ?? t.arrangementClips?.[req.clipIndex ?? 0];
+        if (!clip) return { success: false, error: "No clip at that slot." };
+        if (typeof clip.filePath === "string" && /\.wav$/i.test(clip.filePath) && existsSync(clip.filePath)) {
+          const dec = decodeWav(readFileSync(clip.filePath)); samples = dec.samples; sampleRate = dec.sampleRate; clipName = clip.name || basename(clip.filePath);
+        } else {
+          if (!this.resources?.renderPreFxAudio || !("createAudioClip" in t)) return { success: false, error: "Select a WAV audio clip (or open in Live to render)." };
+          const start = clip.startTime ?? 0; const dec = decodeWav(readFileSync(await this.resources.renderPreFxAudio(t, start, start + (clip.duration ?? 4))));
+          samples = dec.samples; sampleRate = dec.sampleRate; clipName = clip.name || "loop";
+        }
+        durationSec = samples.length / sampleRate;
+      }
+      durationSec = durationSec! ?? samples!.length / sampleRate!;
+      const detectedBpm = estimateBpm(samples!, sampleRate!);
+      const candidates = [1, 2, 4, 8, 16].map((bars) => ({ bars, bpm: Math.round(((bars * 4) / durationSec) * 60) })).filter((c) => c.bpm >= 70 && c.bpm <= 190);
+      let applied = false;
+      if (req.applyTempo != null && this.song && "tempo" in this.song) { try { this.song.tempo = req.applyTempo; applied = true; } catch { /* */ } }
+      return { success: true, data: { clipName, durationSec: Number(durationSec.toFixed(2)), currentTempo: this.song?.tempo ?? null, detectedBpm, candidates, applied, appliedTempo: applied ? req.applyTempo : null } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Warp Mode A/B Comparator: render the clip in each warp mode to WAVs the webview can play,
+  // and apply the chosen mode (warpMode IS settable; warp markers are not).
+  async warpCompare(req: any): Promise<any> {
+    const MODES = [{ id: 0, name: "Beats" }, { id: 1, name: "Tones" }, { id: 2, name: "Texture" }, { id: 3, name: "Repitch" }, { id: 4, name: "Complex" }, { id: 6, name: "Complex Pro" }];
+    try {
+      if (req.applyMode != null && !req.demo) {
+        const t = this.song?.tracks?.[req.trackIndex]; const clip = t?.clipSlots?.[req.clipIndex ?? 0]?.clip ?? t?.arrangementClips?.[req.clipIndex ?? 0];
+        if (!clip) return { success: false, error: "Clip not found" };
+        try { clip.warping = true; clip.warpMode = req.applyMode; } catch { return { success: false, error: "Could not set warp mode" }; }
+        return { success: true, data: { applied: true, mode: req.applyMode } };
+      }
+      if (req.demo) return { success: true, data: { demo: true, modes: MODES.map((m) => ({ ...m, audio: null })), note: "Render runs in Live" } };
+      const t = this.song?.tracks?.[req.trackIndex]; const clip = t?.clipSlots?.[req.clipIndex ?? 0]?.clip ?? t?.arrangementClips?.[req.clipIndex ?? 0];
+      if (!t || !clip) return { success: false, error: "Clip not found" };
+      if (!("createAudioClip" in t)) return { success: false, error: "Audio clip required." };
+      if (!this.resources?.renderPreFxAudio) return { success: false, error: "Render is only available inside Live." };
+      const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio"); const dir = join(base, "warp"); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      const start = clip.startTime ?? 0, end = start + (clip.duration ?? 4), original = clip.warpMode;
+      const out: any[] = [];
+      for (const m of MODES) { try { clip.warping = true; clip.warpMode = m.id; const wav = await this.resources.renderPreFxAudio(t, start, end); copyFileSync(wav, join(dir, `mode_${m.id}.wav`)); out.push({ ...m, audio: `/api/warpaudio?id=mode_${m.id}` }); } catch { out.push({ ...m, audio: null }); } }
+      try { clip.warpMode = original; } catch { /* */ }
+      return { success: true, data: { clipName: clip.name, modes: out } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+  warpAudio(id: string): Buffer | null {
+    try { const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio"); const safe = String(id).replace(/[^a-z0-9_]/gi, ""); const p = join(base, "warp", safe + ".wav"); return existsSync(p) ? readFileSync(p) : null; } catch { return null; }
+  }
+
+  // Safe Randomizer: perturb a device's parameters within a bounded fraction of their range
+  // (nudge, don't break the sound), skipping locked params. Locks + the pre-randomize state
+  // persist to storageDirectory so you can lock keepers and Reset.
+  private lockPath(key: string): string {
+    const base = this.environment?.storageDirectory || join(tmpdir(), "live-studio");
+    const dir = join(base, ".param-locks"); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    return join(dir, key + ".json");
+  }
+  private loadLocks(key: string): any { try { const p = this.lockPath(key); return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : { locked: [], last: null }; } catch { return { locked: [], last: null }; } }
+
+  async safeRandomize(req: any): Promise<any> {
+    try {
+      const device = this.song?.tracks?.[req.trackIndex]?.devices?.[req.deviceIndex];
+      const key = `t${req.trackIndex}_d${req.deviceIndex}`;
+      if (req.demo) {
+        const base = ["Cutoff", "Reso", "Attack", "Decay", "Drive", "Mix", "Detune", "Width"].map((n, i) => ({ name: n, value: 30 + i * 8, min: 0, max: 127, quantized: false, locked: i === 3 }));
+        let params = base;
+        if (req.action === "randomize") { const amt = (req.amount ?? 20) / 100; params = base.map((p) => (p.locked ? p : { ...p, value: Math.max(p.min, Math.min(p.max, Math.round(p.value + (Math.random() * 2 - 1) * amt * (p.max - p.min)))) })); }
+        return { success: true, data: { deviceName: "Demo Synth", params, demo: true } };
+      }
+      if (req.action === "lock" || req.action === "unlock") {
+        const st = this.loadLocks(key); const set = new Set(st.locked);
+        if (req.action === "lock") set.add(req.paramName); else set.delete(req.paramName);
+        st.locked = [...set]; writeFileSync(this.lockPath(key), JSON.stringify(st));
+        return { success: true, data: { locked: st.locked } };
+      }
+      if (!device) return { success: false, error: "Device not found" };
+      const st = this.loadLocks(key); const lockedSet = new Set(st.locked);
+      const read = async () => Promise.all((device.parameters || []).map(async (p: any) => ({ name: p.name, value: await p.getValue(), min: p.min, max: p.max, quantized: p.isQuantized, locked: lockedSet.has(p.name) })));
+      if (req.action == null || req.action === "read") return { success: true, data: { deviceName: device.name, params: await read() } };
+      if (req.action === "randomize") {
+        const amt = Math.max(0, Math.min(1, (req.amount ?? 20) / 100));
+        const before = await read();
+        st.last = before.map((p) => ({ name: p.name, value: p.value })); writeFileSync(this.lockPath(key), JSON.stringify(st));
+        let n = 0;
+        for (const p of device.parameters || []) { if (lockedSet.has(p.name)) continue; const cur = await p.getValue(); let v = cur + (Math.random() * 2 - 1) * amt * (p.max - p.min); v = Math.max(p.min, Math.min(p.max, v)); if (p.isQuantized) v = Math.round(v); await p.setValue(v); n++; }
+        return { success: true, data: { randomized: true, paramsChanged: n, amount: Math.round(amt * 100) } };
+      }
+      if (req.action === "reset") {
+        if (!st.last) return { success: false, error: "Nothing to reset yet." };
+        const bm: Record<string, number> = Object.fromEntries(st.last.map((p: any) => [p.name, p.value]));
+        let n = 0; for (const p of device.parameters || []) { if (p.name in bm) { await p.setValue(bm[p.name]); n++; } }
+        return { success: true, data: { reset: true, paramsRestored: n } };
+      }
+      return { success: false, error: `Unknown action: ${req.action}` };
     } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
   }
 

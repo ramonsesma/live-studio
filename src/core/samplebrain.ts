@@ -24,7 +24,7 @@ function detectKey(chroma: number[]) {
   return best;
 }
 
-function estimateBpm(samples: Float32Array, sampleRate: number): number | null {
+export function estimateBpm(samples: Float32Array, sampleRate: number): number | null {
   if (samples.length < sampleRate) return null; // too short for a tempo
   const env = energyEnvelope(samples, sampleRate, 100);
   const onset = new Float32Array(env.length);

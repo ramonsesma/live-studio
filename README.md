@@ -6,16 +6,16 @@
 
 <p align="center">
   <b>A modular super-extension for Ableton Live.</b><br/>
-  68 modules · 262 tools · 84 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
+  76 modules · 274 tools · 84 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
-  <img alt="modules" src="https://img.shields.io/badge/modules-67-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-262-6cc6ff" />
+  <img alt="modules" src="https://img.shields.io/badge/modules-75-ffb347" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-274-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-84-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-32-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-110%20%E2%9C%93-2ea043" />
+  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-40-9370db" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-124%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-468%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.es.md"><img alt="readme in Spanish" src="https://img.shields.io/badge/README-Espa%C3%B1ol-yellow" /></a>
@@ -39,22 +39,22 @@ of each concept into one place.
 
 ## ✨ Features
 
-- **68 modules** (67 visible + 1 hidden) with **262 real tools** across categories: music
+- **76 modules** (75 visible + 1 hidden) with **274 real tools** across categories: music
   generation, drums, mixing/mastering, EQ/analysis, synthesis, sampling, arrangement,
   performance/live, MIDI, hardware/control, project management, audio↔MIDI conversion and more.
 - **AI copilot** (OpenRouter / OpenAI / OpenCode Zen) with a *tool-calling* loop: it discovers and
-  runs **any of the 262 tools** through a meta-toolkit (`find_tools` searches the whole suite,
+  runs **any of the 274 tools** through a meta-toolkit (`find_tools` searches the whole suite,
   `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
-- **Quick command palette** (`⌘K`): indexes the **262 tools** + **84 quick actions**
+- **Quick command palette** (`⌘K`): indexes the **274 tools** + **84 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
-- **32 curated rich panels** where the auto-generated form falls short: piano-roll, clip
+- **40 curated rich panels** where the auto-generated form falls short: piano-roll, clip
   graph, mixer with faders/VU, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
   trance gate, synth patchbay, arrangement timeline, track grid, gain staging, rack builder,
   session health, performance pad, version diff…
 - **Auto-generated UI** for everything else: any new module shows up with its form without
   writing HTML, reading its tool definitions.
 - **Lightweight**: ~468 KB bundle, no frontend frameworks.
-- **Tested**: 110 end-to-end smoke tests of the server + modules.
+- **Tested**: 124 end-to-end smoke tests of the server + modules.
 
 ## 📸 Screenshots
 
@@ -72,7 +72,7 @@ of each concept into one place.
   <tr>
     <td align="center">
       <img src="assets/screenshots/03-palette.svg" alt="Command palette" width="100%" /><br/>
-      <sub><b>⌘K command palette</b> — mixes 262 real tools and 84 quick actions in one search.</sub>
+      <sub><b>⌘K command palette</b> — mixes 274 real tools and 84 quick actions in one search.</sub>
     </td>
     <td align="center">
       <img src="assets/screenshots/04-mixconsole.svg" alt="Mix Console" width="100%" /><br/>
@@ -106,7 +106,7 @@ of each concept into one place.
 - **Act** — turns each collision into a one-click corrective **move** (carve EQ, trim, pan) written back via `DeviceParameter.setValue`, all collapsed into a single undo (`withinTransaction`).
 - **Remember** — caches spectral fingerprints per project in `environment.storageDirectory`.
 
-The Mix Radar is the most elaborate of the 32.
+The Mix Radar is the most elaborate of the 40.
 
 ---
 
@@ -180,7 +180,7 @@ src/
 └── modules/<id>/tools.ts # each module = its own toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + palette
-└── panels/<id>.js                        # 32 rich panels
+└── panels/<id>.js                        # 40 rich panels
 ```
 
 ### Adding a module (3 steps)
@@ -193,8 +193,8 @@ public/
 
 ### Rich panels
 Create `public/panels/<id>.js` that registers `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`
-and add it to `index.html`. `shell.js` uses it instead of the autoform. There are 32 already:
-`organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (graph), `notation` (piano-roll), `takes`, `eq` (EQ curve), `midilfo` (LFO designer), `midigate` (trance gate), `synth` (patchbay), `genarranger` (arrangement timeline), `trackmanager` (track grid), `health` (session health), `mastering` (gain staging), `rackbuilder` (rack), `performance` (performance pad), `clipversions` (versions & snapshots), `resonance` (mix radar), `autogain` (auto gain-staging), `keyscale` (key detection), `genrhythm` (generative rhythm), `texturemap` (audio→MIDI), `spectrumcompare` (spectrum match), `projectsnapshot` (git for Live Sets), `scoreeditor` (notation + MusicXML), `clipvariations` (variation engine), `stemalign` (stem aligner), `samplebrain` (sample library brain).
+and add it to `index.html`. `shell.js` uses it instead of the autoform. There are 40 already:
+`organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (graph), `notation` (piano-roll), `takes`, `eq` (EQ curve), `midilfo` (LFO designer), `midigate` (trance gate), `synth` (patchbay), `genarranger` (arrangement timeline), `trackmanager` (track grid), `health` (session health), `mastering` (gain staging), `rackbuilder` (rack), `performance` (performance pad), `clipversions` (versions & snapshots), `resonance` (mix radar), `autogain` (auto gain-staging), `keyscale` (key detection), `genrhythm` (generative rhythm), `texturemap` (audio→MIDI), `spectrumcompare` (spectrum match), `projectsnapshot` (git for Live Sets), `scoreeditor` (notation + MusicXML), `clipvariations` (variation engine), `stemalign` (stem aligner), `samplebrain` (sample library brain), `macromorph` (macro snapshot morph), `loopdetect` (loop BPM), `warpcompare` (warp A/B), `paramdiff` (outlier QA), `phrasefinder` (MIDI phrase search), `saferandom` (safe randomizer), `groovetemplate` (groove extractor), `probabilitylab` (probability lab).
 
 ## 🛠️ Development
 
@@ -227,15 +227,15 @@ npm run package     # build + package .ablx with the UI
 ## 📚 Module catalog
 
 <details>
-<summary><b>Show the 67 modules by category</b> (+ 1 hidden module backing the ⌘K palette)</summary>
+<summary><b>Show the 75 modules by category</b> (+ 1 hidden module backing the ⌘K palette)</summary>
 
-- **Session & project:** Session & Tracks · Clips & Scenes · Bulk Track Manager · Track Color Coordinator · Project Templates · Project Notes · Project Health · Session Organizer · Snapshots · **Project Snapshot · Git** · Sample Library Brain
-- **MIDI & composition:** Chords & Progressions · Melody Generator · Lyric → Melody · MIDI Harmonizer · MIDI Randomizer · MIDI Transformer · MIDI Gate · MIDI LFO · Chord Pads · Step Sequencer · Quantize & Swing · Groove & Humanize · Notation Viewer · Generative Rhythm · Score Editor · Clip Variation Engine
+- **Session & project:** Session & Tracks · Clips & Scenes · Bulk Track Manager · Track Color Coordinator · Project Templates · Project Notes · Project Health · Session Organizer · Snapshots · **Project Snapshot · Git** · Sample Library Brain · Param Diff & Outlier · MIDI Phrase Finder
+- **MIDI & composition:** Chords & Progressions · Melody Generator · Lyric → Melody · MIDI Harmonizer · MIDI Randomizer · MIDI Transformer · MIDI Gate · MIDI LFO · Chord Pads · Step Sequencer · Quantize & Swing · Groove & Humanize · Notation Viewer · Generative Rhythm · Score Editor · Clip Variation Engine · Groove Template Extractor · Probability Lab
 - **Drums:** Drums & Patterns · Drum Replacer · Drum Map Editor · Drum Bus Processor
-- **Mixing & FX:** EQ & Analysis · Compression & Dynamics · Gain Staging & Levels · AI Mixing Assistant · Mix Console View · Mix Scene Saver · FX Chains · FX Chain Presets · Macro Mapper Pro · Rack Builder · **Resonance · Mix Radar** ⭐ · Auto-Gain Stager · Key & Scale Detective · Spectrum Match
+- **Mixing & FX:** EQ & Analysis · Compression & Dynamics · Gain Staging & Levels · AI Mixing Assistant · Mix Console View · Mix Scene Saver · FX Chains · FX Chain Presets · Macro Mapper Pro · Rack Builder · Macro Snapshot Morph · Safe Randomizer · **Resonance · Mix Radar** ⭐ · Auto-Gain Stager · Key & Scale Detective · Spectrum Match
 - **Arrangement & performance:** Arrangement & Navigation · Arrangement Sections · Generative Arranger · Performance & Looper · Takes & Comping · Clip Colorizer · Clip Versions · Clip Relation Graph · Clip Launch Quantizer · Setlist Manager
-- **Tempo & time:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator
-- **Sound design:** Synth Patchbay · SFX & Textures · Vocal Chain & FX · Audio Texture Mapper · Stem Aligner
+- **Tempo & time:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator · Loop Length Detective
+- **Sound design:** Synth Patchbay · SFX & Textures · Vocal Chain & FX · Audio Texture Mapper · Stem Aligner · Warp Mode A/B Comparator
 - **Routing & dev:** Group Routing · API Console · Live Coding Sandbox
 - **Hidden:** Quick Actions — the 84 quick actions indexed by the ⌘K palette
 

@@ -59,9 +59,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 68 módulos", (mods.modules || []).length === 68, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 76 módulos", (mods.modules || []).length === 76, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("67 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 67);
+check("75 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 75);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -138,12 +138,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 32 paneles ricos", panelsOk);
+check("sirve los 40 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -362,6 +362,63 @@ const sbSim = await post("/api/samplebrain", { action: "search", similarTo: "/de
 check("samplebrain find-similar ordena por cosine", sbSim.success && sbSim.data.samples[0].path === "/demo/deep_sub_kick.wav" && typeof sbSim.data.samples[0].score === "number");
 const sbQ = await post("/api/samplebrain", { action: "search", query: "bass" });
 check("samplebrain busca por texto/tags", sbQ.success && sbQ.data.samples.some((s: any) => s.name.includes("bass")));
+
+// 7l. Macro Snapshot Morph: capture two device states and lerp to the midpoint.
+const mkP = (name: string, v: number) => { let val = v; return { name, min: 0, max: 127, isQuantized: false, async getValue() { return val; }, async setValue(x: number) { val = x; } }; };
+const mDev: any = { name: "Test Rack", parameters: [0, 10, 20, 30, 40, 50, 60, 70].map((v, i) => mkP("Macro " + (i + 1), v)) };
+const macroSong: any = { tracks: [{ name: "R", devices: [mDev], clipSlots: [], arrangementClips: [] }] };
+const mb = new Bridge(reg, macroSong);
+const capA = await mb.macroMorph({ action: "capture", trackIndex: 0, deviceIndex: 0, label: "A" });
+for (const p of mDev.parameters) await p.setValue((await p.getValue()) + 40);
+const capB = await mb.macroMorph({ action: "capture", trackIndex: 0, deviceIndex: 0, label: "B" });
+const mr = await mb.macroMorph({ action: "morph", trackIndex: 0, deviceIndex: 0, idA: capA.data.id, idB: capB.data.id, t: 0.5 });
+const mid = await mDev.parameters[0].getValue();
+check("macromorph captura + interpola al punto medio", capA.success && capB.success && mr.success && mr.data.paramsSet === 8 && mid === 20);
+
+// 7m. Loop Detect + Warp Compare (demo) + Param Diff + Phrase Finder.
+const ldD = await post("/api/loopdetect", { demo: true });
+check("loopdetect demo estima BPM + candidatos", ldD.success && ldD.data.detectedBpm > 0 && ldD.data.candidates.length > 0);
+const wcD = await post("/api/warpcompare", { demo: true });
+check("warpcompare demo lista los 6 warp modes", wcD.success && wcD.data.modes.length === 6 && wcD.data.modes[5].name === "Complex Pro");
+const mkP2 = (name: string, v: number) => { let val = v; return { name, min: 0, max: 1, isQuantized: false, async getValue() { return val; }, async setValue(x: number) { val = x; } }; };
+const eqDev = (g: number) => ({ name: "EQ Eight", parameters: [mkP2("Gain A", g), mkP2("Freq", 0.5)] });
+const pdSong: any = { tracks: [{ name: "T0", devices: [eqDev(0.5)] }, { name: "T1", devices: [eqDev(0.5)] }, { name: "T2", devices: [eqDev(0.5)] }, { name: "T3", devices: [eqDev(0.9)] }] };
+const pd = await reg.execute("paramdiff__diff_devices", { track_indices: "0,1,2,3" }, pdSong);
+check("paramdiff detecta el outlier (track 3)", pd.success && pd.data.groups.length === 1 && pd.data.groups[0].params.some((p: any) => p.name === "Gain A" && p.outliers.includes(3)));
+const pn = await reg.execute("paramdiff__normalize_param", { track_indices: "0,1,2,3", device_name: "EQ Eight", param_name: "Gain A" }, pdSong);
+check("paramdiff normalize iguala a la media", pn.success && Math.abs((await pdSong.tracks[3].devices[0].parameters[0].getValue()) - pn.data.mean) < 1e-9);
+const phSong: any = { tracks: [{ name: "Bass", clipSlots: [{ clip: { name: "Groove", color: 0, notes: [36, 43, 48, 43].map((p, i) => ({ pitch: p, startTime: i, duration: 1, velocity: 100 })) } }], arrangementClips: [] }] };
+const pfRes = await reg.execute("phrasefinder__find_phrase", { pattern: "0,7,12,7", transpose_aware: true }, phSong);
+check("phrasefinder encuentra el patrón de intervalos", pfRes.success && pfRes.data.count === 1 && pfRes.data.matches[0].trackIndex === 0);
+const pfHl = await reg.execute("phrasefinder__highlight_match", { track_index: 0, clip_index: 0, color: 16 }, phSong);
+check("phrasefinder highlight pinta el clip", pfHl.success && phSong.tracks[0].clipSlots[0].clip.color === 16);
+
+// 7n. Safe Randomizer (#5) + Groove Template (#1) + Probability Lab (#6).
+const srD = await post("/api/saferandom", { demo: true, action: "randomize", amount: 30 });
+check("saferandom demo respeta el lock", srD.success && srD.data.params[3].locked === true && srD.data.params[3].value === 54);
+const mkP3 = (name: string, v: number) => { let val = v; return { name, min: 0, max: 127, isQuantized: false, async getValue() { return val; }, async setValue(x: number) { val = x; } }; };
+const srDev: any = { name: "Synth", parameters: [mkP3("A", 60), mkP3("B", 60), mkP3("C", 60)] };
+const srSong: any = { tracks: [{ name: "S", devices: [srDev] }] };
+const srb = new Bridge(reg, srSong);
+const rr = await srb.safeRandomize({ action: "randomize", trackIndex: 0, deviceIndex: 0, amount: 50 });
+check("saferandom modifica params reales", rr.success && rr.data.paramsChanged === 3);
+const srReset = await srb.safeRandomize({ action: "reset", trackIndex: 0, deviceIndex: 0 });
+check("saferandom reset restaura el estado previo", srReset.success && (await srDev.parameters[0].getValue()) === 60);
+
+const gtSong: any = { tempo: 120, tracks: [
+  { name: "Src", clipSlots: [{ clip: { name: "groove", notes: [{ pitch: 36, startTime: 0, duration: 0.25, velocity: 100 }, { pitch: 38, startTime: 0.52, duration: 0.25, velocity: 90 }, { pitch: 36, startTime: 1.0, duration: 0.25, velocity: 100 }, { pitch: 38, startTime: 1.52, duration: 0.25, velocity: 90 }] } }], arrangementClips: [] },
+  { name: "Tgt", clipSlots: [{ clip: { name: "straight", get notes() { return (this as any)._n; }, set notes(v: any) { (this as any)._n = v; }, _n: [{ pitch: 60, startTime: 0, duration: 0.25, velocity: 100 }, { pitch: 62, startTime: 0.5, duration: 0.25, velocity: 100 }, { pitch: 60, startTime: 1.0, duration: 0.25, velocity: 100 }, { pitch: 62, startTime: 1.5, duration: 0.25, velocity: 100 }] } }], arrangementClips: [] },
+] };
+const ge = await reg.execute("groovetemplate__extract_template", { track_index: 0, clip_index: 0 }, gtSong);
+check("groovetemplate extrae el swing de la fuente", ge.success && ge.data.swingMs > 5);
+const ga = await reg.execute("groovetemplate__apply_template", { target_track: 1, target_clip: 0, source_track: 0, source_clip: 0, strength: 100 }, gtSong);
+check("groovetemplate aplica el groove (mueve notas)", ga.success && ga.data.notesMoved >= 1);
+const tnote = gtSong.tracks[1].clipSlots[0].clip.notes.find((n: any) => Math.abs(n.startTime - 0.52) < 0.02);
+check("groovetemplate empuja la off-beat al groove de la fuente", !!tnote);
+
+const plBefore = song.tracks.length;
+const pl = await post("/api/execute", { name: "probabilitylab__generate", args: { track_index: 0, clip_index: 0, count: 3 } });
+check("probabilitylab genera variaciones con probability/releaseVel", pl.success && pl.data.variations.length === 3 && song.tracks.length === plBefore + 3 && pl.data.variations.some((v: any) => v.usesProbability || v.usesReleaseVel));
 
 // 8. estáticos
 const html = await (await fetch(base + "/")).text();

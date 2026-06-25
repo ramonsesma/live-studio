@@ -12,6 +12,14 @@ import { createToolRegistry as scoreEditorTools } from "../modules/scoreeditor/t
 import { createToolRegistry as clipVariationsTools } from "../modules/clipvariations/tools.js";
 import { createToolRegistry as stemAlignTools } from "../modules/stemalign/tools.js";
 import { createToolRegistry as sampleBrainTools } from "../modules/samplebrain/tools.js";
+import { createToolRegistry as macroMorphTools } from "../modules/macromorph/tools.js";
+import { createToolRegistry as loopDetectTools } from "../modules/loopdetect/tools.js";
+import { createToolRegistry as warpCompareTools } from "../modules/warpcompare/tools.js";
+import { createToolRegistry as paramDiffTools } from "../modules/paramdiff/tools.js";
+import { createToolRegistry as phraseFinderTools } from "../modules/phrasefinder/tools.js";
+import { createToolRegistry as safeRandomTools } from "../modules/saferandom/tools.js";
+import { createToolRegistry as grooveTemplateTools } from "../modules/groovetemplate/tools.js";
+import { createToolRegistry as probabilityLabTools } from "../modules/probabilitylab/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -163,6 +171,14 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"clipvariations", label:"Clip Variation Engine", icon:"🎰", description:"Generates N algorithmic variations of a MIDI clip (rotate, reverse, humanize, arpeggiate…) as new clips.", registry: clipVariationsTools() });
   m.addModule({ id:"stemalign",   label:"Stem Aligner", icon:"🎯", description:"Cross-correlates two audio stems to find their time offset and shift the target into alignment.", registry: stemAlignTools() });
   m.addModule({ id:"samplebrain", label:"Sample Library Brain", icon:"🧠", description:"Indexes your samples to a JSON brain with a perceptual fingerprint; search by BPM/key/similarity and drop into the project.", registry: sampleBrainTools() });
+  m.addModule({ id:"macromorph", label:"Macro Snapshot Morph", icon:"🎚️", description:"Captures a device's parameter state and morphs (lerps) between two snapshots — preset morphing Live doesn't have.", registry: macroMorphTools() });
+  m.addModule({ id:"loopdetect",  label:"Loop Length Detective", icon:"🔍", description:"Estimates a loop's BPM from its audio and suggests a global song tempo to make it fit.", registry: loopDetectTools() });
+  m.addModule({ id:"warpcompare", label:"Warp Mode A/B Comparator", icon:"🎧", description:"Renders a clip through Live's 6 warp modes for a blind A/B and writes the winner.", registry: warpCompareTools() });
+  m.addModule({ id:"paramdiff",   label:"Param Diff & Outlier", icon:"🔬", description:"Compares the same device across N tracks and flags/normalizes outlier parameter values (sonic QA).", registry: paramDiffTools() });
+  m.addModule({ id:"phrasefinder", label:"MIDI Phrase Finder", icon:"🔎", description:"Searches the Set's MIDI clips for a melodic pattern (transpose-aware) and highlights matches by color.", registry: phraseFinderTools() });
+  m.addModule({ id:"saferandom",  label:"Safe Randomizer", icon:"🎲", description:"Bounded random of device parameters with per-param locks — explore presets without breaking the sound.", registry: safeRandomTools() });
+  m.addModule({ id:"groovetemplate", label:"Groove Template Extractor", icon:"🫀", description:"Extracts a clip's micro-timing groove and applies it to another clip (the .agr-free way).", registry: grooveTemplateTools() });
+  m.addModule({ id:"probabilitylab", label:"Probability Lab", icon:"🎰", description:"Variations using native note probability / releaseVelocity / velocityDeviation — patterns that breathe.", registry: probabilityLabTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"Vocabulary of 1293 micro-actions (from the 215 *-action extensions).", hidden:true, registry: quickActionsTools() });

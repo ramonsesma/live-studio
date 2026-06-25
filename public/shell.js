@@ -25,33 +25,49 @@ function setStatus(ok, text) {
   document.getElementById("status-text").textContent = text;
 }
 
+const ICO = (id) => (window.LiveStudioIcons ? window.LiveStudioIcons.svg(id) : "•");
+const TINT = (id) => (window.LiveStudioIcons ? window.LiveStudioIcons.tint(id) : "var(--muted)");
+
 function renderNav() {
   const nav = document.getElementById("nav");
   nav.innerHTML = "";
 
   // Quick command palette launcher (Cmd/Ctrl+K)
   const pal = document.createElement("div");
-  pal.className = "nav-item nav-palette";
-  pal.innerHTML = `<span class="ico">⌘</span><span class="lbl">Quick commands</span><span class="kbd">⌘K</span>`;
+  pal.className = "nav-item nav-palette"; pal.title = "Quick commands  (⌘K)";
+  pal.innerHTML = `<span class="ico">${ICO("palette")}</span><span class="lbl">Quick commands</span><span class="kbd">⌘K</span>`;
   pal.onclick = () => openPalette();
   nav.appendChild(pal);
 
-  const sep1 = document.createElement("div"); sep1.className = "nav-sep"; sep1.textContent = "Modules"; nav.appendChild(sep1);
+  const sep1 = document.createElement("div"); sep1.className = "nav-sep"; sep1.innerHTML = "<span>Modules</span>"; nav.appendChild(sep1);
   for (const m of state.modules) {
     if (m.hidden) continue;
     const el = document.createElement("div");
-    el.className = "nav-item"; el.dataset.id = m.id;
-    el.innerHTML = `<span class="ico">${m.icon || "•"}</span><span class="lbl">${m.label}</span><span class="count">${m.toolCount}</span>`;
+    el.className = "nav-item"; el.dataset.id = m.id; el.title = m.label;
+    el.innerHTML = `<span class="ico" style="color:${TINT(m.id)}">${ICO(m.id)}</span><span class="lbl">${m.label}</span><span class="count">${m.toolCount}</span>`;
     el.onclick = () => selectModule(m.id);
     nav.appendChild(el);
   }
-  const sep2 = document.createElement("div"); sep2.className = "nav-sep"; sep2.textContent = "Assistant"; nav.appendChild(sep2);
+  const sep2 = document.createElement("div"); sep2.className = "nav-sep"; sep2.innerHTML = "<span>Assistant</span>"; nav.appendChild(sep2);
   const cop = document.createElement("div");
-  cop.className = "nav-item"; cop.dataset.id = "__copilot";
-  cop.innerHTML = `<span class="ico">🤖</span><span class="lbl">AI Copilot</span>`;
+  cop.className = "nav-item"; cop.dataset.id = "__copilot"; cop.title = "AI Copilot";
+  cop.innerHTML = `<span class="ico" style="color:${TINT("copilot")}">${ICO("copilot")}</span><span class="lbl">AI Copilot</span>`;
   cop.onclick = () => selectCopilot();
   nav.appendChild(cop);
 }
+
+// Collapsible sidebar — persists across sessions.
+function initCollapse() {
+  const collapsed = localStorage.getItem("ls-collapsed") === "1";
+  document.getElementById("app").classList.toggle("collapsed", collapsed);
+  const btn = document.getElementById("collapse-toggle");
+  if (btn) btn.onclick = () => {
+    const on = !document.getElementById("app").classList.contains("collapsed");
+    document.getElementById("app").classList.toggle("collapsed", on);
+    localStorage.setItem("ls-collapsed", on ? "1" : "0");
+  };
+}
+initCollapse();
 
 function markActive(id) {
   document.querySelectorAll(".nav-item").forEach((n) => n.classList.toggle("active", n.dataset.id === id));
@@ -74,7 +90,7 @@ async function selectModule(id) {
     return;
   }
 
-  panel.innerHTML = `<div class="panel-head"><h1>${mod.icon} ${mod.label}</h1><p>${mod.description || ""}</p></div><div class="panel-empty">Loading tools…</div>`;
+  panel.innerHTML = `<div class="panel-head"><h1><span class="head-ico" style="color:${TINT(mod.id)}">${ICO(mod.id)}</span> ${mod.label}</h1><p>${mod.description || ""}</p></div><div class="panel-empty">Loading tools…</div>`;
 
   if (!state.toolCache[id]) {
     const res = await api.get("/api/tools?module=" + encodeURIComponent(id));
@@ -148,7 +164,7 @@ async function selectCopilot() {
   const cfg = (await api.get("/api/config")).config || {};
   const panel = document.getElementById("panel");
   panel.innerHTML = `
-    <div class="panel-head"><h1>🤖 AI Copilot</h1><p>Control any module via natural language. Use your tools as functions.</p></div>
+    <div class="panel-head"><h1><span class="head-ico" style="color:${TINT("copilot")}">${ICO("copilot")}</span> AI Copilot</h1><p>Control any module via natural language. Use your tools as functions.</p></div>
     <div class="config-grid">
       <div><label class="hint">Provider</label>
         <select id="cfg-provider">

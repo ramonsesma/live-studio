@@ -10,18 +10,20 @@
   <div id="app">
     <aside id="sidebar">
       <div class="brand">
-        <span class="logo">🎛️</span>
-        <div>
+        <button class="brand-logo" id="collapse-toggle" aria-label="Collapse or expand sidebar" title="Collapse / expand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h0M8 8v8M12 4v16M16 8v8M20 11v2"/></svg>
+        </button>
+        <div class="brand-text">
           <div class="brand-title">Live Studio</div>
-          <div class="brand-sub">super-extension</div>
+          <div class="brand-sub">super · extension</div>
         </div>
       </div>
       <nav id="nav"><!-- modules injected --></nav>
       <div class="sidebar-foot">
         <span id="status-dot" class="dot"></span>
-        <span id="status-text">connecting…</span>
+        <span id="status-text" class="brand-text">connecting…</span>
       </div>
-      <div class="sidebar-credit">Live Studio — created by <a href="https://github.com/ramonsesma/live-studio" target="_blank" rel="noopener">Ramón Sesma</a> · GPL v3</div>
+      <div class="sidebar-credit brand-text">Live Studio — created by <a href="https://github.com/ramonsesma/live-studio" target="_blank" rel="noopener">Ramón Sesma</a> · GPL v3</div>
     </aside>
 
     <main id="panel">
@@ -60,6 +62,15 @@
   <script src="/panels/clipvariations.js"></script>
   <script src="/panels/stemalign.js"></script>
   <script src="/panels/samplebrain.js"></script>
+  <script src="/panels/macromorph.js"></script>
+  <script src="/panels/loopdetect.js"></script>
+  <script src="/panels/warpcompare.js"></script>
+  <script src="/panels/paramdiff.js"></script>
+  <script src="/panels/phrasefinder.js"></script>
+  <script src="/panels/saferandom.js"></script>
+  <script src="/panels/groovetemplate.js"></script>
+  <script src="/panels/probabilitylab.js"></script>
+  <script src="/icons.js"></script>
   <script src="/shell.js"></script>
 </body>
 </html>

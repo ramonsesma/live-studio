@@ -1,0 +1,70 @@
+// Módulo: Groove Template Extractor — reads a clip's micro-timing (note.startTime deviation
+// from the grid) into a groove template and applies it to another clip by nudging its notes.
+// The .agr-free way to move a feel between clips. Pure note math.
+export class ToolRegistry {
+  private handlers = new Map();
+  definitions: any[] = [];
+  register(def: any, handler: any) { this.definitions.push(def); this.handlers.set(def.name, handler); }
+  async execute(name: string, args: any, song: any) {
+    const h = this.handlers.get(name);
+    if (!h) return { success: false, error: `Unknown: ${name}` };
+    try { return await h(args, song); }
+    catch (err: any) { return { success: false, error: err.message || String(err) }; }
+  }
+  getDefinitionsJson() { return this.definitions; }
+}
+
+function getClip(song: any, ti: number, ci: number) { const t = song?.tracks?.[ti]; return t?.clipSlots?.[ci ?? 0]?.clip ?? t?.arrangementClips?.[ci ?? 0]; }
+const PERIOD = 16; // 1 bar of 1/16 steps
+
+function extractTemplate(notes: any[], grid: number) {
+  const sumOff = new Array(PERIOD).fill(0), sumVel = new Array(PERIOD).fill(0), count = new Array(PERIOD).fill(0);
+  for (const n of notes) {
+    const gridIdx = Math.round(n.startTime / grid), step = ((gridIdx % PERIOD) + PERIOD) % PERIOD;
+    sumOff[step] += n.startTime - gridIdx * grid; sumVel[step] += n.velocity ?? 100; count[step]++;
+  }
+  const steps = Array.from({ length: PERIOD }, (_, s) => ({ step: s, avgOffset: count[s] ? sumOff[s] / count[s] : 0, avgVel: count[s] ? Math.round(sumVel[s] / count[s]) : null, count: count[s] }));
+  return { grid, period: PERIOD, steps };
+}
+
+export function createToolRegistry() {
+  const reg = new ToolRegistry();
+
+  reg.register({ name:"extract_template", description:"Extract a micro-timing groove template from a clip's note timing", category:"groove", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false}, grid_beats:{type:"number",description:"Grid in beats (default 0.25 = 1/16)",required:false} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index ?? 0);
+      if (!clip || !Array.isArray(clip.notes) || !clip.notes.length) return { success:false, error:"No MIDI clip with notes here." };
+      const grid = args.grid_beats || 0.25;
+      const tpl = extractTemplate(clip.notes, grid);
+      const tempo = song?.tempo || 120;
+      // swing = average lateness of off-beat steps (those not on a downbeat, step % 4 !== 0)
+      const off = tpl.steps.filter((s) => s.count > 0 && s.step % 4 !== 0);
+      const swingMs = off.length ? Math.round((off.reduce((a, s) => a + s.avgOffset, 0) / off.length) * (60 / tempo) * 1000) : 0;
+      return { success:true, data:{ clipName:clip.name, grid, period:PERIOD, swingMs, steps: tpl.steps.map((s) => ({ ...s, offsetMs: Number((s.avgOffset * (60 / tempo) * 1000).toFixed(1)) })) } };
+    }
+  );
+
+  reg.register({ name:"apply_template", description:"Quantize a target clip to grid and add a source clip's groove (micro-timing + optional velocity)", category:"groove", parameters:{ target_track:{type:"number",description:"Target track index",required:true}, target_clip:{type:"number",description:"Target clip index (default 0)",required:false}, source_track:{type:"number",description:"Groove source track index",required:true}, source_clip:{type:"number",description:"Groove source clip index (default 0)",required:false}, strength:{type:"number",description:"0-100% how much groove to apply (default 100)",required:false}, apply_velocity:{type:"boolean",description:"Also apply the source's velocity feel",required:false}, grid_beats:{type:"number",description:"Grid in beats (default 0.25)",required:false} } },
+    async (args: any, song: any) => {
+      const src = getClip(song, args.source_track, args.source_clip ?? 0);
+      const tgt = getClip(song, args.target_track, args.target_clip ?? 0);
+      if (!src || !Array.isArray(src.notes) || !src.notes.length) return { success:false, error:"Groove source has no notes." };
+      if (!tgt || !Array.isArray(tgt.notes) || !tgt.notes.length) return { success:false, error:"Target clip has no notes." };
+      const grid = args.grid_beats || 0.25, strength = Math.max(0, Math.min(1, (args.strength ?? 100) / 100));
+      const tpl = extractTemplate(src.notes, grid);
+      let moved = 0;
+      const out = tgt.notes.map((n: any) => {
+        const gridIdx = Math.round(n.startTime / grid), step = ((gridIdx % PERIOD) + PERIOD) % PERIOD;
+        const tplOff = tpl.steps[step]?.avgOffset ?? 0;
+        const newStart = Math.max(0, gridIdx * grid + tplOff * strength);
+        if (Math.abs(newStart - n.startTime) > 1e-6) moved++;
+        const vel = args.apply_velocity && tpl.steps[step]?.avgVel ? Math.round(n.velocity * (1 - strength) + tpl.steps[step].avgVel * strength) : n.velocity;
+        return { pitch: n.pitch, startTime: newStart, duration: n.duration, velocity: vel };
+      });
+      tgt.notes = out;
+      return { success:true, data:{ applied:true, notesMoved:moved, notesTotal:out.length, sourceClip:src.name, targetClip:tgt.name, strength:Math.round(strength*100) } };
+    }
+  );
+
+  return reg;
+}

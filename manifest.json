@@ -1,7 +1,7 @@
 {
   "name": "live-studio",
   "author": "DFS Holding",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "Live Studio",
   "description": "Live Studio — a modular super-extension: chords, drums, EQ, session organizer, FX chains and an AI copilot, all in a single server with a tabbed UI and lazy loading.",
   "entry": "dist/extension.js",

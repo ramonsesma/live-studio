@@ -1,6 +1,6 @@
 {
   "name": "live-studio",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Live Studio — modular super-extension for Ableton Live: 94 modules, 456 tools, 1293 quick-actions, AI copilot and a Cmd-K command palette in a single tabbed webview.",
   "keywords": [
     "ableton",

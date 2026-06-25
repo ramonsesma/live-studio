@@ -118,6 +118,32 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         sendJson(res, 200, await bridge.sampleBrain(body as any));
         return;
       }
+      if (url.pathname === "/api/macromorph" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.macroMorph(body as any));
+        return;
+      }
+      if (url.pathname === "/api/loopdetect" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.loopDetect(body as any));
+        return;
+      }
+      if (url.pathname === "/api/warpcompare" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.warpCompare(body as any));
+        return;
+      }
+      if (url.pathname === "/api/saferandom" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.safeRandomize(body as any));
+        return;
+      }
+      if (url.pathname === "/api/warpaudio" && method === "GET") {
+        const buf = bridge.warpAudio(url.searchParams.get("id") || "");
+        if (!buf) { res.writeHead(404); res.end("Not found"); return; }
+        res.writeHead(200, { "Content-Type": "audio/wav", "Content-Length": String(buf.length) }); res.end(buf);
+        return;
+      }
       if (url.pathname === "/api/config" && method === "POST") {
         const body = await parseBody(req);
         if (body.provider) config.provider = body.provider as string;
