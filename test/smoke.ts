@@ -59,9 +59,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 76 módulos", (mods.modules || []).length === 76, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 81 módulos", (mods.modules || []).length === 81, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("75 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 75);
+check("80 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 80);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -138,12 +138,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 40 paneles ricos", panelsOk);
+check("sirve los 45 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -419,6 +419,38 @@ check("groovetemplate empuja la off-beat al groove de la fuente", !!tnote);
 const plBefore = song.tracks.length;
 const pl = await post("/api/execute", { name: "probabilitylab__generate", args: { track_index: 0, clip_index: 0, count: 3 } });
 check("probabilitylab genera variaciones con probability/releaseVel", pl.success && pl.data.variations.length === 3 && song.tracks.length === plBefore + 3 && pl.data.variations.some((v: any) => v.usesProbability || v.usesReleaseVel));
+
+// 7o. Pendientes nuevas: #2 Velocity Compressor, #10 Range Auto-Transposer, #3 Color Theory, #8 Take Lane Organizer, #7 Audio→MIDI.
+const mkClip = (notes: any[], extra: any = {}) => ({ name: "C", color: 0, get notes() { return (this as any)._n; }, set notes(v: any) { (this as any)._n = v; }, _n: notes, ...extra });
+const vcSong: any = { tracks: [{ name: "Keys", clipSlots: [{ clip: mkClip([100, 120, 64, 110].map((v, i) => ({ pitch: 60, startTime: i, duration: 1, velocity: v }))) }], arrangementClips: [] }] };
+const vcA = await reg.execute("velocompress__analyze", { track_index: 0, clip_index: 0 }, vcSong);
+check("velocompress analiza el histograma", vcA.success && vcA.data.count === 4 && vcA.data.max === 120);
+const vcC = await reg.execute("velocompress__compress", { track_index: 0, clip_index: 0, threshold: 90, ratio: 2 }, vcSong);
+check("velocompress baja los picos sobre el umbral", vcC.success && vcC.data.after.max < 120 && vcSong.tracks[0].clipSlots[0].clip.notes[1].velocity < 120);
+
+const trSong: any = { tracks: [{ name: "Lead", clipSlots: [{ clip: mkClip([80, 84, 88].map((p, i) => ({ pitch: p, startTime: i, duration: 1, velocity: 100 }))) }], arrangementClips: [] }] };
+const trS = await reg.execute("transposer__suggest", { track_index: 0, clip_index: 0, low: 48, high: 72 }, trSong);
+check("transposer recomienda bajar al registro objetivo", trS.success && trS.data.best.semitones < 0 && trS.data.best.inRange >= 2);
+const trA = await reg.execute("transposer__apply", { track_index: 0, clip_index: 0, semitones: trS.data.best.semitones }, trSong);
+check("transposer aplica el shift a las notas", trA.success && trSong.tracks[0].clipSlots[0].clip.notes[0].pitch === 80 + trS.data.best.semitones);
+
+const ctP = await reg.execute("colortheory__palette", { base_hex: "#FF8C00", scheme: "triadic", count: 3 }, song);
+check("colortheory genera una paleta triádica", ctP.success && ctP.data.swatches.length === 3 && /^#[0-9a-f]{6}$/i.test(ctP.data.swatches[0].hex));
+const ctSong: any = { tracks: [{ name: "T", clipSlots: [{ clip: mkClip([]) }, { clip: mkClip([]) }], arrangementClips: [] }] };
+const ctApply = await reg.execute("colortheory__apply_to_track", { track_index: 0, scheme: "triadic" }, ctSong);
+check("colortheory escribe clip.color real", ctApply.success && ctApply.data.colored === 2 && ctSong.tracks[0].clipSlots[0].clip.color > 0);
+
+const tlSong: any = { tracks: [{ name: "Vox", takeLanes: [
+  { _n: "", get name() { return (this as any)._n; }, set name(v: any) { (this as any)._n = v; }, clips: [{ notes: [{ pitch: 60 }, { pitch: 64 }] }] },
+  { _n: "", get name() { return (this as any)._n; }, set name(v: any) { (this as any)._n = v; }, clips: [{ notes: [{ pitch: 40 }] }] },
+] }] };
+const tlL = await reg.execute("takeorganizer__list", { track_index: 0 }, tlSong);
+check("takeorganizer enumera las take lanes", tlL.success && tlL.data.laneCount === 2 && tlL.data.lanes[0].notes === 2);
+const tlA = await reg.execute("takeorganizer__autolabel", { track_index: 0, scheme: "content" }, tlSong);
+check("takeorganizer renombra por contenido", tlA.success && tlSong.tracks[0].takeLanes[1].name.includes("Bass"));
+
+const a2m = await post("/api/audio2midi", { demo: true });
+check("audio2midi transcribe el demo monofónico", a2m.success && a2m.data.noteCount >= 4 && a2m.data.notes[0].pitch >= 48);
 
 // 8. estáticos
 const html = await (await fetch(base + "/")).text();

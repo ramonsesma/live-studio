@@ -63,6 +63,11 @@ window.LiveStudioIcons = (function () {
     samplebrain: '<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-1 5 3 3 0 0 0 2 4 3 3 0 0 0 4 1V4z"/><path d="M11 4a3 3 0 0 1 3 3 3 3 0 0 1 1 5 3 3 0 0 1-2 4 3 3 0 0 1-4 1"/>',
     warpcompare: '<path d="M5 16l3-8 3 8M5.8 13h4.4"/><path d="M15 8h3a2 2 0 0 1 0 4h-3zM15 12h3.5a2 2 0 0 1 0 4H15z"/>',
     loopdetect: '<path d="M7 8a6 5 0 1 1-1 6"/><path d="M7 4v4h4"/>',
+    velocompress: '<path d="M3 20h18"/><rect x="5" y="13" width="3" height="7" rx="1"/><rect x="10.5" y="9" width="3" height="11" rx="1"/><rect x="16" y="15" width="3" height="5" rx="1"/><path d="M4 7h16" stroke-dasharray="2 2"/>',
+    transposer: '<path d="M7 21V7m-4 4 4-4 4 4"/><path d="M17 3v14m4-4-4 4-4-4"/>',
+    colortheory: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3.5 7.5l17 9M3.5 16.5l17-9"/><circle cx="12" cy="12" r="2" fill="currentColor"/>',
+    takeorganizer: '<rect x="3" y="5" width="13" height="3.5" rx="1.5"/><rect x="3" y="10.5" width="10" height="3.5" rx="1.5"/><rect x="3" y="16" width="12" height="3.5" rx="1.5"/><path d="M19 4.5l1.8 1.8-4.5 4.5-1.8-1.8z"/>',
+    audio2midi: '<path d="M3 13v-2M6 15V9M9 12v-1"/><path d="M11 12h3"/><path d="M14 9l-2.5 3 2.5 3" opacity=".6"/><path d="M18 6v9"/><circle cx="16.2" cy="15" r="1.8"/>',
 
     arrangement: '<path d="M3 6h18M3 18h18"/><rect x="4" y="9" width="5" height="6" rx="1"/><rect x="11" y="9" width="8" height="6" rx="1"/>',
     sections: '<rect x="3" y="8" width="5" height="8" rx="1"/><rect x="9.5" y="8" width="5" height="8" rx="1"/><rect x="16" y="8" width="5" height="8" rx="1"/>',
@@ -94,11 +99,12 @@ window.LiveStudioIcons = (function () {
 
   const TINT = {
     session: "#f6a623", clips: "#f6a623", templates: "#f6a623", notes: "#f6a623", organizer: "#7bd88f", snapshots: "#f6a623", setlist: "#f6a623", health: "#5ad17a", trackmanager: "#f6a623", projectsnapshot: "#f6a623", clipversions: "#f6a623", trackcolor: "#c792ea",
-    chords: "#b58ce0", melody: "#b58ce0", lyricmelody: "#b58ce0", harmonizer: "#b58ce0", miditransform: "#b58ce0", randomizer: "#b58ce0", midigate: "#b58ce0", midilfo: "#b58ce0", chordpads: "#b58ce0", stepseq: "#b58ce0", quantizer: "#b58ce0", groove: "#b58ce0", groovetemplate: "#b58ce0", notation: "#b58ce0", genrhythm: "#b58ce0", scoreeditor: "#b58ce0", clipvariations: "#b58ce0", probabilitylab: "#b58ce0", phrasefinder: "#b58ce0", keyscale: "#b58ce0",
+    chords: "#b58ce0", melody: "#b58ce0", lyricmelody: "#b58ce0", harmonizer: "#b58ce0", miditransform: "#b58ce0", randomizer: "#b58ce0", midigate: "#b58ce0", midilfo: "#b58ce0", chordpads: "#b58ce0", stepseq: "#b58ce0", quantizer: "#b58ce0", groove: "#b58ce0", groovetemplate: "#b58ce0", notation: "#b58ce0", genrhythm: "#b58ce0", scoreeditor: "#b58ce0", clipvariations: "#b58ce0", probabilitylab: "#b58ce0", phrasefinder: "#b58ce0", keyscale: "#b58ce0", velocompress: "#b58ce0", transposer: "#b58ce0",
     drums: "#e8617a", drumreplace: "#e8617a", drummap: "#e8617a", drumbus: "#e8617a",
     eq: "#6cc6ff", compressor: "#6cc6ff", mixassistant: "#6cc6ff", mixconsole: "#6cc6ff", mixscene: "#6cc6ff", fxchain: "#6cc6ff", fxpresets: "#6cc6ff", macros: "#6cc6ff", rackbuilder: "#6cc6ff", macromorph: "#6cc6ff", saferandom: "#6cc6ff", paramdiff: "#6cc6ff", mastering: "#5ec4a8", autogain: "#5ec4a8",
     resonance: "#57c7e0", spectrumcompare: "#57c7e0", texturemap: "#57c7e0", stemalign: "#74b8e0", samplebrain: "#74b8e0", warpcompare: "#74b8e0", loopdetect: "#f0a04b",
-    arrangement: "#82c98a", sections: "#82c98a", genarranger: "#82c98a", performance: "#82c98a", takes: "#82c98a", colorizer: "#82c98a", clipgraph: "#82c98a", launchquant: "#82c98a",
+    arrangement: "#82c98a", sections: "#82c98a", genarranger: "#82c98a", performance: "#82c98a", takes: "#82c98a", colorizer: "#82c98a", colortheory: "#82c98a", takeorganizer: "#82c98a", clipgraph: "#82c98a", launchquant: "#82c98a",
+    audio2midi: "#74b8e0",
     temposync: "#f0a04b", tempotap: "#f0a04b", timesig: "#f0a04b", delaycalc: "#f0a04b",
     synth: "#9d8cff", sfx: "#9d8cff", vocal: "#9d8cff",
     grouprouting: "#9a9aa2", console: "#9a9aa2", sandbox: "#9a9aa2",

@@ -37,7 +37,7 @@
   <text x="214" y="258" fill="#9a9aa2" font-size="25" letter-spacing="5">SUPER-EXTENSION FOR ABLETON LIVE</text>
 
   <!-- tagline -->
-  <text x="98" y="380" fill="#e8e8ea" font-size="32" font-weight="500">76 modules · 274 tools · AI copilot · ⌘K palette</text>
+  <text x="98" y="380" fill="#e8e8ea" font-size="32" font-weight="500">81 modules · 283 tools · AI copilot · ⌘K palette</text>
 
   <!-- stat chips -->
   <g font-size="22" font-weight="500">
@@ -48,7 +48,7 @@
     </g>
     <g transform="translate(316,460)">
       <rect width="200" height="58" rx="12" fill="#232327" stroke="#38383f"/>
-      <text x="20" y="26" fill="#6cc6ff" font-size="26" font-weight="700">274</text>
+      <text x="20" y="26" fill="#6cc6ff" font-size="26" font-weight="700">283</text>
       <text x="20" y="46" fill="#9a9aa2" font-size="14">real tools</text>
     </g>
     <g transform="translate(534,460)">

@@ -1,6 +1,7 @@
 import { MasterRegistry } from "./core/registry.js";
 import type { LLMClient, LLMMessage } from "./core/llm.js";
 import { analyzeWavFile, analyzePcm, synthPcm, faderDbToValue, peakFrequencies, decodeWav, energyEnvelope, crossCorrelate, type Analysis } from "./core/dsp.js";
+import { trackPitches, framesToNotes } from "./core/pitch.js";
 import { buildSnapshot, diffSnapshots, applySnapshot, summarize, type Snapshot } from "./core/snapshot.js";
 import { extractFeatures, cosine, tagsFromName, estimateBpm } from "./core/samplebrain.js";
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, unlinkSync, copyFileSync } from "node:fs";
@@ -224,6 +225,49 @@ export class Bridge {
         clip.notes = notes; trackIndex = this.song.tracks.indexOf(nt); clipName = clip.name;
       }
       return { success: true, data: { source: req.demo ? "demo" : "render", srcName, noteCount: notes.length, snapped: !!scalePcs, trackIndex, clipName, notes: preview } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // Audio → MIDI Melody: render the track's pre-FX audio, YIN pitch-track it, segment into
+  // notes, convert seconds→beats with song.tempo and (optionally) write a new MIDI clip.
+  async audioToMidi(req: { trackIndex?: number; startBeat?: number; endBeat?: number; noiseFloor?: number; minDurMs?: number; write?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const startBeat = req.startBeat ?? 0, endBeat = req.endBeat ?? 8;
+      const tempo = this.song?.tempo || 120;
+      const secPerBeat = 60 / tempo;
+      let samples: Float32Array, sampleRate: number, srcName = "Demo";
+      if (req.demo) {
+        sampleRate = 44100;
+        const seq = [60, 64, 67, 72, 67, 64];
+        const noteSec = 0.45, gapSec = 0.05;
+        samples = new Float32Array(Math.floor(sampleRate * seq.length * (noteSec + gapSec)));
+        let off = 0;
+        for (const m of seq) { const hz = 440 * Math.pow(2, (m - 69) / 12); const n = Math.floor(sampleRate * noteSec); for (let i = 0; i < n; i++) { const env = Math.min(1, i / 500) * Math.min(1, (n - i) / 500); samples[off + i] = 0.6 * env * Math.sin((2 * Math.PI * hz * i) / sampleRate); } off += Math.floor(sampleRate * (noteSec + gapSec)); }
+        srcName = "Demo melody";
+      } else {
+        const t = (this.song?.tracks || [])[req.trackIndex as number];
+        if (!t) return { success: false, error: `Track ${req.trackIndex} not found` };
+        if (!("createAudioClip" in t)) return { success: false, error: "Audio → MIDI reads audio tracks. Resample a MIDI track first." };
+        if (!this.resources?.renderPreFxAudio) return { success: false, error: "Audio render is only available inside Live." };
+        const wav: string = await this.resources.renderPreFxAudio(t, startBeat, endBeat);
+        const dec = decodeWav(readFileSync(wav)); samples = dec.samples; sampleRate = dec.sampleRate; srcName = t.name;
+      }
+      const hop = 512;
+      const frames = trackPitches(samples, sampleRate, { hop, noiseFloor: req.noiseFloor ?? 0.012 });
+      const det = framesToNotes(frames, { hop, sampleRate, minDurSec: (req.minDurMs ?? 60) / 1000 });
+      const NN = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+      const notes = det.map((n) => ({ pitch: n.pitch, startTime: startBeat + n.startSec / secPerBeat, duration: Math.max(0.05, n.durSec / secPerBeat), velocity: Math.max(20, Math.min(120, Math.round(40 + n.rms * 400))) }));
+      const preview = notes.map((n) => ({ pitch: n.pitch, name: NN[((n.pitch % 12) + 12) % 12] + (Math.floor(n.pitch / 12) - 1), start: Number(n.startTime.toFixed(3)), dur: Number(n.duration.toFixed(3)), vel: n.velocity }));
+      let trackIndex: number | null = null, clipName: string | null = null;
+      if (!req.demo && req.write !== false && notes.length && this.song?.createMidiTrack) {
+        const span = Math.max(4, ...notes.map((n) => n.startTime + n.duration));
+        const nt = await this.song.createMidiTrack(); nt.name = `${srcName} → MIDI`;
+        const clip = await nt.createMidiClip(0, span); clip.name = `${srcName} transcription`;
+        clip.notes = notes; trackIndex = this.song.tracks.indexOf(nt); clipName = clip.name;
+      }
+      return { success: true, data: { source: req.demo ? "demo" : "render", srcName, tempo, frames: frames.length, noteCount: notes.length, trackIndex, clipName, notes: preview } };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }

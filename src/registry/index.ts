@@ -20,6 +20,11 @@ import { createToolRegistry as phraseFinderTools } from "../modules/phrasefinder
 import { createToolRegistry as safeRandomTools } from "../modules/saferandom/tools.js";
 import { createToolRegistry as grooveTemplateTools } from "../modules/groovetemplate/tools.js";
 import { createToolRegistry as probabilityLabTools } from "../modules/probabilitylab/tools.js";
+import { createToolRegistry as veloCompressTools } from "../modules/velocompress/tools.js";
+import { createToolRegistry as transposerTools } from "../modules/transposer/tools.js";
+import { createToolRegistry as colorTheoryTools } from "../modules/colortheory/tools.js";
+import { createToolRegistry as takeOrganizerTools } from "../modules/takeorganizer/tools.js";
+import { createToolRegistry as audio2midiTools } from "../modules/audio2midi/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -179,6 +184,11 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"saferandom",  label:"Safe Randomizer", icon:"🎲", description:"Bounded random of device parameters with per-param locks — explore presets without breaking the sound.", registry: safeRandomTools() });
   m.addModule({ id:"groovetemplate", label:"Groove Template Extractor", icon:"🫀", description:"Extracts a clip's micro-timing groove and applies it to another clip (the .agr-free way).", registry: grooveTemplateTools() });
   m.addModule({ id:"probabilitylab", label:"Probability Lab", icon:"🎰", description:"Variations using native note probability / releaseVelocity / velocityDeviation — patterns that breathe.", registry: probabilityLabTools() });
+  m.addModule({ id:"velocompress", label:"Velocity Compressor", icon:"📊", description:"Treats a clip's note velocities like audio: histogram + downward compression (ratio/makeup) written in place.", registry: veloCompressTools() });
+  m.addModule({ id:"transposer",  label:"Range Auto-Transposer", icon:"🎚️", description:"Tries the 25 semitone shifts and picks the one that fits the most notes into a target register.", registry: transposerTools() });
+  m.addModule({ id:"colortheory", label:"Color Theory Palette", icon:"🎨", description:"Generates a harmonic palette (complementary/triadic/analogous…) and applies real clip.color values.", registry: colorTheoryTools() });
+  m.addModule({ id:"takeorganizer", label:"Take Lane Organizer", icon:"🗄️", description:"Enumerates a track's take lanes and auto-labels them by content (register + note density).", registry: takeOrganizerTools() });
+  m.addModule({ id:"audio2midi", label:"Audio → MIDI Melody", icon:"🎤", description:"Renders a monophonic audio part and transcribes it to a new MIDI clip via in-host YIN pitch tracking.", registry: audio2midiTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"Vocabulary of 1293 micro-actions (from the 215 *-action extensions).", hidden:true, registry: quickActionsTools() });
