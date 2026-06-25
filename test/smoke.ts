@@ -313,6 +313,17 @@ check("genrhythm genera un patrón", gr.success && gr.data.noteCount > 0 && gr.d
 const grTrack = song.tracks[gr.data.trackIndex];
 const grClip = grTrack?.clipSlots?.[0]?.clip;
 check("genrhythm usa probability nativa en las notas", !!grClip && grClip.notes.some((n: any) => typeof n.probability === "number" && n.probability < 1) && grClip.notes.every((n: any) => typeof n.velocityDeviation === "number"));
+// A: fill engine + auto-fills + reshuffle con undo.
+const grFill = await post("/api/execute", { name: "genrhythm__generate", args: { bars: 4, density: 60, fill_every: 2 } });
+check("genrhythm auto-fills cada N compases", grFill.success && grFill.data.fills === 2 && grFill.data.fillEvery === 2);
+const grTi = gr.data.trackIndex;
+const grBefore = grClip.notes.length;
+const grAf = await post("/api/execute", { name: "genrhythm__add_fill", args: { track_index: grTi, clip_index: 0, beats: 1, style: "tom" } });
+check("genrhythm add_fill inserta un redoble", grAf.success && grAf.data.fillNotes > 0 && grClip.notes.length !== grBefore);
+const grUn = await post("/api/execute", { name: "genrhythm__undo", args: { track_index: grTi, clip_index: 0 } });
+check("genrhythm undo restaura el estado previo al fill", grUn.success && grClip.notes.length === grBefore);
+const grRs = await post("/api/execute", { name: "genrhythm__reshuffle", args: { track_index: grTi, clip_index: 0, density: 70 } });
+check("genrhythm reshuffle re-tira el patrón con undo", grRs.success && grRs.data.noteCount > 0 && grRs.data.undoDepth >= 1);
 
 // 7g. Audio Texture Mapper: demo audio → FFT per window → MIDI notes.
 const tx = await post("/api/texturemap", { demo: true, noteCount: 8 });
@@ -415,6 +426,20 @@ const ga = await reg.execute("groovetemplate__apply_template", { target_track: 1
 check("groovetemplate aplica el groove (mueve notas)", ga.success && ga.data.notesMoved >= 1);
 const tnote = gtSong.tracks[1].clipSlots[0].clip.notes.find((n: any) => Math.abs(n.startTime - 0.52) < 0.02);
 check("groovetemplate empuja la off-beat al groove de la fuente", !!tnote);
+// B: pocket lock por elemento — el kick (36) excluido mantiene su timing recto.
+const gtKickSong: any = { tempo: 120, tracks: [
+  { name: "Src", clipSlots: [{ clip: { name: "g", notes: [{ pitch: 42, startTime: 0.52, duration: 0.25, velocity: 90 }, { pitch: 42, startTime: 1.52, duration: 0.25, velocity: 90 }] } }], arrangementClips: [] },
+  { name: "Tgt", clipSlots: [{ clip: { name: "t", get notes() { return (this as any)._n; }, set notes(v: any) { (this as any)._n = v; }, _n: [{ pitch: 36, startTime: 0.5, duration: 0.25, velocity: 100 }, { pitch: 42, startTime: 0.5, duration: 0.25, velocity: 100 }] } }], arrangementClips: [] },
+] };
+const gtEx = await reg.execute("groovetemplate__apply_template", { target_track: 1, target_clip: 0, source_track: 0, source_clip: 0, strength: 100, exclude_pitches: "36" }, gtKickSong);
+const gtNotes = gtKickSong.tracks[1].clipSlots[0].clip.notes;
+const gtKick = gtNotes.find((n: any) => n.pitch === 36), gtHat = gtNotes.find((n: any) => n.pitch === 42);
+check("groovetemplate saca el kick del pocket (queda recto)", gtEx.success && gtEx.data.notesLocked === 1 && gtKick.startTime === 0.5 && gtHat.startTime > 0.5);
+// B: dinámica por lane — centra velocity y escribe velocityDeviation nativo por elemento.
+const gtDynSong: any = { tracks: [{ name: "Drums", clipSlots: [{ clip: { name: "d", get notes() { return (this as any)._n; }, set notes(v: any) { (this as any)._n = v; }, _n: [{ pitch: 36, startTime: 0, duration: 0.25, velocity: 70 }, { pitch: 42, startTime: 0.25, duration: 0.25, velocity: 70 }] } }], arrangementClips: [] }] };
+const gtDyn = await reg.execute("groovetemplate__set_lane_dynamics", { track_index: 0, clip_index: 0, lanes: "36:96-104,42:55-95:18" }, gtDynSong);
+const dn = gtDynSong.tracks[0].clipSlots[0].clip.notes;
+check("groovetemplate fija dinámica por elemento (deviation nativo)", gtDyn.success && gtDyn.data.affected === 2 && dn[0].velocity === 100 && dn[0].velocityDeviation === 4 && dn[1].velocity === 75 && dn[1].velocityDeviation === 18);
 
 const plBefore = song.tracks.length;
 const pl = await post("/api/execute", { name: "probabilitylab__generate", args: { track_index: 0, clip_index: 0, count: 3 } });

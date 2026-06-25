@@ -16,7 +16,14 @@ window.LiveStudioPanels.groovetemplate = function (panel, helpers) {
       <label class="hint">Apply to</label><input id="gt-ttrk" type="number" value="1" style="width:46px" /><input id="gt-tclip" type="number" value="0" style="width:46px" />
       <label class="hint">Strength</label><input id="gt-str" type="range" min="0" max="100" value="100" /><span class="hint" id="gt-strv">100%</span>
       <label class="hint"><input id="gt-vel" type="checkbox" /> velocity feel</label>
+      <label class="hint" title="Pitches kept out of the pocket (stay straight/human)">Lock</label><input id="gt-excl" type="text" value="36" placeholder="36,38" style="width:60px" />
       <button class="btn ghost" id="gt-apply">Apply groove</button>
+    </div>
+    <div class="ss-toolbar" style="margin-top:10px">
+      <label class="hint" title="Per-element velocity range → native velocityDeviation">Lane dynamics</label>
+      <input id="gt-lanes" type="text" value="36:96-104,38:90-110,42:55-95:18" style="width:240px" />
+      <button class="btn ghost" id="gt-dyn"><i class="ti ti-adjustments" aria-hidden="true"></i> Set dynamics</button>
+      <span class="hint" id="gt-dyninfo">pitch:min-max[:dev] per drum element</span>
     </div>`;
 
   function viz(steps, swingMs) {
@@ -48,8 +55,12 @@ window.LiveStudioPanels.groovetemplate = function (panel, helpers) {
   panel.querySelector("#gt-str").oninput = (e) => (panel.querySelector("#gt-strv").textContent = e.target.value + "%");
   panel.querySelector("#gt-ext").onclick = extract;
   panel.querySelector("#gt-apply").onclick = async () => {
-    const r = await exec("apply_template", { target_track: Number(panel.querySelector("#gt-ttrk").value), target_clip: Number(panel.querySelector("#gt-tclip").value), source_track: Number(panel.querySelector("#gt-strk").value), source_clip: Number(panel.querySelector("#gt-sclip").value), strength: Number(panel.querySelector("#gt-str").value), apply_velocity: panel.querySelector("#gt-vel").checked });
-    panel.querySelector("#gt-info").textContent = r.success ? `Applied groove to ${r.data.targetClip}: nudged ${r.data.notesMoved}/${r.data.notesTotal} notes` : r.error;
+    const r = await exec("apply_template", { target_track: Number(panel.querySelector("#gt-ttrk").value), target_clip: Number(panel.querySelector("#gt-tclip").value), source_track: Number(panel.querySelector("#gt-strk").value), source_clip: Number(panel.querySelector("#gt-sclip").value), strength: Number(panel.querySelector("#gt-str").value), apply_velocity: panel.querySelector("#gt-vel").checked, exclude_pitches: panel.querySelector("#gt-excl").value });
+    panel.querySelector("#gt-info").textContent = r.success ? `Applied groove to ${r.data.targetClip}: nudged ${r.data.notesMoved}/${r.data.notesTotal}${r.data.notesLocked ? ` · ${r.data.notesLocked} locked out of pocket` : ""}` : r.error;
+  };
+  panel.querySelector("#gt-dyn").onclick = async () => {
+    const r = await exec("set_lane_dynamics", { track_index: Number(panel.querySelector("#gt-ttrk").value), clip_index: Number(panel.querySelector("#gt-tclip").value), lanes: panel.querySelector("#gt-lanes").value });
+    panel.querySelector("#gt-dyninfo").textContent = r.success ? `${r.data.affected} notes · ${r.data.lanes.map((l) => `${l.pitch}±${l.deviation}`).join(", ")}` : (r.error || "Open a drum clip in Live");
   };
   extract();
 };

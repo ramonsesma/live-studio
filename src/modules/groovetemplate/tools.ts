@@ -44,16 +44,18 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"apply_template", description:"Quantize a target clip to grid and add a source clip's groove (micro-timing + optional velocity)", category:"groove", parameters:{ target_track:{type:"number",description:"Target track index",required:true}, target_clip:{type:"number",description:"Target clip index (default 0)",required:false}, source_track:{type:"number",description:"Groove source track index",required:true}, source_clip:{type:"number",description:"Groove source clip index (default 0)",required:false}, strength:{type:"number",description:"0-100% how much groove to apply (default 100)",required:false}, apply_velocity:{type:"boolean",description:"Also apply the source's velocity feel",required:false}, grid_beats:{type:"number",description:"Grid in beats (default 0.25)",required:false} } },
+  reg.register({ name:"apply_template", description:"Quantize a target clip to grid and add a source clip's groove (micro-timing + optional velocity). Excluded pitches keep their original human timing (out of the pocket).", category:"groove", parameters:{ target_track:{type:"number",description:"Target track index",required:true}, target_clip:{type:"number",description:"Target clip index (default 0)",required:false}, source_track:{type:"number",description:"Groove source track index",required:true}, source_clip:{type:"number",description:"Groove source clip index (default 0)",required:false}, strength:{type:"number",description:"0-100% how much groove to apply (default 100)",required:false}, apply_velocity:{type:"boolean",description:"Also apply the source's velocity feel",required:false}, grid_beats:{type:"number",description:"Grid in beats (default 0.25)",required:false}, exclude_pitches:{type:"string",description:"Comma-separated pitches to keep OUT of the pocket (e.g. '36' = kick stays straight/human)",required:false} } },
     async (args: any, song: any) => {
       const src = getClip(song, args.source_track, args.source_clip ?? 0);
       const tgt = getClip(song, args.target_track, args.target_clip ?? 0);
       if (!src || !Array.isArray(src.notes) || !src.notes.length) return { success:false, error:"Groove source has no notes." };
       if (!tgt || !Array.isArray(tgt.notes) || !tgt.notes.length) return { success:false, error:"Target clip has no notes." };
       const grid = args.grid_beats || 0.25, strength = Math.max(0, Math.min(1, (args.strength ?? 100) / 100));
+      const excluded = new Set<number>(String(args.exclude_pitches || "").split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n)));
       const tpl = extractTemplate(src.notes, grid);
-      let moved = 0;
+      let moved = 0, locked = 0;
       const out = tgt.notes.map((n: any) => {
+        if (excluded.has(n.pitch)) { locked++; return { pitch: n.pitch, startTime: n.startTime, duration: n.duration, velocity: n.velocity }; }
         const gridIdx = Math.round(n.startTime / grid), step = ((gridIdx % PERIOD) + PERIOD) % PERIOD;
         const tplOff = tpl.steps[step]?.avgOffset ?? 0;
         const newStart = Math.max(0, gridIdx * grid + tplOff * strength);
@@ -62,7 +64,31 @@ export function createToolRegistry() {
         return { pitch: n.pitch, startTime: newStart, duration: n.duration, velocity: vel };
       });
       tgt.notes = out;
-      return { success:true, data:{ applied:true, notesMoved:moved, notesTotal:out.length, sourceClip:src.name, targetClip:tgt.name, strength:Math.round(strength*100) } };
+      return { success:true, data:{ applied:true, notesMoved:moved, notesLocked:locked, notesTotal:out.length, excludedPitches:[...excluded], sourceClip:src.name, targetClip:tgt.name, strength:Math.round(strength*100) } };
+    }
+  );
+
+  reg.register({ name:"set_lane_dynamics", description:"Set an independent dynamic range per drum element (pitch): centers velocity and writes native velocityDeviation so Live varies each lane on its own.", category:"groove", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false}, lanes:{type:"string",description:"Per-pitch ranges 'pitch:min-max' (deviation auto) or 'pitch:min-max:dev', comma-separated. E.g. '36:96-104,42:55-95:18'",required:true} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index ?? 0);
+      if (!clip || !Array.isArray(clip.notes) || !clip.notes.length) return { success:false, error:"No MIDI clip with notes here." };
+      const spec = new Map<number, { center: number; dev: number; min: number; max: number }>();
+      for (const part of String(args.lanes || "").split(",").map((s) => s.trim()).filter(Boolean)) {
+        const m = part.match(/^(\d+)\s*:\s*(\d+)\s*-\s*(\d+)(?:\s*:\s*(\d+))?$/);
+        if (!m) continue;
+        const pitch = +m[1], min = Math.min(+m[2], +m[3]), max = Math.max(+m[2], +m[3]);
+        const dev = m[4] != null ? +m[4] : Math.round((max - min) / 2);
+        spec.set(pitch, { center: Math.round((min + max) / 2), dev: Math.max(0, dev), min, max });
+      }
+      if (!spec.size) return { success:false, error:"No valid lane specs. Use 'pitch:min-max' e.g. '36:96-104,42:55-95:18'." };
+      let affected = 0; const lanesTouched = new Set<number>();
+      clip.notes = clip.notes.map((n: any) => {
+        const s = spec.get(n.pitch);
+        if (!s) return n;
+        affected++; lanesTouched.add(n.pitch);
+        return { ...n, velocity: Math.max(1, Math.min(127, s.center)), velocityDeviation: s.dev };
+      });
+      return { success:true, data:{ clip:clip.name, affected, lanes: [...spec.entries()].map(([pitch, s]) => ({ pitch, center: s.center, deviation: s.dev, range: `${s.min}-${s.max}`, applied: lanesTouched.has(pitch) })) } };
     }
   );
 
