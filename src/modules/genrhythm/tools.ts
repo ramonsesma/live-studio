@@ -1,7 +1,8 @@
 // Módulo: Generative Rhythm Generator — rule-based probabilistic patterns that write notes
 // with the SDK's NATIVE `probability` and `velocityDeviation` fields, so Live itself plays
 // them non-deterministically. Robustified with a fill engine, auto-fills (fill_every), and a
-// re-shuffle with a per-clip in-session undo stack.
+// re-shuffle backed by the shared Edit History (undo here or globally).
+import { history, recordNotes, keyClip } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -83,10 +84,6 @@ function clipSpanBeats(clip: any) { const ns = clip.notes || []; return ns.lengt
 
 export function createToolRegistry() {
   const reg = new ToolRegistry();
-  // Per-clip undo stacks live for the session (re-shuffle / add-fill push the prior notes here).
-  const undo = new Map<string, any[][]>();
-  const key = (ti: number, ci: number) => `${ti}:${ci}`;
-  const pushUndo = (k: string, notes: any[]) => { const st = undo.get(k) || []; st.push(notes.map((n) => ({ ...n }))); if (st.length > 12) st.shift(); undo.set(k, st); };
 
   reg.register({ name:"generate", description:"Generate a generative drum pattern using native note probability + velocity deviation, with optional auto-fills", category:"generative", parameters:{ bars:{type:"number",description:"Number of bars (default 2)",required:false}, density:{type:"number",description:"Overall density 0-100 (default 55)",required:false}, evolve:{type:"boolean",description:"Mutate density bar-by-bar",required:false}, humanize:{type:"number",description:"Velocity deviation 0-40 (default 14)",required:false}, fill_every:{type:"number",description:"Insert a fill on the last beat of every Nth bar (0 = off)",required:false}, track_index:{type:"number",description:"Existing track (omit = new)",required:false} } },
     async (args: any, song: any) => {
@@ -102,7 +99,7 @@ export function createToolRegistry() {
       const { notes, lanesOut, fills } = buildPattern(bars, baseDensity, vDev, !!args.evolve, fillEvery);
       clip.notes = notes;
       const ti = song.tracks.indexOf(track);
-      undo.delete(key(ti, 0));
+      history.clear(keyClip(ti, 0));
       return { success:true, data:{ bars, density: baseDensity, evolve: !!args.evolve, fillEvery, fills, trackIndex: ti, clipName: clip.name, noteCount: notes.length, lanes: lanesOut } };
     }
   );
@@ -114,7 +111,7 @@ export function createToolRegistry() {
       const beats = Math.max(0.5, Math.min(8, args.beats || 1));
       const span = clipSpanBeats(clip);
       const start = Math.max(0, span - beats);
-      pushUndo(key(args.track_index, args.clip_index ?? 0), clip.notes);
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "genrhythm.add_fill");
       const kept = clip.notes.filter((n: any) => n.startTime < start - 1e-9);
       const fill = buildFill(start, beats, args.style || "mixed", args.intensity ?? 70);
       clip.notes = kept.concat(fill);
@@ -127,23 +124,20 @@ export function createToolRegistry() {
       const clip = getClip(song, args.track_index, args.clip_index ?? 0);
       if (!clip || !Array.isArray(clip.notes)) return { success:false, error:"No MIDI clip here." };
       const bars = Math.max(1, Math.min(8, Math.ceil(clipSpanBeats(clip) / 4)));
-      pushUndo(key(args.track_index, args.clip_index ?? 0), clip.notes);
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "genrhythm.reshuffle");
       const { notes, fills } = buildPattern(bars, args.density ?? 55, args.humanize ?? 14, false, Math.max(0, Math.min(8, args.fill_every || 0)));
       clip.notes = notes;
-      return { success:true, data:{ clip:clip.name, bars, reshuffled:true, fills, noteCount:notes.length, undoDepth:(undo.get(key(args.track_index, args.clip_index ?? 0)) || []).length } };
+      return { success:true, data:{ clip:clip.name, bars, reshuffled:true, fills, noteCount:notes.length, undoDepth: history.depth(keyClip(args.track_index, args.clip_index ?? 0)) } };
     }
   );
 
-  reg.register({ name:"undo", description:"Undo the last reshuffle / add_fill on a clip", category:"generative", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false} } },
+  reg.register({ name:"undo", description:"Undo the last reshuffle / add_fill on a clip (delegates to the shared Edit History)", category:"generative", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false} } },
     async (args: any, song: any) => {
       const clip = getClip(song, args.track_index, args.clip_index ?? 0);
       if (!clip || !Array.isArray(clip.notes)) return { success:false, error:"No MIDI clip here." };
-      const k = key(args.track_index, args.clip_index ?? 0);
-      const st = undo.get(k);
-      if (!st || !st.length) return { success:false, error:"Nothing to undo on this clip." };
-      const prev = st.pop()!; undo.set(k, st);
-      clip.notes = prev;
-      return { success:true, data:{ clip:clip.name, restored:true, noteCount:prev.length, undoDepth:st.length } };
+      const e = await history.undoTarget(keyClip(args.track_index, args.clip_index ?? 0));
+      if (!e) return { success:false, error:"Nothing to undo on this clip." };
+      return { success:true, data:{ clip:clip.name, restored:true, noteCount:clip.notes.length, undoDepth: history.depth(keyClip(args.track_index, args.clip_index ?? 0)) } };
     }
   );
 

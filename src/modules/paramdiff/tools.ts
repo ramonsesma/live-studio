@@ -1,6 +1,7 @@
 // Módulo: Device Parameter Diff & Outlier — compares the same device across N tracks and
 // flags parameters whose value is an outlier (sonic QA, the counterpart to structural Health).
 // "Normalize" writes outliers to the group mean via DeviceParameter.setValue.
+import { recordParamAt, keyDevice } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -61,11 +62,12 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const idxs = parseIdx(args.track_indices, song);
       const params: any[] = [];
-      for (const ti of idxs) { const d = (song?.tracks?.[ti]?.devices || []).find((x: any) => x.name === args.device_name); if (!d) continue; const p = (d.parameters || []).find((x: any) => x.name === args.param_name); if (p) params.push(p); }
+      for (const ti of idxs) { const devs = song?.tracks?.[ti]?.devices || []; const d = devs.find((x: any) => x.name === args.device_name); if (!d) continue; const p = (d.parameters || []).find((x: any) => x.name === args.param_name); if (p) params.push({ p, ti, di: devs.indexOf(d) }); }
       if (params.length < 2) return { success:false, error:"Need the same device on at least 2 tracks." };
-      const vals = await Promise.all(params.map((p) => p.getValue()));
+      const vals = await Promise.all(params.map((e) => e.p.getValue()));
       const m = mean(vals);
-      for (const p of params) await p.setValue(m);
+      for (const e of params) await recordParamAt(e.p, keyDevice(e.ti, e.di), "paramdiff.normalize_param");
+      for (const e of params) await e.p.setValue(m);
       return { success:true, data:{ normalized:true, param:args.param_name, mean:Number(m.toFixed(3)), tracksSet:params.length } };
     }
   );

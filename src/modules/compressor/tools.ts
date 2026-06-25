@@ -1,4 +1,5 @@
 // Módulo: Compresión & Dinámica — reutilizado de examples/dynamic-range-compressor
+import { recordParamAt, keyTrack } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -46,7 +47,7 @@ export function createToolRegistry() {
       for (let i = 0; i < tracks.length; i++) {
         const t = tracks[i];
         const before = t.mixer?.volume ? await t.mixer.volume.getValue() : null;
-        if (t.mixer?.volume) await t.mixer.volume.setValue(target);
+        if (t.mixer?.volume) { await recordParamAt(t.mixer.volume, keyTrack(i), "compressor.balance_faders"); await t.mixer.volume.setValue(target); }
         results.push({ trackIndex:i, trackName:t.name, before, after:target });
       }
       return { success:true, data:{ targetFader:target, tracksProcessed:results.length, tracks:results } };

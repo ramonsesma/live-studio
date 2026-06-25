@@ -1,4 +1,5 @@
 // Módulo: Mix Console View — reutilizado de examples/mix-console-view
+import { recordParamAt, keyTrack } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -37,6 +38,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const t = song.tracks[args.track_index];
       if (!t?.mixer?.volume) return { success:false, error:`Track ${args.track_index} not found` };
+      await recordParamAt(t.mixer.volume, keyTrack(args.track_index), "mixconsole.set_fader");
       await t.mixer.volume.setValue(Math.max(0, Math.min(1, args.level)));
       return { success:true, data:{ set:true, trackIndex:args.track_index, level:await t.mixer.volume.getValue() } };
     }
@@ -46,6 +48,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const t = song.tracks[args.track_index];
       if (!t?.mixer?.panning) return { success:false, error:`Track ${args.track_index} not found` };
+      await recordParamAt(t.mixer.panning, keyTrack(args.track_index), "mixconsole.set_pan");
       await t.mixer.panning.setValue(Math.max(0, Math.min(1, args.pan)));
       return { success:true, data:{ set:true, trackIndex:args.track_index, pan:await t.mixer.panning.getValue() } };
     }
@@ -55,6 +58,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const send = song.tracks[args.track_index]?.mixer?.sends?.[args.send_index];
       if (!send) return { success:false, error:`Send not found` };
+      await recordParamAt(send, keyTrack(args.track_index), "mixconsole.set_send");
       await send.setValue(Math.max(0, Math.min(1, args.level)));
       return { success:true, data:{ set:true, trackIndex:args.track_index, sendIndex:args.send_index, level:await send.getValue() } };
     }

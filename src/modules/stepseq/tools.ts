@@ -1,4 +1,5 @@
 // Módulo: Step Sequencer — reutilizado de examples/step-sequencer
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -37,6 +38,7 @@ export function createToolRegistry() {
       const clip = t?.clipSlots?.[args.clip_index ?? 0]?.clip ?? t?.arrangementClips?.[args.clip_index ?? 0];
       if (!clip) return { success:false, error:"MIDI clip not found" };
       const g = 0.25, pitch = args.pitch ?? 60, time = args.step * g;
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "stepseq.toggle_step");
       const notes = (clip.notes || []).slice();
       const idx = notes.findIndex((n: any) => n.pitch === pitch && Math.abs(n.startTime - time) < g / 2);
       let nowActive: boolean;

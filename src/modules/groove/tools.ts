@@ -1,4 +1,5 @@
 // Módulo: Groove & Humanize — reutilizado de examples/groove-editor
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -36,6 +37,7 @@ export function createToolRegistry() {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
       const amount = (args.amount ?? 75) / 100, rnd = (args.randomize ?? 10) / 100;
+      recordNotes(clip, args.track_index, args.clip_index, "groove.apply_groove");
       const notes = (clip.notes || []).slice();
       for (const n of notes) {
         n.startTime = Math.max(0, n.startTime + (Math.random() * 2 - 1) * 0.04 * amount);

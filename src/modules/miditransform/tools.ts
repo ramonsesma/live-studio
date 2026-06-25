@@ -1,4 +1,5 @@
 // Módulo: MIDI Transformer — reutilizado de examples/midi-transformer
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -25,6 +26,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
+      recordNotes(clip, args.track_index, args.clip_index, "miditransform");
       const notes = (clip.notes || []).slice();
       for (const n of notes) { let p = n.pitch + args.semitones; if (args.preserve_range !== false) { while (p > 127) p -= 12; while (p < 0) p += 12; } n.pitch = Math.max(0, Math.min(127, p)); }
       clip.notes = notes;
@@ -37,6 +39,7 @@ export function createToolRegistry() {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
       const g = GRID[args.grid || "1/16"] ?? 0.25, strength = (args.strength ?? 100) / 100, swing = (args.swing ?? 0) / 100;
+      recordNotes(clip, args.track_index, args.clip_index, "miditransform");
       const notes = (clip.notes || []).slice();
       for (const n of notes) { const slot = Math.round(n.startTime / g); let t = n.startTime + (slot * g - n.startTime) * strength; if (swing > 0 && slot % 2 === 1) t += g * 0.5 * swing; n.startTime = Math.max(0, t); }
       clip.notes = notes;
@@ -49,6 +52,7 @@ export function createToolRegistry() {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
       const tv = args.timing ?? 0.03, vv = args.velocity ?? 12;
+      recordNotes(clip, args.track_index, args.clip_index, "miditransform");
       const notes = (clip.notes || []).slice();
       for (const n of notes) { n.startTime = Math.max(0, n.startTime + (Math.random() * 2 - 1) * tv); n.velocity = Math.max(1, Math.min(127, Math.round((n.velocity ?? 100) + (Math.random() * 2 - 1) * vv))); }
       clip.notes = notes;
@@ -60,6 +64,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
+      recordNotes(clip, args.track_index, args.clip_index, "miditransform");
       const notes = (clip.notes || []).slice();
       const maxEnd = notes.length ? Math.max(clip.duration || 0, ...notes.map((n: any) => n.startTime + n.duration)) : 0;
       for (const n of notes) n.startTime = Math.max(0, maxEnd - (n.startTime + n.duration));
@@ -72,6 +77,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
+      recordNotes(clip, args.track_index, args.clip_index, "miditransform");
       const notes = (clip.notes || []).slice();
       const center = args.center_note ?? (notes.length ? Math.round(notes.reduce((a: number, n: any) => a + n.pitch, 0) / notes.length) : 60);
       for (const n of notes) n.pitch = Math.max(0, Math.min(127, 2 * center - n.pitch));

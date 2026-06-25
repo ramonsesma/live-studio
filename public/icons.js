@@ -68,6 +68,7 @@ window.LiveStudioIcons = (function () {
     colortheory: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3.5 7.5l17 9M3.5 16.5l17-9"/><circle cx="12" cy="12" r="2" fill="currentColor"/>',
     takeorganizer: '<rect x="3" y="5" width="13" height="3.5" rx="1.5"/><rect x="3" y="10.5" width="10" height="3.5" rx="1.5"/><rect x="3" y="16" width="12" height="3.5" rx="1.5"/><path d="M19 4.5l1.8 1.8-4.5 4.5-1.8-1.8z"/>',
     audio2midi: '<path d="M3 13v-2M6 15V9M9 12v-1"/><path d="M11 12h3"/><path d="M14 9l-2.5 3 2.5 3" opacity=".6"/><path d="M18 6v9"/><circle cx="16.2" cy="15" r="1.8"/>',
+    history: '<path d="M4 12a8 8 0 1 1 2.3 5.6"/><path d="M4 17v-5h5"/><path d="M12 8v4l3 2"/>',
 
     arrangement: '<path d="M3 6h18M3 18h18"/><rect x="4" y="9" width="5" height="6" rx="1"/><rect x="11" y="9" width="8" height="6" rx="1"/>',
     sections: '<rect x="3" y="8" width="5" height="8" rx="1"/><rect x="9.5" y="8" width="5" height="8" rx="1"/><rect x="16" y="8" width="5" height="8" rx="1"/>',
@@ -107,7 +108,7 @@ window.LiveStudioIcons = (function () {
     audio2midi: "#74b8e0",
     temposync: "#f0a04b", tempotap: "#f0a04b", timesig: "#f0a04b", delaycalc: "#f0a04b",
     synth: "#9d8cff", sfx: "#9d8cff", vocal: "#9d8cff",
-    grouprouting: "#9a9aa2", console: "#9a9aa2", sandbox: "#9a9aa2",
+    grouprouting: "#9a9aa2", console: "#9a9aa2", sandbox: "#9a9aa2", history: "#9a9aa2",
     copilot: "#6cc6ff",
   };
 

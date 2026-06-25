@@ -59,9 +59,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 81 módulos", (mods.modules || []).length === 81, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 82 módulos", (mods.modules || []).length === 82, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("80 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 80);
+check("81 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 81);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -138,12 +138,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 45 paneles ricos", panelsOk);
+check("sirve los 46 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -476,6 +476,20 @@ check("takeorganizer renombra por contenido", tlA.success && tlSong.tracks[0].ta
 
 const a2m = await post("/api/audio2midi", { demo: true });
 check("audio2midi transcribe el demo monofónico", a2m.success && a2m.data.noteCount >= 4 && a2m.data.notes[0].pitch >= 48);
+
+// 7p. Edit History — global undo backing every destructive edit.
+await reg.execute("history__clear", {}, song);
+const ehSong: any = { tracks: [{ name: "H", clipSlots: [{ clip: { name: "c", color: 0, get notes() { return (this as any)._n; }, set notes(v: any) { (this as any)._n = v; }, _n: [{ pitch: 60, startTime: 0, duration: 1, velocity: 100 }] } }], arrangementClips: [] }] };
+const ehT = await reg.execute("transposer__apply", { track_index: 0, clip_index: 0, semitones: 5 }, ehSong);
+check("history: la edición deja el clip transpuesto", ehT.success && ehSong.tracks[0].clipSlots[0].clip.notes[0].pitch === 65);
+const ehL = await reg.execute("history__list", {}, ehSong);
+check("history: registra la edición destructiva", ehL.success && ehL.data.total >= 1 && ehL.data.entries[0].label === "transposer.apply");
+const ehU = await reg.execute("history__undo_last", {}, ehSong);
+check("history: undo_last restaura el estado previo", ehU.success && ehSong.tracks[0].clipSlots[0].clip.notes[0].pitch === 60);
+const ehColor: any = { tracks: [{ name: "T", clipSlots: [{ clip: { name: "k", color: 7, get notes() { return []; } } }], arrangementClips: [] }] };
+await reg.execute("phrasefinder__highlight_match", { track_index: 0, clip_index: 0, color: 16 }, ehColor);
+const ehC = await reg.execute("history__undo_target", { scope: "clip", track_index: 0, clip_index: 0 }, ehColor);
+check("history: undo_target revierte el color del clip", ehC.success && ehColor.tracks[0].clipSlots[0].clip.color === 7);
 
 // 8. estáticos
 const html = await (await fetch(base + "/")).text();

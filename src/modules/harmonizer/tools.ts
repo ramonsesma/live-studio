@@ -1,4 +1,5 @@
 // Módulo: MIDI Harmonizer — reutilizado de examples/midi-harmonizer
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -41,6 +42,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const clip = song.tracks?.[args.track_index]?.clipSlots?.[0]?.clip ?? song.tracks?.[args.track_index]?.arrangementClips?.[0];
       if (!clip) return { success:false, error:"MIDI clip not found on this track" };
+      recordNotes(clip, args.track_index, 0, "harmonizer.apply_voice_leading");
       const notes = (clip.notes || []).slice();
       // Group simultaneous notes into chords and collapse each into close (within-octave) voicing.
       const groups = new Map<number, any[]>();

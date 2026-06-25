@@ -1,4 +1,5 @@
 // Módulo: Quantize & Swing — reutilizado de examples/quick-quantizer
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -46,6 +47,7 @@ export function createToolRegistry() {
       if (!clip) return { success:false, error:"MIDI clip not found" };
       const g = GRID[args.grid || "1/16"] ?? 0.25;
       const strength = (args.strength ?? 100) / 100, swing = (args.swing ?? 0) / 100;
+      recordNotes(clip, args.track_index, args.clip_index, "quantizer");
       const notes = (clip.notes || []).slice();
       for (const n of notes) {
         const slot = Math.round(n.startTime / g);
@@ -66,6 +68,7 @@ export function createToolRegistry() {
       const preset = SWING_PRESETS[args.preset];
       const amount = (args.amount ?? preset?.amount ?? 50) / 100;
       const g = 0.25;
+      recordNotes(clip, args.track_index, args.clip_index, "quantizer");
       const notes = (clip.notes || []).slice();
       let mod = 0;
       for (const n of notes) { if (Math.round(n.startTime / g) % 2 === 1) { n.startTime += g * 0.5 * amount; mod++; } }
@@ -86,6 +89,7 @@ export function createToolRegistry() {
       const g = 0.25, amount = (args.amount ?? 80) / 100;
       const offsets = new Map<number, number>();
       for (const n of (src.notes || [])) { const slot = Math.round(n.startTime / g); offsets.set(slot, n.startTime - slot * g); }
+      recordNotes(tgt, args.target_track, args.target_clip, "quantizer.groove_extract");
       const notes = (tgt.notes || []).slice();
       let changes = 0;
       for (const n of notes) { const slot = Math.round(n.startTime / g); const off = offsets.get(slot); if (off !== undefined) { n.startTime = Math.max(0, slot * g + off * amount); changes++; } }

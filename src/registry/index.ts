@@ -25,6 +25,7 @@ import { createToolRegistry as transposerTools } from "../modules/transposer/too
 import { createToolRegistry as colorTheoryTools } from "../modules/colortheory/tools.js";
 import { createToolRegistry as takeOrganizerTools } from "../modules/takeorganizer/tools.js";
 import { createToolRegistry as audio2midiTools } from "../modules/audio2midi/tools.js";
+import { createToolRegistry as historyTools } from "../modules/history/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -189,6 +190,7 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"colortheory", label:"Color Theory Palette", icon:"🎨", description:"Generates a harmonic palette (complementary/triadic/analogous…) and applies real clip.color values.", registry: colorTheoryTools() });
   m.addModule({ id:"takeorganizer", label:"Take Lane Organizer", icon:"🗄️", description:"Enumerates a track's take lanes and auto-labels them by content (register + note density).", registry: takeOrganizerTools() });
   m.addModule({ id:"audio2midi", label:"Audio → MIDI Melody", icon:"🎤", description:"Renders a monophonic audio part and transcribes it to a new MIDI clip via in-host YIN pitch tracking.", registry: audio2midiTools() });
+  m.addModule({ id:"history", label:"Edit History", icon:"↩️", description:"Global undo for every destructive edit across the toolkit — undo the last change from any module, or per clip/track/device.", registry: historyTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"Vocabulary of 1293 micro-actions (from the 215 *-action extensions).", hidden:true, registry: quickActionsTools() });

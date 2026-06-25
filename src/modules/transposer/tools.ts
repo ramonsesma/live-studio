@@ -1,6 +1,7 @@
 // Módulo: Range Auto-Transposer — tries the 25 semitone shifts (-12..+12) and picks the
 // one that lands the most notes inside a target register (e.g. an instrument's playable
 // range), tie-broken by the smallest move. Pure note.pitch edits, written in place.
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -49,6 +50,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const g = getClip(song, args.track_index, args.clip_index ?? 0); if (g.error) return { success:false, error:g.error };
       const s = Math.round(args.semitones || 0);
+      recordNotes(g.clip, args.track_index, args.clip_index ?? 0, "transposer.apply");
       g.clip.notes = g.clip.notes.map((n: any) => ({ ...n, pitch: Math.max(0, Math.min(127, n.pitch + s)) }));
       return { success:true, data:{ clip:g.clip.name, semitones:s, noteCount:g.clip.notes.length } };
     }

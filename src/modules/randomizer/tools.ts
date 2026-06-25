@@ -1,4 +1,5 @@
 // Módulo: MIDI Randomizer — reutilizado de examples/midi-randomizer
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -37,6 +38,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
+      recordNotes(clip, args.track_index, args.clip_index, "randomizer");
       const notes = (clip.notes || []).slice();
       const lo = args.min_pitch ?? 36, hi = args.max_pitch ?? 96, prob = (args.probability ?? 80) / 100;
       const scale = SCALES[args.scale || "chromatic"] || SCALES.chromatic;
@@ -51,6 +53,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
+      recordNotes(clip, args.track_index, args.clip_index, "randomizer");
       const notes = (clip.notes || []).slice();
       const lo = args.min_velocity ?? 30, hi = args.max_velocity ?? 127;
       for (const n of notes) n.velocity = Math.round(lo + Math.random() * (hi - lo));
@@ -63,6 +66,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
+      recordNotes(clip, args.track_index, args.clip_index, "randomizer");
       const notes = (clip.notes || []).slice();
       const amt = args.amount ?? 0.05;
       for (const n of notes) n.startTime = Math.max(0, n.startTime + (Math.random() * 2 - 1) * amt);
@@ -75,6 +79,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
+      recordNotes(clip, args.track_index, args.clip_index, "randomizer");
       const notes = (clip.notes || []).slice();
       const lo = args.min_duration ?? 0.25, hi = args.max_duration ?? 2;
       for (const n of notes) n.duration = lo + Math.random() * (hi - lo);
@@ -87,6 +92,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const clip = getClip(song, args.track_index, args.clip_index);
       if (!clip) return { success:false, error:"MIDI clip not found" };
+      recordNotes(clip, args.track_index, args.clip_index, "randomizer");
       const notes = (clip.notes || []).slice();
       const amt = args.timing_amount ?? 0.05;
       for (const n of notes) {

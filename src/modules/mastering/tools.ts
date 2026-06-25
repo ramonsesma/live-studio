@@ -1,4 +1,5 @@
 // Módulo: Gain Staging & Niveles — reutilizado de examples/gain-staging
+import { recordParamAt, keyTrack } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -50,7 +51,7 @@ export function createToolRegistry() {
       if (args.match_to === "loudest") target = Math.max(...vols);
       else if (args.match_to === "quietest") target = Math.min(...vols);
       else if (args.match_to === "first") target = vols[0];
-      for (const t of tracks) await t.mixer.volume.setValue(target);
+      for (const t of tracks) { await recordParamAt(t.mixer.volume, keyTrack(song.tracks.indexOf(t)), "mastering.match_levels"); await t.mixer.volume.setValue(target); }
       return { success:true, data:{ matched:true, strategy:args.match_to||"average", tracksProcessed:tracks.length, targetFader:target } };
     }
   );

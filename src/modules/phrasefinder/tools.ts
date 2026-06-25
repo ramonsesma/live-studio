@@ -1,6 +1,7 @@
 // Módulo: MIDI Phrase Finder — searches the CURRENT Set's MIDI clips for a melodic pattern
 // (intervals, optionally transpose-aware) and highlights matches via clip.color. The SDK only
 // sees the open Set (it can't read other .als files), so this is in-project phrase search.
+import { recordColor } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -68,7 +69,7 @@ export function createToolRegistry() {
       const t = song?.tracks?.[args.track_index]; if (!t) return { success:false, error:"Track not found" };
       const clip = t.clipSlots?.[args.clip_index ?? 0]?.clip ?? t.arrangementClips?.[args.clip_index ?? 0];
       if (!clip || !("color" in clip)) return { success:false, error:"Clip not found" };
-      try { clip.color = args.color ?? 16; } catch { return { success:false, error:"Could not set color" }; }
+      try { recordColor(clip, args.track_index, args.clip_index ?? 0, "phrasefinder.highlight_match"); clip.color = args.color ?? 16; } catch { return { success:false, error:"Could not set color" }; }
       return { success:true, data:{ highlighted:true, trackIndex:args.track_index, color:args.color ?? 16 } };
     }
   );

@@ -1,6 +1,7 @@
 // Módulo: Velocity Compressor — treats a MIDI clip's note velocities like an audio
 // signal: histogram + downward compression above a threshold with ratio + makeup,
 // written back in place. Pure note.velocity math (a property Live can't shape per-clip).
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -58,6 +59,7 @@ export function createToolRegistry() {
         else if (floor > 0 && v < floor) v = v + (floor - v) * (1 - 1 / ratio); // optional upward floor
         return { ...n, velocity: clampV(v + makeup) };
       });
+      recordNotes(g.clip, args.track_index, args.clip_index ?? 0, "velocompress.compress");
       g.clip.notes = out;
       const after = out.map((n: any) => n.velocity);
       return { success:true, data:{ clip:g.clip.name, threshold:th, ratio, makeup, noteCount:out.length, before: stats(before), after: stats(after), histogramAfter: histogram(after) } };

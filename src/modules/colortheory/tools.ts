@@ -1,6 +1,7 @@
 // Módulo: Color Theory Palette — generates a harmonic palette (complementary / triadic /
 // analogous / tetradic / monochromatic) from a base hue and applies REAL clip.color values.
 // NOTE: the SDK only exposes clip.color — Track and Scene have no color, so this is clip-scoped.
+import { recordColor } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -68,7 +69,7 @@ export function createToolRegistry() {
       const scheme = args.scheme || "triadic";
       const pal = buildPalette(args.base_hex || "#FF8C00", scheme, Math.max(clips.length, 2));
       const applied = [];
-      for (let i = 0; i < clips.length; i++) { const sw = pal[i % pal.length]; clips[i].color = sw.int; applied.push({ clip: clips[i].name, hex: sw.hex }); }
+      for (let i = 0; i < clips.length; i++) { const sw = pal[i % pal.length]; recordColor(clips[i], args.track_index, i, "colortheory.apply_to_track"); clips[i].color = sw.int; applied.push({ clip: clips[i].name, hex: sw.hex }); }
       return { success:true, data:{ track:t.name, scheme, colored: applied.length, applied } };
     }
   );

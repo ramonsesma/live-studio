@@ -1,6 +1,7 @@
 // Módulo: Groove Template Extractor — reads a clip's micro-timing (note.startTime deviation
 // from the grid) into a groove template and applies it to another clip by nudging its notes.
 // The .agr-free way to move a feel between clips. Pure note math.
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -63,6 +64,7 @@ export function createToolRegistry() {
         const vel = args.apply_velocity && tpl.steps[step]?.avgVel ? Math.round(n.velocity * (1 - strength) + tpl.steps[step].avgVel * strength) : n.velocity;
         return { pitch: n.pitch, startTime: newStart, duration: n.duration, velocity: vel };
       });
+      recordNotes(tgt, args.target_track, args.target_clip ?? 0, "groovetemplate.apply_template");
       tgt.notes = out;
       return { success:true, data:{ applied:true, notesMoved:moved, notesLocked:locked, notesTotal:out.length, excludedPitches:[...excluded], sourceClip:src.name, targetClip:tgt.name, strength:Math.round(strength*100) } };
     }
@@ -82,6 +84,7 @@ export function createToolRegistry() {
       }
       if (!spec.size) return { success:false, error:"No valid lane specs. Use 'pitch:min-max' e.g. '36:96-104,42:55-95:18'." };
       let affected = 0; const lanesTouched = new Set<number>();
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "groovetemplate.set_lane_dynamics");
       clip.notes = clip.notes.map((n: any) => {
         const s = spec.get(n.pitch);
         if (!s) return n;

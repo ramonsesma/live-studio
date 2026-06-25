@@ -2,6 +2,7 @@
 // pitch-class histogram and runs Krumhansl–Schmuckler key detection. Flags out-of-scale
 // ("foreign") notes and compares against Live's currently selected scale
 // (song.rootNote / scaleName / scaleIntervals) — all pure SDK, deterministic.
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -155,7 +156,7 @@ export function createToolRegistry() {
       for (const c of clips) {
         const notes = c.notes; let changed = false;
         const out = notes.map((n: any) => { total++; const np = snapToScale(n.pitch, pcs); if (np !== n.pitch) { moved++; changed = true; return { ...n, pitch: np }; } return n; });
-        if (changed) { c.notes = out; affected++; }
+        if (changed) { recordNotes(c, args.track_index ?? -1, args.clip_index ?? affected, "keyscale.conform_to_scale"); c.notes = out; affected++; }
       }
       return { success:true, data:{ key:name, clipsAffected:affected, clipsScanned:clips.length, notesMoved:moved, notesTotal:total } };
     }
