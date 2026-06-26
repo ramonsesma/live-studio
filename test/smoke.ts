@@ -138,12 +138,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer", "arrangement"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 54 paneles ricos", panelsOk);
+check("sirve los 55 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -518,6 +518,25 @@ const qaList = await post("/api/execute", { name: "quickactions__list_quick_acti
 check("quickactions lista los 84 presets", qaList.success && qaList.data.total === 84 && qaList.data.actions.every((a: any) => typeof a.tool === "string" && a.tool.includes("__")));
 const qaRun = await post("/api/execute", { name: "quickactions__run_quick_action", args: { group: "Tempo", action: "128 BPM" } });
 check("quickactions resuelve una ruta a su tool real", qaRun.success && qaRun.data.route.name === "temposync__set_tempo" && qaRun.data.route.args.bpm === 128);
+
+// 7u. Midnight-inspired: chord variations with locks, comping "feel", mood presets.
+const vp = await reg.execute("harmonizer__vary_progression", { key: "C", scale: "major", degrees: "I,V,vi,IV", lock: "0", variations: 2, write: false }, { tracks: [] });
+check("harmonizer vary_progression respeta los locks", vp.success && vp.data.variations.length === 2 && vp.data.variations.every((v: any) => v.chords[0].locked === true && v.chords[0].roman === "I"));
+const compSong: any = { tracks: [{ name: "Ch", clipSlots: [{ clip: { name: "c", get notes() { return (this as any)._n; }, set notes(v: any) { (this as any)._n = v; }, _n: [{ pitch: 60, startTime: 0, duration: 4, velocity: 90 }, { pitch: 64, startTime: 0, duration: 4, velocity: 90 }, { pitch: 67, startTime: 0, duration: 4, velocity: 90 }] } }], arrangementClips: [] }] };
+const comp = await reg.execute("harmonizer__apply_comp", { track_index: 0, clip_index: 0, style: "charleston" }, compSong);
+check("harmonizer apply_comp aplica el comping (Charleston = 2 golpes × 3 voces)", comp.success && comp.data.noteCount === 6 && compSong.tracks[0].clipSlots[0].clip.notes.length === 6);
+const moodGen = await post("/api/execute", { name: "harmonizer__generate_expressive", args: { scale: "major", mood: "happy" } });
+check("harmonizer mood preset genera la progresión (happy = 4 acordes)", moodGen.success && moodGen.data.chords.length === 4);
+
+// 7v. xmllint-inspired: cue-point song-structure templates + locator management.
+const cuePts: any[] = [];
+const cueSong: any = { tempo: 120, cuePoints: cuePts, createCuePoint: async (time: number) => { const c: any = { time, _n: "", get name() { return this._n; }, set name(v: any) { this._n = v; } }; cuePts.push(c); return c; }, deleteCuePoint: async (c: any) => { const i = cuePts.indexOf(c); if (i >= 0) cuePts.splice(i, 1); } };
+const cueT = await reg.execute("arrangement__apply_cue_template", { genre: "edm", set_tempo: 128 }, cueSong);
+check("arrangement suelta la plantilla EDM como locators", cueT.success && cueT.data.sections === 7 && cueSong.cuePoints.length === 7 && cueSong.cuePoints[0].name === "Intro" && cueSong.tempo === 128);
+const cueRn = await reg.execute("arrangement__rename_marker", { index: 0, name: "Cold open" }, cueSong);
+check("arrangement renombra un locator por índice", cueRn.success && cueSong.cuePoints[0].name === "Cold open");
+const cueClr = await reg.execute("arrangement__clear_markers", {}, cueSong);
+check("arrangement clear_markers borra todos los locators", cueClr.success && cueClr.data.removed === 7 && cueSong.cuePoints.length === 0);
 
 // 7p. Edit History — global undo backing every destructive edit.
 await reg.execute("history__clear", {}, song);

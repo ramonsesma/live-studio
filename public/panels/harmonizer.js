@@ -21,11 +21,16 @@ window.LiveStudioPanels.harmonizer = function (panel, helpers) {
       <div class="ss-toolbar"><label class="hint">Key</label>${sel("h-skey", NN, "C")}<label class="hint">Scale</label>${sel("h-sscale", ["major","minor"], "major")}<label class="hint">Current</label>${sel("h-scur", ["I","ii","iii","IV","V","vi","vii"], "V")}
         <button class="btn" id="h-suggest"><i class="ti ti-arrow-guide" aria-hidden="true"></i> Suggest</button></div>
       <div id="h-schips" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>`)}
+    ${card({ icon: "shuffle", label: "Variations — lock &amp; reshuffle" }, `
+      <div class="ss-toolbar"><label class="hint">Key</label>${sel("h-vkey", NN, "C")}<label class="hint">Scale</label>${sel("h-vscale", ["major","minor"], "major")}<label class="hint">Degrees</label>${txtI("h-vdeg", "I,V,vi,IV", 110)}<label class="hint" title="slot indices to keep">Lock</label>${txtI("h-vlock", "0", 50)}<label class="hint">N</label>${sel("h-vn", ["1","2","3","4"], "3")}
+        <button class="btn" id="h-vgo"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Vary</button><span class="hint" id="h-vinfo"></span></div>
+      <div id="h-vlist" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>`)}
     ${card({ icon: "stack-2", label: "Generate expressive chords" }, `
-      <div class="ss-toolbar"><label class="hint">Key</label>${sel("h-ekey", NN, "C")}<label class="hint">Scale</label>${sel("h-escale", ["major","minor"], "minor")}<label class="hint">Degrees</label>${txtI("h-edeg", "i,VI,III,VII", 120)}</div>
-      <div class="ss-toolbar" style="margin-top:6px"><label class="hint">Spread</label>${sel("h-espread", ["close","open","drop2","spread"], "open")}<label class="hint">Complexity</label>${sel("h-ecomp", ["triad","7th","9th","11th"], "7th")}<label class="hint">Inv</label>${numI("h-einv", 0)}<label class="hint">Human</label>${numI("h-ehf", 25)}</div>
+      <div class="ss-toolbar"><label class="hint">Key</label>${sel("h-ekey", NN, "C")}<label class="hint">Scale</label>${sel("h-escale", ["major","minor"], "minor")}<label class="hint">Degrees</label>${txtI("h-edeg", "i,VI,III,VII", 110)}<label class="hint">Mood</label>${sel("h-emood", ["—","happy","sad","tense","dreamy","epic"], "—")}</div>
+      <div class="ss-toolbar" style="margin-top:6px"><label class="hint">Spread</label>${sel("h-espread", ["close","open","drop2","drop24","spread","rootless"], "open")}<label class="hint">Complexity</label>${sel("h-ecomp", ["triad","7th","9th","11th"], "7th")}<label class="hint">Inv</label>${numI("h-einv", 0)}<label class="hint">Human</label>${numI("h-ehf", 25)}<label class="hint">Slash</label>${sel("h-eslash", ["—","C","D","E","F","G","A","B"], "—")}</div>
       <div class="ss-toolbar" style="margin-top:6px"><label class="hint"><input type="checkbox" id="h-ebass" /> bass root</label><label class="hint"><input type="checkbox" id="h-etop" /> top line</label><label class="hint"><input type="checkbox" id="h-earp" /> arp</label>${sel("h-earate", ["1/8","1/16"], "1/16")}
-        <button class="btn" id="h-egen"><i class="ti ti-stack-2" aria-hidden="true"></i> Generate</button><span class="hint" id="h-einfo"></span></div>
+        <button class="btn" id="h-egen"><i class="ti ti-stack-2" aria-hidden="true"></i> Generate</button><button class="btn ghost" id="h-eplay"><i class="ti ti-player-play" aria-hidden="true"></i> Audition</button><span class="hint" id="h-einfo"></span></div>
+      <div class="ss-toolbar" style="margin-top:6px"><label class="hint">Feel</label>${sel("h-fstyle", ["charleston","anticipation","stabs","sustained_top","arpeggiate"], "charleston")}<label class="hint">Swing</label>${numI("h-fsw", 0)}<label class="hint">Humanize</label>${numI("h-fhum", 30)}<button class="btn ghost" id="h-feel"><i class="ti ti-wave-saw-tool" aria-hidden="true"></i> Apply feel</button><span class="hint" id="h-finfo"></span></div>
       <div id="h-eroll" style="margin-top:10px"></div>`)}
     ${card({ icon: "arrows-up-down", label: "Generative arp engine" }, `
       <div class="ss-toolbar"><label class="hint">Root</label>${sel("h-aroot", NN, "C")}<label class="hint">Chord</label>${sel("h-achord", ["maj","min","maj7","min7","dom7","sus2","sus4","dim","add9"], "min7")}<label class="hint">Bars</label>${sel("h-abars", ["1","2","4"], "2")}</div>
@@ -61,12 +66,17 @@ window.LiveStudioPanels.harmonizer = function (panel, helpers) {
   }
   // C · expressive
   function chordsToNotes(chords, barsPer) { const notes = []; chords.forEach((c, ci) => (c.tones || []).forEach((p) => notes.push({ pitch: p, start: ci * barsPer * 4, dur: barsPer * 4 * 0.95 }))); return notes; }
+  let lastGenNotes = [], lastGenTrack = null;
   async function genExpressive() {
+    const mood = panel.querySelector("#h-emood").value, slash = panel.querySelector("#h-eslash").value;
     const args = { key: panel.querySelector("#h-ekey").value, scale: panel.querySelector("#h-escale").value, degrees: panel.querySelector("#h-edeg").value, spread: panel.querySelector("#h-espread").value, complexity: panel.querySelector("#h-ecomp").value, inversions: +panel.querySelector("#h-einv").value, human_feel: +panel.querySelector("#h-ehf").value, bass_root: panel.querySelector("#h-ebass").checked, top_line: panel.querySelector("#h-etop").checked, arp: panel.querySelector("#h-earp").checked, arp_rate: panel.querySelector("#h-earate").value };
+    if (mood !== "—") args.mood = mood;
+    if (slash !== "—") args.slash_bass = slash;
     const r = await exec("generate_expressive", args);
-    if (!r.success) { const demo = [{ tones: [48,51,55,58] }, { tones: [56,59,63,46] }, { tones: [51,55,58,62] }]; panel.querySelector("#h-eroll").innerHTML = roll(chordsToNotes(demo, 1), 12, "#c792ea"); panel.querySelector("#h-einfo").textContent = "Demo (offline)"; return; }
+    if (!r.success) { const demo = [{ tones: [48,51,55,58] }, { tones: [56,59,63,46] }, { tones: [51,55,58,62] }]; lastGenNotes = chordsToNotes(demo, 1); lastGenTrack = null; panel.querySelector("#h-eroll").innerHTML = roll(lastGenNotes, 12, "#c792ea"); panel.querySelector("#h-einfo").textContent = "Demo (offline)"; return; }
+    lastGenNotes = chordsToNotes(r.data.chords, 1); lastGenTrack = r.data.trackIndex;
     panel.querySelector("#h-einfo").textContent = `${r.data.chords.length} chords · ${r.data.noteCount} notes${r.data.arp ? " · arp" : ""} → ${r.data.clipName}`;
-    panel.querySelector("#h-eroll").innerHTML = roll(chordsToNotes(r.data.chords, 1), Math.max(4, r.data.chords.length * 4), "#c792ea");
+    panel.querySelector("#h-eroll").innerHTML = roll(lastGenNotes, Math.max(4, r.data.chords.length * 4), "#c792ea");
   }
   // D · arp engine (lives in miditransform)
   async function genArp() {
@@ -79,9 +89,41 @@ window.LiveStudioPanels.harmonizer = function (panel, helpers) {
     panel.querySelector("#h-agrid").innerHTML = arps.map((a) => `<div style="border:1px solid #2f2f36;border-radius:8px;padding:7px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:11px;color:#e8e8ea">${a.pattern} · ${a.rate}</span><span class="hint" style="font-size:10px">×${a.octaves} · ${a.noteCount}n</span></div>${roll(a.notes.map((n) => ({ pitch: n.pitch, start: n.start, dur: n.dur })), span, "#6cc6ff", 7)}</div>`).join("");
   }
 
+  // E · variations (lock & reshuffle)
+  async function vary() {
+    const args = { key: panel.querySelector("#h-vkey").value, scale: panel.querySelector("#h-vscale").value, degrees: panel.querySelector("#h-vdeg").value, lock: panel.querySelector("#h-vlock").value, variations: +panel.querySelector("#h-vn").value, write: true };
+    const r = await exec("vary_progression", args);
+    const data = r.success ? r.data : { locked: [0], variations: [{ index: 1, chords: [{ roman: "I", chord: "C", locked: true }, { roman: "iii", chord: "Em", locked: false }, { roman: "IV", chord: "F", locked: false }, { roman: "V", chord: "G", locked: false }] }, { index: 2, chords: [{ roman: "I", chord: "C", locked: true }, { roman: "vi", chord: "Am", locked: false }, { roman: "ii", chord: "Dm", locked: false }, { roman: "vii°", chord: "Bdim", locked: false }] }] };
+    panel.querySelector("#h-vinfo").textContent = r.success ? `${data.variations.length} variations · locked [${data.locked.join(",")}]` : "Demo (offline)";
+    panel.querySelector("#h-vlist").innerHTML = data.variations.map((v) => `<div style="display:flex;align-items:center;gap:8px;border:1px solid #2f2f36;border-radius:7px;padding:7px 10px;background:#13131a"><span style="width:18px;color:#6b6b73;font-size:11px">${v.index}</span><div style="flex:1;display:flex;flex-wrap:wrap;gap:5px">${v.chords.map((c) => `<span style="font-size:11px;border:1px solid ${c.locked ? "#5ad17a66" : "#c792ea44"};color:${c.locked ? "#7be0a0" : "#c792ea"};background:${c.locked ? "#13211a" : "#c792ea12"};border-radius:6px;padding:2px 8px">${c.locked ? "🔒 " : ""}${c.chord}</span>`).join("")}</div>${v.clipName ? `<span class="hint" style="font-size:10px">→ clip</span>` : ""}</div>`).join("");
+  }
+  // Feel (comping) — applied to the last generated chord clip
+  async function applyFeel() {
+    if (lastGenTrack == null) { panel.querySelector("#h-finfo").textContent = "Generate chords first (block, not arp)."; return; }
+    const r = await exec("apply_comp", { track_index: lastGenTrack, clip_index: 0, style: panel.querySelector("#h-fstyle").value, swing: +panel.querySelector("#h-fsw").value, humanize: +panel.querySelector("#h-fhum").value });
+    panel.querySelector("#h-finfo").textContent = r.success ? `${r.data.style} · ${r.data.noteCount} notes (undoable)` : (r.error || "Open the clip in Live");
+  }
+  // Web Audio audition (webview-only, no Live needed)
+  let actx = null;
+  function playNotes(notes, secPerBeat) {
+    if (!notes || !notes.length) return;
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
+    const ac = actx, t0 = ac.currentTime + 0.06;
+    for (const n of notes) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = "triangle"; o.frequency.value = 440 * Math.pow(2, (n.pitch - 69) / 12);
+      const s = t0 + (n.start || 0) * secPerBeat, d = Math.max(0.1, (n.dur || 0.5) * secPerBeat);
+      g.gain.setValueAtTime(0.0001, s); g.gain.linearRampToValueAtTime(0.12, s + 0.012); g.gain.exponentialRampToValueAtTime(0.0006, s + d);
+      o.connect(g); g.connect(ac.destination); o.start(s); o.stop(s + d + 0.05);
+    }
+  }
+
   panel.querySelector("#h-detect").onclick = detect;
   panel.querySelector("#h-suggest").onclick = suggest;
   panel.querySelector("#h-egen").onclick = genExpressive;
+  panel.querySelector("#h-eplay").onclick = () => playNotes(lastGenNotes, 0.5);
+  panel.querySelector("#h-feel").onclick = applyFeel;
+  panel.querySelector("#h-vgo").onclick = vary;
   panel.querySelector("#h-agen").onclick = genArp;
-  suggest(); genExpressive(); genArp();
+  suggest(); vary(); genExpressive(); genArp();
 };

@@ -96,7 +96,7 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"eq",      label:"EQ & Analysis", icon:"🎚️", description:"Frequency analysis, EQ presets and sidechain suggestions.", registry: eqTools() });
 
   // --- Batch 2 (mixing / sound / arrangement) ---
-  m.addModule({ id:"arrangement", label:"Arrangement & Navigation", icon:"🎬", description:"Markers, playhead position and bar navigation.", registry: arrangementTools() });
+  m.addModule({ id:"arrangement", label:"Arrangement & Navigation", icon:"🎬", description:"Arrangement markers (locators) with genre song-structure templates — drop a whole song map, manage and clear locators.", registry: arrangementTools() });
   m.addModule({ id:"vocal",       label:"Vocal Chain & FX", icon:"🎤", description:"Full vocal chain: EQ, de-esser, compressor and creative FX.", registry: vocalTools() });
   m.addModule({ id:"sfx",         label:"SFX & Textures", icon:"🌫️", description:"Generate sound effects and ambient textures by category.", registry: sfxTools() });
 

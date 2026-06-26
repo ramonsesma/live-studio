@@ -35,9 +35,18 @@ function applySpread(tones: number[], spread: string): number[] {
   const t = tones.slice();
   if (spread === "open") return t.map((p, i) => (i % 2 === 1 ? p + 12 : p));
   if (spread === "drop2" && t.length >= 2) { t[t.length - 2] -= 12; return t.sort((a, b) => a - b); }
+  if (spread === "drop24" && t.length >= 4) { t[t.length - 2] -= 12; t[t.length - 4] -= 12; return t.sort((a, b) => a - b); }
   if (spread === "spread") return t.map((p, i) => p + 12 * i);
-  return t; // close
+  return t; // close / rootless (rootless is handled in the caller, where the root is known)
 }
+// Mood presets → diatonic degree sets (roman tokens parsed by ROMAN).
+const MOOD: Record<string, { major: string; minor: string }> = {
+  happy:  { major: "I,V,vi,IV",   minor: "III,VII,i,VI" },
+  sad:    { major: "vi,IV,I,V",   minor: "i,VI,III,VII" },
+  tense:  { major: "ii,V,iii,vi", minor: "i,iv,v,i" },
+  dreamy: { major: "I,iii,IV,vi", minor: "i,III,VI,iv" },
+  epic:   { major: "I,V,vi,iii",  minor: "i,VII,VI,VII" },
+};
 function applyInversion(tones: number[], inv: number): number[] {
   const t = tones.slice().sort((a, b) => a - b);
   for (let i = 0; i < inv; i++) { const lo = t.shift()!; t.push(lo + 12); }
@@ -121,11 +130,15 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"generate_expressive", description:"Generate an expressive chord progression clip: spread, tensions, inversions, human feel, bass root, top line and optional arp", category:"harmony", parameters:{ key:{type:"string",description:"Key root (C, F#, Bb…)",required:false}, scale:{type:"string",description:"Scale",required:false,enum:Object.keys(SCALE_DEG)}, degrees:{type:"string",description:"Roman-numeral degrees, e.g. 'i,VI,III,VII' (default i,iv,v)",required:false}, bars_per_chord:{type:"number",description:"Bars per chord (default 1)",required:false}, spread:{type:"string",description:"Voicing spread",required:false,enum:["close","open","drop2","spread"]}, complexity:{type:"string",description:"Chord size",required:false,enum:["triad","7th","9th","11th"]}, inversions:{type:"number",description:"Inversion 0-3 (default 0)",required:false}, human_feel:{type:"number",description:"0-100 timing+velocity humanize (default 25)",required:false}, bass_root:{type:"boolean",description:"Add the root an octave below",required:false}, top_line:{type:"boolean",description:"Accent the top voice (lead)",required:false}, arp:{type:"boolean",description:"Arpeggiate instead of block chords",required:false}, arp_rate:{type:"string",description:"Arp rate",required:false,enum:["1/8","1/16"]}, track_index:{type:"number",description:"Existing track (omit = new)",required:false} } },
+  reg.register({ name:"generate_expressive", description:"Generate an expressive chord progression clip: spread, tensions, inversions, human feel, bass root, top line and optional arp", category:"harmony", parameters:{ key:{type:"string",description:"Key root (C, F#, Bb…)",required:false}, scale:{type:"string",description:"Scale",required:false,enum:Object.keys(SCALE_DEG)}, degrees:{type:"string",description:"Roman-numeral degrees, e.g. 'i,VI,III,VII' (default i,iv,v)",required:false}, bars_per_chord:{type:"number",description:"Bars per chord (default 1)",required:false}, spread:{type:"string",description:"Voicing spread",required:false,enum:["close","open","drop2","drop24","spread","rootless"]}, complexity:{type:"string",description:"Chord size",required:false,enum:["triad","7th","9th","11th"]}, inversions:{type:"number",description:"Inversion 0-3 (default 0)",required:false}, human_feel:{type:"number",description:"0-100 timing+velocity humanize (default 25)",required:false}, bass_root:{type:"boolean",description:"Add the root an octave below",required:false}, top_line:{type:"boolean",description:"Accent the top voice (lead)",required:false}, slash_bass:{type:"string",description:"Slash chord bass note (e.g. 'G' for /G), placed low",required:false}, mood:{type:"string",description:"Mood preset for the degrees when none are given",required:false,enum:Object.keys(MOOD)}, arp:{type:"boolean",description:"Arpeggiate instead of block chords",required:false}, arp_rate:{type:"string",description:"Arp rate",required:false,enum:["1/8","1/16"]}, track_index:{type:"number",description:"Existing track (omit = new)",required:false} } },
     async (args: any, song: any) => {
       const keyPc = PC[String(args.key ?? "C").trim().toLowerCase()] ?? 0;
       const scale = SCALE_DEG[args.scale] || SCALE_DEG.minor;
-      const degs = String(args.degrees || "i,iv,v").split(",").map((d) => ROMAN[d.trim().toLowerCase().replace(/[^iv]/g, "")] ?? 0);
+      const moodDegs = args.mood && MOOD[args.mood] ? MOOD[args.mood][args.scale === "major" ? "major" : "minor"] : null;
+      const degStr = args.degrees || moodDegs || "i,iv,v";
+      const spreadName = args.spread === "rootless" ? "close" : (args.spread || "close");
+      const slashPc = args.slash_bass ? (PC[String(args.slash_bass).trim().toLowerCase()] ?? null) : null;
+      const degs = String(degStr).split(",").map((d) => ROMAN[d.trim().toLowerCase().replace(/[^iv]/g, "")] ?? 0);
       const barsPer = Math.max(1, Math.min(4, args.bars_per_chord || 1));
       const count = CLEN[args.complexity] || 3;
       const hf = Math.max(0, Math.min(1, (args.human_feel ?? 25) / 100));
@@ -135,8 +148,11 @@ export function createToolRegistry() {
       const chordsOut: any[] = [];
       degs.forEach((deg, ci) => {
         const startBeat = ci * barsPer * 4;
-        let tones = applyInversion(applySpread(chordTones(deg, scale, base, count), args.spread || "close"), Math.max(0, Math.min(3, args.inversions || 0)));
+        const rootPc = (base + scale[deg % 7]) % 12;
+        let tones = applyInversion(applySpread(chordTones(deg, scale, base, count), spreadName), Math.max(0, Math.min(3, args.inversions || 0)));
+        if (args.spread === "rootless" && tones.length > 2) tones = tones.filter((p) => ((p % 12) + 12) % 12 !== rootPc);
         if (args.bass_root) tones = [base + scale[deg % 7] - 12, ...tones];
+        if (slashPc != null) tones = [36 + slashPc, ...tones];
         tones = tones.sort((a, b) => a - b);
         const lenBeats = barsPer * 4;
         if (args.arp) {
@@ -154,6 +170,70 @@ export function createToolRegistry() {
       clip.name = `${args.spread || "close"} ${args.complexity || "triad"}${args.arp ? " arp" : ""}`;
       clip.notes = notes.map((n) => ({ ...n, startTime: Math.max(0, n.startTime), velocity: Math.max(1, Math.min(127, n.velocity)) }));
       return { success:true, data:{ key:args.key || "C", scale:args.scale || "minor", chords: chordsOut, spread:args.spread || "close", complexity:args.complexity || "triad", arp:!!args.arp, trackIndex: song.tracks.indexOf(track), clipName: clip.name, noteCount: clip.notes.length } };
+    }
+  );
+
+  reg.register({ name:"vary_progression", description:"Propose progression variations: lock favorite chords and reshuffle the rest with diatonic substitutions", category:"harmony", parameters:{ key:{type:"string",description:"Key root (default C)",required:false}, scale:{type:"string",description:"major or minor (default major)",required:false,enum:["major","minor"]}, degrees:{type:"string",description:"Base progression, e.g. 'I,V,vi,IV'",required:true}, lock:{type:"string",description:"Comma-separated slot indices to keep fixed, e.g. '0,3'",required:false}, complexity:{type:"string",description:"Chord size",required:false,enum:["triad","7th","9th","11th"]}, spread:{type:"string",description:"Voicing spread",required:false,enum:["close","open","drop2","drop24","spread"]}, variations:{type:"number",description:"How many variations 1-4 (default 3)",required:false}, write:{type:"boolean",description:"Write each variation to a new clip (default true)",required:false} } },
+    async (args: any, song: any) => {
+      const isMinor = args.scale === "minor";
+      const scale = isMinor ? SCALE_DEG.minor : SCALE_DEG.major;
+      const keyPc = PC[String(args.key ?? "C").trim().toLowerCase()] ?? 0;
+      const base = 48 + keyPc;
+      const ROMANS = isMinor ? ["i","ii°","III","iv","v","VI","VII"] : ["I","ii","iii","IV","V","vi","vii°"];
+      const QUAL = isMinor ? ["min","dim","maj","min","min","maj","maj"] : ["maj","min","min","maj","maj","min","dim"];
+      const SUBS: Record<number, number[]> = isMinor ? { 0:[5,2], 1:[3], 2:[0,5], 3:[1], 4:[6], 5:[0,3], 6:[4] } : { 0:[5,2], 1:[3,6], 2:[0,5], 3:[1], 4:[6], 5:[0,3], 6:[4] };
+      const degs = String(args.degrees || "").split(",").map((d) => ROMAN[d.trim().toLowerCase().replace(/[^iv]/g, "")] ?? 0);
+      if (!degs.length) return { success:false, error:"Provide degrees, e.g. 'I,V,vi,IV'." };
+      const locked = new Set<number>(String(args.lock || "").split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n)));
+      const count = CLEN[args.complexity] || 3, vCount = Math.max(1, Math.min(4, args.variations || 3));
+      const chordName = (d: number) => `${NN[(keyPc + scale[d]) % 12]}${CHORD_SYM[QUAL[d]] ?? ""}`;
+      const out: any[] = [];
+      for (let v = 0; v < vCount; v++) {
+        const seq = degs.map((d, i) => { if (locked.has(i)) return d; const alts = SUBS[d] || []; return alts.length ? alts[(v + i) % alts.length] : d; });
+        const notes: any[] = [];
+        seq.forEach((deg, ci) => { const tones = applyInversion(applySpread(chordTones(deg, scale, base, count), args.spread || "close"), 0).sort((a, b) => a - b); tones.forEach((p) => notes.push({ pitch: p, startTime: ci * 4, duration: 3.8, velocity: 90 })); });
+        let trackIndex: number | null = null, clipName: string | null = null;
+        if (args.write !== false && song?.createMidiTrack) {
+          const track = await song.createMidiTrack(); track.name = `Var ${v + 1}`;
+          const clip = await track.createMidiClip(0, Math.max(4, seq.length * 4)); clip.name = seq.map(chordName).join(" ");
+          clip.notes = notes; trackIndex = song.tracks.indexOf(track); clipName = clip.name;
+        }
+        out.push({ index: v + 1, progression: seq.map((d) => ROMANS[d]).join(" "), chords: seq.map((d, i) => ({ roman: ROMANS[d], chord: chordName(d), locked: locked.has(i) })), trackIndex, clipName, noteCount: notes.length });
+      }
+      return { success:true, data:{ key: args.key || "C", scale: args.scale || "major", locked: [...locked], base: degs.map((d) => ROMANS[d]).join(" "), variations: out } };
+    }
+  );
+
+  reg.register({ name:"apply_comp", description:"Apply a comping rhythm (Charleston, anticipation, stabs, sustained-top, arpeggiate) to a chord clip — with swing and DETERMINISTIC humanize", category:"harmony", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false}, style:{type:"string",description:"Comping style",required:false,enum:["charleston","anticipation","stabs","sustained_top","arpeggiate"]}, swing:{type:"number",description:"Swing 0-100 (default 0)",required:false}, humanize:{type:"number",description:"Deterministic humanize 0-100 (default 0)",required:false} } },
+    async (args: any, song: any) => {
+      const t = song?.tracks?.[args.track_index]; if (!t) return { success:false, error:"Track not found" };
+      const clip = t.clipSlots?.[args.clip_index ?? 0]?.clip ?? t.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip || !Array.isArray(clip.notes) || !clip.notes.length) return { success:false, error:"No chord clip with notes here." };
+      const groups = new Map<number, any[]>();
+      for (const n of clip.notes) { const k = Math.round(n.startTime * 4) / 4; (groups.get(k) || groups.set(k, []).get(k))!.push(n); }
+      const starts = [...groups.keys()].sort((a, b) => a - b);
+      const style = args.style || "charleston";
+      const swing = Math.max(0, Math.min(1, (args.swing ?? 0) / 100));
+      const hum = Math.max(0, Math.min(1, (args.humanize ?? 0) / 100));
+      const swingOff = (at: number) => (Math.abs((at % 1) - 0.5) < 1e-6 ? swing * 0.08 : 0);
+      const humOff = (at: number) => (Math.round(at * 4) % 2 === 1 ? 0.008 * hum : -0.004 * hum); // deterministic, reproducible
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "harmonizer.apply_comp");
+      const out: any[] = [];
+      starts.forEach((st, gi) => {
+        const tones = groups.get(st)!.map((n) => n.pitch).sort((a, b) => a - b);
+        const top = tones[tones.length - 1];
+        const span = gi + 1 < starts.length ? starts[gi + 1] - st : 4;
+        if (style === "arpeggiate") { let i = 0; for (let a = 0; a < span - 1e-9; a += 0.5) { out.push({ pitch: tones[i % tones.length], startTime: Math.max(0, st + a + swingOff(a) + humOff(a)), duration: 0.45, velocity: i === 0 ? 100 : 86 }); i++; } return; }
+        const PAT: Record<string, { at: number; dur: number; v: number[] }[]> = {
+          charleston: [{ at: 0, dur: 1.0, v: tones }, { at: 1.5, dur: 0.5, v: tones }],
+          anticipation: [{ at: 0, dur: 1.5, v: tones }, { at: Math.max(0, span - 0.5), dur: 0.5, v: tones }],
+          stabs: [0, 1, 2, 3].filter((b) => b < span).map((b) => ({ at: b, dur: 0.25, v: tones })),
+          sustained_top: [{ at: 0, dur: span, v: tones }, { at: span * 0.5, dur: span * 0.25, v: [top] }, { at: span * 0.75, dur: span * 0.2, v: [top] }],
+        };
+        for (const hit of (PAT[style] || PAT.charleston)) { if (hit.at >= span) continue; const off = swingOff(hit.at) + humOff(hit.at); for (const p of hit.v) out.push({ pitch: p, startTime: Math.max(0, st + hit.at + off), duration: Math.max(0.05, Math.min(hit.dur, span - hit.at) * 0.95), velocity: hit.at === 0 ? 96 : 84 }); }
+      });
+      clip.notes = out;
+      return { success:true, data:{ clip: clip.name, style, chords: starts.length, noteCount: out.length, swing: Math.round(swing * 100), humanize: Math.round(hum * 100) } };
     }
   );
 
