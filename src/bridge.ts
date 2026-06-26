@@ -1,7 +1,11 @@
 import { MasterRegistry } from "./core/registry.js";
 import type { LLMClient, LLMMessage } from "./core/llm.js";
-import { analyzeWavFile, analyzePcm, synthPcm, faderDbToValue, peakFrequencies, decodeWav, energyEnvelope, crossCorrelate, detectOnsets, type Analysis } from "./core/dsp.js";
+import { analyzeWavFile, analyzePcm, synthPcm, faderDbToValue, peakFrequencies, decodeWav, encodeWav16, energyEnvelope, crossCorrelate, detectOnsets, type Analysis } from "./core/dsp.js";
 import { trackPitches, framesToNotes } from "./core/pitch.js";
+import { olaStretch, varispeed, wavePeaks } from "./core/stretch.js";
+import { synthDrum } from "./core/drumsynth.js";
+import { sliceBuffer, applyFx, assemble, mulberry32, type SliceFx } from "./core/slicefx.js";
+import { synthRiser } from "./core/riser.js";
 import { recordNotes } from "./core/history.js";
 import { buildSnapshot, diffSnapshots, applySnapshot, summarize, type Snapshot } from "./core/snapshot.js";
 import { extractFeatures, cosine, tagsFromName, estimateBpm } from "./core/samplebrain.js";
@@ -269,6 +273,163 @@ export class Bridge {
         clip.notes = notes; trackIndex = this.song.tracks.indexOf(nt); clipName = clip.name;
       }
       return { success: true, data: { source: req.demo ? "demo" : "render", srcName, tempo, frames: frames.length, noteCount: notes.length, trackIndex, clipName, notes: preview } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // Drum synthesis: render a kick/snare/clap/hat with our in-host DSP, write a WAV (served for
+  // audition), and import it as a new clip. Non-destructive — produces a fresh sample.
+  async synthDrum(req: { type?: string; params?: any; import?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const type = ["kick", "snare", "clap", "hat"].includes(req.type as string) ? (req.type as string) : "kick";
+      const sr = 44100;
+      const samples = synthDrum(type, req.params || {}, sr);
+      const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio");
+      const dir = join(base, "drumsynth"); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      const id = `${type}_${Date.now()}`; const file = join(dir, id + ".wav");
+      writeFileSync(file, encodeWav16(samples, sr));
+      let importedPath: string | null = null;
+      if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(file); } catch { importedPath = null; } }
+      return { success: true, data: { type, durSec: Number((samples.length / sr).toFixed(3)), sampleRate: sr, file, importedPath, audio: `/api/drumsynthaudio?id=${id}`, wave: wavePeaks(samples, 240) } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+  drumAudio(id: string): Buffer | null {
+    try { const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio"); const safe = String(id).replace(/[^a-z0-9_]/gi, ""); const p = join(base, "drumsynth", safe + ".wav"); return existsSync(p) ? readFileSync(p) : null; } catch { return null; }
+  }
+
+  // Generic served-audio cache for Slice Lab / Mosaic / Riser: write a WAV, return an /api/audioout URL.
+  private writeServed(samples: Float32Array, sr: number, prefix: string): { id: string; file: string; url: string } {
+    const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio");
+    const dir = join(base, "audioout"); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const id = `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1e4)}`;
+    const file = join(dir, id + ".wav");
+    writeFileSync(file, encodeWav16(samples, sr));
+    return { id, file, url: `/api/audioout?id=${id}` };
+  }
+  servedAudio(id: string): Buffer | null {
+    try { const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio"); const safe = String(id).replace(/[^a-z0-9_]/gi, ""); const p = join(base, "audioout", safe + ".wav"); return existsSync(p) ? readFileSync(p) : null; } catch { return null; }
+  }
+  // Read a clip's source audio (filePath, else render the track). Returns null if unavailable.
+  private async readClipAudio(trackIndex: number, clipIndex: number): Promise<{ samples: Float32Array; sampleRate: number; name: string } | null> {
+    const t = (this.song?.tracks || [])[trackIndex];
+    if (!t) return null;
+    const clip = t.clipSlots?.[clipIndex ?? 0]?.clip ?? t.arrangementClips?.[clipIndex ?? 0];
+    if (clip && typeof clip.filePath === "string" && clip.filePath && existsSync(clip.filePath)) {
+      const dec = decodeWav(readFileSync(clip.filePath)); return { samples: dec.samples, sampleRate: dec.sampleRate, name: clip.name || basename(clip.filePath) };
+    }
+    if (this.resources?.renderPreFxAudio && "createAudioClip" in t) {
+      const start = clip?.startTime ?? 0; const dec = decodeWav(readFileSync(await this.resources.renderPreFxAudio(t, start, start + (clip?.duration ?? 4)))); return { samples: dec.samples, sampleRate: dec.sampleRate, name: t.name };
+    }
+    return null;
+  }
+  private demoAudio(sr: number): Float32Array {
+    const x = new Float32Array(Math.floor(sr * 2));
+    for (let i = 0; i < x.length; i++) { const t = i / sr; const seg = Math.floor(t * 4) % 4; const f = [220, 330, 165, 440][seg]; x[i] = 0.5 * Math.sin(2 * Math.PI * f * t) * (0.3 + 0.7 * Math.abs(Math.sin(Math.PI * t * 2))); }
+    return x;
+  }
+
+  // Slice Lab: slice a clip's audio and reorder/process each step with pattern lanes → a new loop.
+  async sliceMutate(req: { trackIndex?: number; clipIndex?: number; slices?: number; lanes?: any; filter?: any; crossfade?: number; import?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const sr = 44100;
+      let samples: Float32Array, name = "Demo";
+      if (req.demo) { samples = this.demoAudio(sr); name = "Demo loop"; }
+      else { const a = await this.readClipAudio(req.trackIndex as number, req.clipIndex ?? 0); if (!a) return { success: false, error: "Select an audio clip (needs a sample file or renderable track)." }; samples = a.samples; name = a.name; }
+      const n = Math.max(2, Math.min(32, req.slices || 8));
+      const slices = sliceBuffer(samples, n);
+      const lanes = req.lanes || {};
+      const order: number[] = Array.isArray(lanes.order) && lanes.order.length ? lanes.order : Array.from({ length: n }, (_, i) => i);
+      const at = (arr: any, i: number, d: any) => (Array.isArray(arr) && arr.length ? arr[i % arr.length] : d);
+      const processed = order.map((src: number, pos: number) => {
+        const fx: SliceFx = { reverse: !!at(lanes.reverse, pos, 0), stutter: at(lanes.stutter, pos, 0), pitch: at(lanes.pitch, pos, 0), tapestop: !!at(lanes.tapestop, pos, 0), bitcrush: at(lanes.bitcrush, pos, 16), flanger: !!at(lanes.flanger, pos, 0), gatereverb: !!at(lanes.gatereverb, pos, 0), filter: !!at(lanes.filter, pos, 0), filterMode: (req.filter?.mode) || "lp", cutoff: req.filter?.cutoff ?? 1200, res: req.filter?.res ?? 0.3, sweep: req.filter?.sweep ?? 0 };
+        return applyFx((slices[((src % n) + n) % n] || slices[0]).slice(), fx, sr);
+      });
+      const result = assemble(processed, Math.max(0, Math.min(2000, req.crossfade ?? 0)));
+      const served = this.writeServed(result, sr, "slice");
+      let importedPath: string | null = null;
+      if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(served.file); } catch { importedPath = null; } }
+      return { success: true, data: { source: req.demo ? "demo" : "clip", name, slices: n, order, sampleRate: sr, inSec: Number((samples.length / sr).toFixed(2)), outSec: Number((result.length / sr).toFixed(2)), audio: served.url, importedPath, waveIn: wavePeaks(samples, 240), waveOut: wavePeaks(result, 240) } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Mosaic: generative — slice the source and assemble N seeded variations with chance-based FX.
+  async mosaicGen(req: { trackIndex?: number; clipIndex?: number; slices?: number; variations?: number; crossfade?: number; seed?: number; chances?: any; filter?: any; import?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const sr = 44100;
+      let samples: Float32Array, name = "Demo";
+      if (req.demo) { samples = this.demoAudio(sr); name = "Demo source"; }
+      else { const a = await this.readClipAudio(req.trackIndex as number, req.clipIndex ?? 0); if (!a) return { success: false, error: "Select an audio clip or renderable track." }; samples = a.samples; name = a.name; }
+      const n = Math.max(2, Math.min(32, req.slices || 8));
+      const slices = sliceBuffer(samples, n);
+      const count = Math.max(1, Math.min(8, req.variations || 4));
+      const ch = req.chances || {};
+      const c = (k: string, d: number) => (typeof ch[k] === "number" ? ch[k] : d) / 100;
+      const out: any[] = [];
+      for (let v = 0; v < count; v++) {
+        const rng = mulberry32((req.seed ?? 1) + v * 101);
+        const order = Array.from({ length: n }, (_, i) => i).sort(() => rng() - 0.5);
+        const processed = order.map((src) => {
+          const fx: SliceFx = { reverse: rng() < c("reverse", 25), stutter: rng() < c("stutter", 20) ? 2 + Math.floor(rng() * 3) : 0, pitch: rng() < c("pitch", 20) ? Math.round((rng() * 2 - 1) * 7) : 0, tapestop: rng() < c("tapestop", 10), filter: rng() < c("filter", 30), filterMode: ["lp", "bp", "hp"][Math.floor(rng() * 3)], cutoff: 400 + rng() * 4000, res: 0.2 + rng() * 0.5, sweep: rng() * 2 - 1, bitcrush: rng() < c("bitcrush", 15) ? 4 + Math.floor(rng() * 8) : 16, flanger: rng() < c("flanger", 15), gatereverb: rng() < c("gatereverb", 12) };
+          return applyFx((slices[src] || slices[0]).slice(), fx, sr);
+        });
+        const result = assemble(processed, Math.max(0, Math.min(2000, req.crossfade ?? 64)));
+        const served = this.writeServed(result, sr, `mosaic${v}`);
+        let importedPath: string | null = null;
+        if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(served.file); } catch { importedPath = null; } }
+        out.push({ variation: v + 1, seed: (req.seed ?? 1) + v * 101, order, audio: served.url, importedPath, wave: wavePeaks(result, 200), outSec: Number((result.length / sr).toFixed(2)) });
+      }
+      return { success: true, data: { source: req.demo ? "demo" : "clip", name, slices: n, variations: out.length, results: out } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Riser: synthesize a sweep/riser from params, serve it for audition and import as a new clip.
+  async riserGen(req: { params?: any; import?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const sr = 44100;
+      const samples = synthRiser(req.params || {}, sr);
+      const served = this.writeServed(samples, sr, "riser");
+      let importedPath: string | null = null;
+      if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(served.file); } catch { importedPath = null; } }
+      return { success: true, data: { durSec: Number((samples.length / sr).toFixed(2)), sampleRate: sr, audio: served.url, importedPath, wave: wavePeaks(samples, 260) } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Time-stretch: read a clip's source audio (filePath, else render), OLA or varispeed stretch it
+  // by `ratio`, encode a new WAV to tempDirectory and import it as a new clip (non-destructive).
+  async timeStretch(req: { trackIndex?: number; clipIndex?: number; ratio?: number; mode?: string; grain?: number; import?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const ratio = Math.max(0.25, Math.min(4, req.ratio || 1.5));
+      const grain = Math.max(64, Math.min(4096, req.grain || 1024));
+      const mode = req.mode === "varispeed" ? "varispeed" : "ola";
+      let samples: Float32Array, sampleRate: number, srcName = "Demo";
+      if (req.demo) {
+        sampleRate = 44100;
+        samples = new Float32Array(Math.floor(sampleRate * 1.2));
+        for (let i = 0; i < samples.length; i++) { const t = i / sampleRate; const f = 220 + 180 * (i / samples.length); samples[i] = 0.6 * Math.sin(2 * Math.PI * f * t) * Math.exp(-t * 0.6); }
+        srcName = "Demo sweep";
+      } else {
+        const t = (this.song?.tracks || [])[req.trackIndex as number];
+        if (!t) return { success: false, error: `Track ${req.trackIndex} not found` };
+        const clip = t.clipSlots?.[req.clipIndex ?? 0]?.clip ?? t.arrangementClips?.[req.clipIndex ?? 0];
+        if (clip && typeof clip.filePath === "string" && clip.filePath && existsSync(clip.filePath)) {
+          const dec = decodeWav(readFileSync(clip.filePath)); samples = dec.samples; sampleRate = dec.sampleRate; srcName = clip.name || basename(clip.filePath);
+        } else if (this.resources?.renderPreFxAudio && "createAudioClip" in t) {
+          const start = clip?.startTime ?? 0; const end = start + (clip?.duration ?? 4);
+          const dec = decodeWav(readFileSync(await this.resources.renderPreFxAudio(t, start, end))); samples = dec.samples; sampleRate = dec.sampleRate; srcName = t.name;
+        } else { return { success: false, error: "Select an audio clip (needs a sample file or a renderable audio track)." }; }
+      }
+      const inSamples = samples.length;
+      const out = mode === "varispeed" ? varispeed(samples, ratio) : olaStretch(samples, ratio, grain);
+      const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio");
+      const dir = join(base, "stretch"); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      const file = join(dir, `stretch_${mode}_${Date.now()}.wav`);
+      writeFileSync(file, encodeWav16(out, sampleRate));
+      let importedPath: string | null = null;
+      if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(file); } catch { importedPath = null; } }
+      return { success: true, data: { source: req.demo ? "demo" : "clip", srcName, mode, ratio: Number(ratio.toFixed(3)), grain, sampleRate, inSamples, outSamples: out.length, inSec: Number((inSamples / sampleRate).toFixed(2)), outSec: Number((out.length / sampleRate).toFixed(2)), file, importedPath, waveIn: wavePeaks(samples, 200), waveOut: wavePeaks(out, 200) } };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }

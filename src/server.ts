@@ -148,6 +148,43 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         sendJson(res, 200, await bridge.grooveFromAudio(body as any));
         return;
       }
+      if (url.pathname === "/api/timestretch" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.timeStretch(body as any));
+        return;
+      }
+      if (url.pathname === "/api/drumsynth" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.synthDrum(body as any));
+        return;
+      }
+      if (url.pathname === "/api/drumsynthaudio" && method === "GET") {
+        const buf = bridge.drumAudio(url.searchParams.get("id") || "");
+        if (!buf) { res.writeHead(404); res.end("Not found"); return; }
+        res.writeHead(200, { "Content-Type": "audio/wav", "Content-Length": String(buf.length) }); res.end(buf);
+        return;
+      }
+      if (url.pathname === "/api/slicelab" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.sliceMutate(body as any));
+        return;
+      }
+      if (url.pathname === "/api/mosaic" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.mosaicGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/riser" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.riserGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/audioout" && method === "GET") {
+        const buf = bridge.servedAudio(url.searchParams.get("id") || "");
+        if (!buf) { res.writeHead(404); res.end("Not found"); return; }
+        res.writeHead(200, { "Content-Type": "audio/wav", "Content-Length": String(buf.length) }); res.end(buf);
+        return;
+      }
       if (url.pathname === "/api/warpaudio" && method === "GET") {
         const buf = bridge.warpAudio(url.searchParams.get("id") || "");
         if (!buf) { res.writeHead(404); res.end("Not found"); return; }

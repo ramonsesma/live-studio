@@ -59,9 +59,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 85 módulos", (mods.modules || []).length === 85, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 90 módulos", (mods.modules || []).length === 90, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions visible con su propio panel (launcher)", mods.modules.find((m: any) => m.id === "quickactions") && !mods.modules.find((m: any) => m.id === "quickactions")?.hidden);
-check("85 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 85);
+check("90 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 90);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -138,12 +138,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer", "arrangement"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer", "arrangement", "timestretch", "drumsynth", "slicelab", "mosaic", "riser"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 55 paneles ricos", panelsOk);
+check("sirve los 60 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -537,6 +537,29 @@ const cueRn = await reg.execute("arrangement__rename_marker", { index: 0, name: 
 check("arrangement renombra un locator por índice", cueRn.success && cueSong.cuePoints[0].name === "Cold open");
 const cueClr = await reg.execute("arrangement__clear_markers", {}, cueSong);
 check("arrangement clear_markers borra todos los locators", cueClr.success && cueClr.data.removed === 7 && cueSong.cuePoints.length === 0);
+
+// 7w. akstretch-inspired: in-host time-stretch (OLA keeps length≈ratio, varispeed too).
+const tsOla = await post("/api/timestretch", { demo: true, ratio: 2, mode: "ola", grain: 1024 });
+check("timestretch OLA duplica la longitud (preserva pitch)", tsOla.success && tsOla.data.mode === "ola" && Math.abs(tsOla.data.outSamples / tsOla.data.inSamples - 2) < 0.06 && tsOla.data.waveOut.length > 0);
+const tsVari = await post("/api/timestretch", { demo: true, ratio: 0.5, mode: "varispeed" });
+check("timestretch varispeed acorta a la mitad", tsVari.success && tsVari.data.mode === "varispeed" && Math.abs(tsVari.data.outSamples / tsVari.data.inSamples - 0.5) < 0.02);
+
+// 7x. KOOBCeW-inspired: in-host drum synthesis (kick/snare/clap/hat) → WAV + audition URL.
+const dsKick = await post("/api/drumsynth", { demo: true, type: "kick", params: { tune: 150 } });
+check("drumsynth sintetiza un kick con waveform + audio", dsKick.success && dsKick.data.type === "kick" && dsKick.data.durSec > 0 && dsKick.data.wave.length > 0 && /drumsynthaudio/.test(dsKick.data.audio));
+const dsSnare = await post("/api/drumsynth", { demo: true, type: "snare" });
+const dsAudio = await fetch(base + dsSnare.data.audio);
+check("drumsynth sirve el WAV para audición", dsSnare.success && dsAudio.ok && (dsAudio.headers.get("content-type") || "").includes("audio/wav"));
+
+// 7y. JS-dev-inspired: Slice Lab (slice+FX), Mosaic (seeded variations), Riser (sweep synth).
+const slab = await post("/api/slicelab", { demo: true, slices: 8, lanes: { order: [3, 1, 7, 0, 5, 2, 6, 4], reverse: [1, 0, 1, 0, 1, 0, 1, 0], pitch: [0, 7, 0, -5, 0, 12, 0, 0] }, filter: { mode: "lp", cutoff: 1200, res: 0.3, sweep: -0.5 } });
+check("slicelab corta y reordena en un loop nuevo", slab.success && slab.data.slices === 8 && slab.data.order[0] === 3 && slab.data.waveOut.length > 0 && /audioout/.test(slab.data.audio));
+const mos = await post("/api/mosaic", { demo: true, slices: 8, variations: 4, seed: 7 });
+const mos2 = await post("/api/mosaic", { demo: true, slices: 8, variations: 4, seed: 7 });
+check("mosaic genera N variaciones reproducibles por seed", mos.success && mos.data.results.length === 4 && JSON.stringify(mos.data.results[0].order) === JSON.stringify(mos2.data.results[0].order));
+const ris = await post("/api/riser", { demo: true, params: { source: "mix", length: 2, startNote: 45, endNote: 69, filter: "lp", filterDir: "up" } });
+const risAudio = await fetch(base + ris.data.audio);
+check("riser sintetiza un sweep y sirve el WAV", ris.success && ris.data.durSec > 1.5 && ris.data.wave.length > 0 && risAudio.ok && (risAudio.headers.get("content-type") || "").includes("audio/wav"));
 
 // 7p. Edit History — global undo backing every destructive edit.
 await reg.execute("history__clear", {}, song);

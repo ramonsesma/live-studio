@@ -29,6 +29,11 @@ import { createToolRegistry as historyTools } from "../modules/history/tools.js"
 import { createToolRegistry as bassEngineTools } from "../modules/bassengine/tools.js";
 import { createToolRegistry as sessionBridgeTools } from "../modules/sessionbridge/tools.js";
 import { createToolRegistry as patternLangTools } from "../modules/patternlang/tools.js";
+import { createToolRegistry as timeStretchTools } from "../modules/timestretch/tools.js";
+import { createToolRegistry as drumSynthTools } from "../modules/drumsynth/tools.js";
+import { createToolRegistry as sliceLabTools } from "../modules/slicelab/tools.js";
+import { createToolRegistry as mosaicTools } from "../modules/mosaic/tools.js";
+import { createToolRegistry as riserTools } from "../modules/riser/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -197,6 +202,11 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"bassengine", label:"Bass Engine", icon:"🎸", description:"Generates physical-feeling basslines (octave jumps, ghost hits, sub-hold) and mutates them while keeping the contour.", registry: bassEngineTools() });
   m.addModule({ id:"sessionbridge", label:"Session → Arrangement", icon:"🌉", description:"Lays every Session-view clip onto the Arrangement timeline scene by scene (MIDI notes + audio from file).", registry: sessionBridgeTools() });
   m.addModule({ id:"patternlang", label:"Pattern Language", icon:"🪄", description:"A TidalCycles-style mini-notation (notes, rests, [subdivisions], repeats*N) that compiles to a MIDI clip.", registry: patternLangTools() });
+  m.addModule({ id:"timestretch", label:"Time-Stretch", icon:"⏱️", description:"In-host audio time-stretch (WSOLA overlap-add keeps pitch, or varispeed) that imports the result as a new clip.", registry: timeStretchTools() });
+  m.addModule({ id:"drumsynth", label:"Drum Synth", icon:"🥁", description:"Synthesizes kick/snare/clap/hat sounds in-host (no samples), auditions them and imports the result as a new clip.", registry: drumSynthTools() });
+  m.addModule({ id:"slicelab", label:"Slice Lab", icon:"🔪", description:"Slices a clip's audio and reorders/processes each step with pattern lanes (reverse, stutter, pitch, filter, bitcrush…) into a new loop.", registry: sliceLabTools() });
+  m.addModule({ id:"mosaic", label:"Mosaic", icon:"🧩", description:"Generative loop variations from a clip's audio — seeded slice shuffle + chance-based per-slice FX, imported as new clips.", registry: mosaicTools() });
+  m.addModule({ id:"riser", label:"Riser", icon:"🚀", description:"Synthesizes risers / sweeps / downlifters (noise + osc, pitch + filter sweep, FX) and imports them as a new clip.", registry: riserTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"84 curated one-click presets that route to real tools — browse by group, or search them in the Cmd-K palette.", registry: quickActionsTools() });
