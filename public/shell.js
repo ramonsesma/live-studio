@@ -87,6 +87,7 @@ async function selectModule(id) {
     const execute = (toolName, args) => api.post("/api/execute", { name: id + "__" + toolName, args: args || {} });
     try { await rich(panel, { execute, api }); }
     catch (e) { panel.innerHTML = `<div class="panel-empty">Panel error: ${e}</div>`; }
+    await injectQuickActions(panel, id);
     return;
   }
 
@@ -100,6 +101,29 @@ async function selectModule(id) {
   const wrap = document.createElement("div");
   for (const t of tools) wrap.appendChild(renderTool(t));
   panel.querySelector(".panel-empty").replaceWith(wrap);
+  await injectQuickActions(panel, id);
+}
+
+// Surface a module's own quick actions (presets that route to its tools) as one-click chips
+// at the top of its panel — the same actions the Cmd-K palette runs, now in context.
+async function injectQuickActions(panel, id) {
+  try {
+    if (!window.__qaCache) { const r = await api.post("/api/execute", { name: "quickactions__list_quick_actions", args: {} }); window.__qaCache = r && r.success ? r.data.actions : []; }
+    const acts = (window.__qaCache || []).filter((a) => String(a.tool || "").split("__")[0] === id);
+    if (!acts.length) return;
+    const strip = document.createElement("div");
+    strip.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 14px;padding:8px 11px;background:var(--bg2);border:1px solid var(--line);border-radius:8px";
+    strip.innerHTML = '<span style="font-size:11px;color:var(--muted);margin-right:2px"><i class="ti ti-bolt" aria-hidden="true"></i> Quick actions</span>';
+    for (const a of acts) {
+      const b = document.createElement("button");
+      b.textContent = a.name;
+      b.style.cssText = "font-size:11px;border:1px solid var(--line);background:var(--bg3);color:var(--txt);border-radius:6px;padding:3px 9px;cursor:pointer";
+      b.onclick = async () => { const old = b.textContent; b.disabled = true; b.textContent = "…"; const r = await api.post("/api/execute", { name: a.tool, args: a.args }); b.textContent = (r && r.success ? "✓ " : "✕ ") + old; setTimeout(() => { b.textContent = old; b.disabled = false; }, 1400); };
+      strip.appendChild(b);
+    }
+    const head = panel.querySelector(".panel-head");
+    if (head) head.insertAdjacentElement("afterend", strip); else panel.insertBefore(strip, panel.firstChild);
+  } catch { /* non-fatal */ }
 }
 
 function renderTool(tool) {

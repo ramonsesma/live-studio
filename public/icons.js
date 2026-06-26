@@ -98,6 +98,7 @@ window.LiveStudioIcons = (function () {
 
     copilot: '<rect x="5" y="8" width="14" height="11" rx="3"/><circle cx="9.5" cy="13" r="1.3"/><circle cx="14.5" cy="13" r="1.3"/><path d="M12 5v3M9 19v2M15 19v2"/>',
     palette: '<path d="M9 7l-4 5 4 5M15 7l4 5-4 5"/>',
+    quickactions: '<path d="M13 3L4 14h6l-1 7 9-11h-6z"/>',
     _default: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2" fill="currentColor"/>',
   };
 
@@ -111,7 +112,7 @@ window.LiveStudioIcons = (function () {
     audio2midi: "#74b8e0",
     temposync: "#f0a04b", tempotap: "#f0a04b", timesig: "#f0a04b", delaycalc: "#f0a04b",
     synth: "#9d8cff", sfx: "#9d8cff", vocal: "#9d8cff",
-    grouprouting: "#9a9aa2", console: "#9a9aa2", sandbox: "#9a9aa2", history: "#9a9aa2",
+    grouprouting: "#9a9aa2", console: "#9a9aa2", sandbox: "#9a9aa2", history: "#9a9aa2", quickactions: "#f0a04b",
     copilot: "#6cc6ff",
   };
 

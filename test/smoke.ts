@@ -60,8 +60,8 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 // 1. modules
 const mods = await get("/api/modules");
 check("GET /api/modules devuelve 85 módulos", (mods.modules || []).length === 85, JSON.stringify(mods.modules?.map((m: any) => m.id)));
-check("quickactions marcado como hidden", mods.modules.find((m: any) => m.id === "quickactions")?.hidden === true);
-check("84 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 84);
+check("quickactions visible con su propio panel (launcher)", mods.modules.find((m: any) => m.id === "quickactions") && !mods.modules.find((m: any) => m.id === "quickactions")?.hidden);
+check("85 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 85);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -138,12 +138,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 49 paneles ricos", panelsOk);
+check("sirve los 54 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -512,6 +512,12 @@ const gfa = await post("/api/groovefromaudio", { demo: true });
 check("groove-from-audio detecta onsets y swing del loop", gfa.success && gfa.data.onsets > 0 && gfa.data.swingMs > 0);
 const pl2 = await post("/api/execute", { name: "patternlang__compile", args: { pattern: "c3 e3 [g3 b3] c4", bars: 1 } });
 check("patternlang compila la mini-notación a notas", pl2.success && pl2.data.noteCount === 5 && pl2.data.notes.some((n: any) => n.pitch === 48));
+
+// 7t. Quick Actions: catálogo curado + resolución de ruta a un tool real.
+const qaList = await post("/api/execute", { name: "quickactions__list_quick_actions", args: {} });
+check("quickactions lista los 84 presets", qaList.success && qaList.data.total === 84 && qaList.data.actions.every((a: any) => typeof a.tool === "string" && a.tool.includes("__")));
+const qaRun = await post("/api/execute", { name: "quickactions__run_quick_action", args: { group: "Tempo", action: "128 BPM" } });
+check("quickactions resuelve una ruta a su tool real", qaRun.success && qaRun.data.route.name === "temposync__set_tempo" && qaRun.data.route.args.bpm === 128);
 
 // 7p. Edit History — global undo backing every destructive edit.
 await reg.execute("history__clear", {}, song);

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/cover.svg" alt="Live Studio — super-extensión para Ableton Live" width="100%" />
+  <img src="assets/cover.png" alt="Live Studio — super-extensión para Ableton Live" width="100%" />
 </p>
 
 <h1 align="center">🎛️ Live Studio</h1>
@@ -46,14 +46,14 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
   toda la suite, `list_modules` navega, `run_tool` ejecuta) — alcanza todo sin saturar al modelo.
 - **Paleta de comandos rápidos** (`⌘K`): indexa los **302 tools** + **84 quick actions**
   (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
-- **49 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
+- **54 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
   grafo de clips, mixer con faders/VU, rejillas de pasos y pads, mapa de drums, comping, curva EQ,
   diseñador de LFO, trance gate, synth patchbay, timeline de arreglo, rejilla de pistas, gain
   staging, rack builder, salud de sesión, pad de directo, diff de versiones…
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
 - **Ligero**: bundle de ~468 KB, sin frameworks de frontend.
-- **Probado**: 153 pruebas de humo end-to-end del servidor + módulos.
+- **Probado**: 155 pruebas de humo end-to-end del servidor + módulos.
 
 ## 📸 Vistas
 
@@ -154,7 +154,7 @@ src/
 └── modules/<id>/tools.ts # cada módulo = su toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + paleta
-└── panels/<id>.js                        # 49 paneles ricos
+└── panels/<id>.js                        # 54 paneles ricos
 ```
 
 ### Añadir un módulo (3 pasos)
@@ -175,7 +175,7 @@ y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 40:
 ```bash
 npm run build       # compila (esbuild)
 npm run typecheck   # tsc --noEmit
-npm run test        # 153 pruebas de humo (servidor + módulos, song simulado)
+npm run test        # 155 pruebas de humo (servidor + módulos, song simulado)
 npm run package     # build + empaqueta .ablx con la UI
 ```
 
@@ -211,6 +211,4 @@ consolidando lo mejor de cada concepto en una sola super-app.
 
 Software libre con copyleft fuerte: puedes usarlo, estudiarlo, modificarlo y compartirlo —
 pero cualquier versión distribuida (incluidas las modificadas o comerciales) debe seguir
-siendo abierta bajo la GPL; no se puede convertir en un producto cerrado y propietario. Por
-un término adicional (GPL v3 §7(b)), debes mantener siempre visible la atribución
-**«Live Studio — creado por Ramón Sesma»** en la app, su documentación y su código.
+siendo abierta bajo la GPL; no se puede convertir en un producto cerrado y propietario.

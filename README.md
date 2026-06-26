@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/cover.svg" alt="Live Studio — super-extension for Ableton Live" width="100%" />
+  <img src="assets/cover.png" alt="Live Studio — super-extension for Ableton Live" width="100%" />
 </p>
 
 <h1 align="center">🎛️ Live Studio</h1>
@@ -180,7 +180,7 @@ src/
 └── modules/<id>/tools.ts # each module = its own toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + palette
-└── panels/<id>.js                        # 49 rich panels
+└── panels/<id>.js                        # 54 rich panels
 ```
 
 ### Adding a module (3 steps)
@@ -256,6 +256,4 @@ consolidating the best of each concept into a single super-app.
 
 Free software with strong copyleft: you may use, study, modify and share it — but any
 distributed version (including modified or commercial ones) must stay open under the GPL;
-it cannot be turned into a closed, proprietary product. Under an additional term
-(GPL v3 §7(b)), you must always keep the attribution **"Live Studio — created by
-Ramón Sesma"** visible in the app, its documentation and its source.
+it cannot be turned into a closed, proprietary product.

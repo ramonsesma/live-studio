@@ -199,7 +199,7 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"patternlang", label:"Pattern Language", icon:"🪄", description:"A TidalCycles-style mini-notation (notes, rests, [subdivisions], repeats*N) that compiles to a MIDI clip.", registry: patternLangTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
-  m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"Vocabulary of 1293 micro-actions (from the 215 *-action extensions).", hidden:true, registry: quickActionsTools() });
+  m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"84 curated one-click presets that route to real tools — browse by group, or search them in the Cmd-K palette.", registry: quickActionsTools() });
 
   return m;
 }
