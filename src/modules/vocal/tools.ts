@@ -18,13 +18,18 @@ export function createToolRegistry() {
   reg.register({ name:"setup_chain", description:"Set up full vocal processing chain on a track", category:"vocal", parameters:{ track_index:{type:"number",description:"Track index",required:true}, chain_type:{type:"string",description:"Vocal chain preset",required:false,enum:["lead","backing","rap","podcast","vocal_fx","harmony"]}, add_compressor:{type:"boolean",description:"Add compressor",required:false}, add_eq:{type:"boolean",description:"Add EQ",required:false}, add_deesser:{type:"boolean",description:"Add de-esser",required:false}, add_reverb:{type:"boolean",description:"Add reverb send",required:false}, add_delay:{type:"boolean",description:"Add delay send",required:false} } },
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
+      if (!track) return { success:false, error:"Track not found" };
       const chain: string[] = [];
       if (args.add_eq !== false) chain.push("EQ Eight");
-      if (args.add_deesser !== false) chain.push("De-esser (Dynamic Tube)");
+      if (args.add_deesser !== false) chain.push("Multiband Dynamics");
       if (args.add_compressor !== false) chain.push("Compressor");
-      if (args.add_reverb !== false) chain.push("Reverb (Send)");
-      if (args.add_delay !== false) chain.push("Delay (Send)");
-      return { success:true, data:{ chainSet:true, trackName:track?.name||"Unknown", chainType:args.chain_type||"lead", devicesAdded:chain, deviceCount:chain.length } };
+      if (args.add_reverb !== false) chain.push("Reverb");
+      if (args.add_delay !== false) chain.push("Delay");
+      if (typeof track.insertDevice !== "function") return { success:false, error:"Open a track in Live to insert the vocal chain." };
+      let idx = (track.devices || []).length; const inserted: string[] = [];
+      for (const name of chain) { try { await track.insertDevice(name, idx++); inserted.push(name); } catch { /* device name not available — skip */ } }
+      if (!inserted.length) return { success:false, error:"Could not insert any chain device." };
+      return { success:true, data:{ applied:true, trackName:track.name, chainType:args.chain_type||"lead", devicesAdded:inserted, deviceCount:inserted.length } };
     }
   );
 

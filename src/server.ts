@@ -179,6 +179,41 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         sendJson(res, 200, await bridge.riserGen(body as any));
         return;
       }
+      if (url.pathname === "/api/sub808" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.synth808Gen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/pad" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.padGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/pluck" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.pluckGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/acid" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.acidGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/stab" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.stabGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/bell" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.bellGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/impact" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.impactGen(body as any));
+        return;
+      }
       if (url.pathname === "/api/audioout" && method === "GET") {
         const buf = bridge.servedAudio(url.searchParams.get("id") || "");
         if (!buf) { res.writeHead(404); res.end("Not found"); return; }

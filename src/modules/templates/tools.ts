@@ -37,7 +37,14 @@ export function createToolRegistry() {
   );
 
   reg.register({ name:"apply_template", description:"Apply a saved template to the current project", category:"template", parameters:{ template_name:{type:"string",description:"Template name to apply",required:true}, clear_existing:{type:"boolean",description:"Clear existing tracks",required:false} } },
-    async (args: any) => ({ success:true, data:{ applied:true, templateName:args.template_name, tracksCreated:8, clearExisting:!!args.clear_existing } })
+    async (args: any, song: any) => {
+      if (!song?.createMidiTrack) return { success:false, error:"Open a Set in Live to apply a template." };
+      const roles = ["Drums", "Bass", "Keys", "Lead", "Pad", "FX", "Vocals", "Bus"];
+      const created: string[] = [];
+      for (const role of roles) { try { const t = await song.createMidiTrack(); if (t && "name" in t) try { t.name = role; } catch {} created.push(role); } catch {} }
+      if (!created.length) return { success:false, error:"Could not create tracks." };
+      return { success:true, data:{ applied:true, templateName:args.template_name, tracksCreated:created.length, tracks:created } };
+    }
   );
 
   reg.register({ name:"list_templates", description:"List available saved templates", category:"template", parameters:{} },

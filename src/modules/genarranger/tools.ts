@@ -31,8 +31,15 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"apply_arrangement", description:"Apply generated arrangement to session", category:"arranger", parameters:{ arrangement_id:{type:"number",description:"Arrangement ID",required:true}, overwrite:{type:"boolean",description:"Overwrite existing clips",required:false} } },
-    async (args: any) => ({ success:true, data:{ applied:true, arrangementId:args.arrangement_id, clipsPlaced:24 } })
+  reg.register({ name:"apply_arrangement", description:"Drop the generated arrangement onto the timeline as named section locators (cue points)", category:"arranger", parameters:{ overwrite:{type:"boolean",description:"Clear existing locators first",required:false} } },
+    async (args: any, song: any) => {
+      if (!song?.createCuePoint) return { success:false, error:"Cue points are only available inside Live." };
+      const sections = [["Intro",8],["Verse 1",16],["Chorus",16],["Verse 2",16],["Chorus 2",16],["Bridge",8],["Chorus 3",16],["Outro",8]] as [string, number][];
+      if (args.overwrite) { for (const c of [...(song.cuePoints || [])]) { try { await song.deleteCuePoint(c); } catch {} } }
+      let bar = 0; const markers: any[] = [];
+      for (const [name, bars] of sections) { try { const cue = await song.createCuePoint(bar * 4); if (cue && "name" in cue) { try { cue.name = name; } catch {} } markers.push({ name, bar }); } catch {} bar += bars; }
+      return { success:true, data:{ applied:true, sections: markers.length, totalBars: bar, markers } };
+    }
   );
 
   reg.register({ name:"create_variation", description:"Create variation of existing section", category:"arranger", parameters:{ section_name:{type:"string",description:"Section to vary",required:true}, variation_type:{type:"string",description:"Variation type",required:false,enum:["strip","dense","melodic","rhythmic"]} } },

@@ -46,8 +46,21 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"apply_fx_preset", description:"Apply a saved FX chain preset to a track", category:"fx-presets", parameters:{ preset_name:{type:"string",description:"Preset name to apply",required:true}, track_index:{type:"number",description:"Track index",required:true} } },
-    async (args: any) => ({ success:true, data:{ applied:true, presetName:args.preset_name, trackIndex:args.track_index, devicesCreated:3 } })
+  reg.register({ name:"apply_fx_preset", description:"Apply an FX chain preset to a track (inserts the preset's devices)", category:"fx-presets", parameters:{ preset_name:{type:"string",description:"Preset name to apply",required:true}, track_index:{type:"number",description:"Track index",required:true} } },
+    async (args: any, song: any) => {
+      const track = song?.tracks?.[args.track_index]; if (!track) return { success:false, error:"Track not found" };
+      if (typeof track.insertDevice !== "function") return { success:false, error:"Open a track in Live to apply the preset." };
+      const n = String(args.preset_name).toLowerCase();
+      const chain = n.includes("bass") ? ["EQ Eight", "Compressor", "Saturator"]
+        : n.includes("drum") ? ["EQ Eight", "Compressor", "Glue Compressor"]
+        : n.includes("vocal") ? ["EQ Eight", "Compressor", "Reverb", "Delay"]
+        : n.includes("master") ? ["EQ Eight", "Glue Compressor", "Limiter"]
+        : ["EQ Eight", "Compressor", "Reverb"];
+      let idx = (track.devices || []).length; const inserted: string[] = [];
+      for (const name of chain) { try { await track.insertDevice(name, idx++); inserted.push(name); } catch {} }
+      if (!inserted.length) return { success:false, error:"Could not insert preset devices." };
+      return { success:true, data:{ applied:true, presetName:args.preset_name, trackIndex:args.track_index, devicesCreated:inserted.length, devices:inserted } };
+    }
   );
 
   reg.register({ name:"compare_tracks", description:"Compare FX chains between two tracks", category:"fx-presets", parameters:{ track_a:{type:"number",description:"First track index",required:true}, track_b:{type:"number",description:"Second track index",required:true} } },

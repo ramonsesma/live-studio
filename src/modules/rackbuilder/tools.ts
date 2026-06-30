@@ -19,16 +19,20 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
       if (!track) return { success:false, error:"Track not found" };
-      return { success:true, data:{ created:true, trackIndex:args.track_index, rackType:args.rack_type, name:args.name, chainCount:1, macroCount:8 } };
+      if (typeof track.insertDevice !== "function") return { success:false, error:"Open a track in Live to create a rack." };
+      const name = ({ instrument:"Instrument Rack", effect:"Audio Effect Rack", drum:"Drum Rack" } as any)[args.rack_type] || "Audio Effect Rack";
+      let dev: any; try { dev = await track.insertDevice(name, (track.devices || []).length); } catch { return { success:false, error:`Could not insert ${name}.` }; }
+      if (args.name && dev && "name" in dev) { try { dev.name = args.name; } catch {} }
+      return { success:true, data:{ created:true, trackIndex:args.track_index, rackType:args.rack_type, device:name, name:args.name } };
     }
   );
 
-  reg.register({ name:"add_chain", description:"Add a chain to a rack", category:"rack", parameters:{ track_index:{type:"number",description:"Track index",required:true}, rack_index:{type:"number",description:"Rack index (0 = first device)",required:true}, name:{type:"string",description:"Chain name",required:true}, key_zone_min:{type:"number",description:"Key zone min (0-127)",required:false}, key_zone_max:{type:"number",description:"Key zone max (0-127)",required:false}, velocity_min:{type:"number",description:"Velocity min",required:false}, velocity_max:{type:"number",description:"Velocity max",required:false} } },
-    async (args: any) => ({ success:true, data:{ added:true, chainName:args.name, keyZone:[args.key_zone_min||0, args.key_zone_max||127], velocityRange:[args.velocity_min||0, args.velocity_max||127], chainIndex:"new" } })
+  reg.register({ name:"add_chain", description:"Chain spec for a rack (advisory — the SDK can't add chains/zones to a rack)", category:"rack", parameters:{ track_index:{type:"number",description:"Track index",required:true}, rack_index:{type:"number",description:"Rack index (0 = first device)",required:true}, name:{type:"string",description:"Chain name",required:true}, key_zone_min:{type:"number",description:"Key zone min (0-127)",required:false}, key_zone_max:{type:"number",description:"Key zone max (0-127)",required:false}, velocity_min:{type:"number",description:"Velocity min",required:false}, velocity_max:{type:"number",description:"Velocity max",required:false} } },
+    async (args: any) => ({ success:true, data:{ advisory:true, note:"Add this chain manually in the rack — chains/zones aren't writable via the SDK.", chainName:args.name, keyZone:[args.key_zone_min||0, args.key_zone_max||127], velocityRange:[args.velocity_min||0, args.velocity_max||127] } })
   );
 
-  reg.register({ name:"configure_macro", description:"Configure a rack macro control", category:"rack", parameters:{ track_index:{type:"number",description:"Track index",required:true}, rack_index:{type:"number",description:"Rack index",required:true}, macro_index:{type:"number",description:"Macro index 0-7",required:true}, name:{type:"string",description:"Macro name",required:false}, min:{type:"number",description:"Min value",required:false}, max:{type:"number",description:"Max value",required:false} } },
-    async (args: any) => ({ success:true, data:{ configured:true, macroIndex:args.macro_index, name:args.name||`Macro ${args.macro_index+1}`, min:args.min||0, max:args.max||127 } })
+  reg.register({ name:"configure_macro", description:"Macro spec for a rack (advisory — rack macros are DeviceParameters; map them with the Macro Mapper / Safe Randomizer)", category:"rack", parameters:{ track_index:{type:"number",description:"Track index",required:true}, rack_index:{type:"number",description:"Rack index",required:true}, macro_index:{type:"number",description:"Macro index 0-7",required:true}, name:{type:"string",description:"Macro name",required:false}, min:{type:"number",description:"Min value",required:false}, max:{type:"number",description:"Max value",required:false} } },
+    async (args: any) => ({ success:true, data:{ advisory:true, note:"Macro names/ranges aren't writable, but a rack's macros ARE DeviceParameters — tweak them via Macro Mapper or Safe Randomizer.", macroIndex:args.macro_index, name:args.name||`Macro ${args.macro_index+1}`, min:args.min||0, max:args.max||127 } })
   );
 
   reg.register({ name:"get_rack_structure", description:"Get the full structure of a rack", category:"rack", parameters:{ track_index:{type:"number",description:"Track index",required:true}, rack_index:{type:"number",description:"Rack index",required:true} } },

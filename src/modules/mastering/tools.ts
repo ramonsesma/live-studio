@@ -1,5 +1,6 @@
 // Módulo: Gain Staging & Niveles — reutilizado de examples/gain-staging
 import { recordParamAt, keyTrack } from "../../core/history.js";
+import { faderDbToValue } from "../../core/dsp.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -30,15 +31,26 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"set_target_level", description:"Set target level for a track stage", category:"gain-staging", parameters:{ track_index:{type:"number",description:"Track index",required:true}, stage:{type:"string",description:"Stage name",required:true}, target_db:{type:"number",description:"Target level dB",required:true} } },
-    async (args: any) => ({ success:true, data:{ set:true, trackIndex:args.track_index, stage:args.stage, targetDb:args.target_db, adjusted:true } })
+  reg.register({ name:"set_target_level", description:"Set a track's fader to a target level in dB", category:"gain-staging", parameters:{ track_index:{type:"number",description:"Track index",required:true}, target_db:{type:"number",description:"Target level dB (e.g. -12)",required:true} } },
+    async (args: any, song: any) => {
+      const t = song?.tracks?.[args.track_index]; if (!t?.mixer?.volume) return { success:false, error:"Track has no mixer (open in Live)." };
+      const val = Math.max(0, Math.min(1, faderDbToValue(args.target_db)));
+      await recordParamAt(t.mixer.volume, keyTrack(args.track_index), "mastering.set_target_level");
+      await t.mixer.volume.setValue(val);
+      return { success:true, data:{ set:true, trackIndex:args.track_index, targetDb:args.target_db, faderValue:Number(val.toFixed(3)) } };
+    }
   );
 
-  reg.register({ name:"auto_gain_stage", description:"Auto-set gain staging for optimal headroom", category:"gain-staging", parameters:{ track_index:{type:"number",description:"Track index",required:true}, target_headroom:{type:"number",description:"Target headroom dB",required:false,enum:["3","6","9","12"]} } },
-    async (args: any) => ({ success:true, data:{ applied:true, trackIndex:args.track_index, targetHeadroom:args.target_headroom||6, adjustments:[
-      { stage:"Source", from:-8.2, to:-12.0, delta:-3.8 },
-      { stage:"Device 1", from:-6.5, to:-10.0, delta:-3.5 }
-    ], finalHeadroom:`${args.target_headroom||6}.2dB` } })
+  reg.register({ name:"auto_gain_stage", description:"Set a track's fader to leave a target headroom below 0 dBFS", category:"gain-staging", parameters:{ track_index:{type:"number",description:"Track index",required:true}, target_headroom:{type:"number",description:"Target headroom dB",required:false,enum:["3","6","9","12"]} } },
+    async (args: any, song: any) => {
+      const t = song?.tracks?.[args.track_index]; if (!t?.mixer?.volume) return { success:false, error:"Track has no mixer (open in Live)." };
+      const headroom = Number(args.target_headroom || 6);
+      const before = await t.mixer.volume.getValue();
+      const val = Math.max(0, Math.min(1, faderDbToValue(-headroom)));
+      await recordParamAt(t.mixer.volume, keyTrack(args.track_index), "mastering.auto_gain_stage");
+      await t.mixer.volume.setValue(val);
+      return { success:true, data:{ applied:true, trackIndex:args.track_index, targetHeadroom:headroom, faderBefore:Number(before.toFixed(3)), faderAfter:Number(val.toFixed(3)) } };
+    }
   );
 
   reg.register({ name:"match_levels", description:"Match volume levels across selected tracks", category:"gain-staging", parameters:{ track_indices:{type:"string",description:"Comma-separated track indices",required:true}, match_to:{type:"string",description:"Match strategy",required:false,enum:["loudest","quietest","average","first"]} } },

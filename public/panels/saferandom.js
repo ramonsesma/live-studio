@@ -5,12 +5,14 @@ window.LiveStudioPanels.saferandom = function (panel, helpers) {
   const rnd = (body) => api.post("/api/saferandom", body);
 
   panel.innerHTML = `
-    <div class="panel-head"><h1>🎲 Safe Randomizer</h1><p>Nudges a device's parameters within bounds (explore, don't break) — lock the keepers.</p></div>
+    <div class="panel-head"><h1>🎲 Safe Randomizer</h1><p>Nudges a device's parameters within bounds (explore, don't break) — lock the keepers. Instrument-aware: keeps global volume/pan musical and can target one section.</p></div>
     <div class="ss-toolbar">
       <label class="hint">Track</label><input id="sr-trk" type="number" value="0" style="width:50px" />
       <label class="hint">Device</label><input id="sr-dev" type="number" value="0" style="width:50px" />
       <button class="btn ghost" id="sr-read"><i class="ti ti-refresh" aria-hidden="true"></i></button>
       <label class="hint">Amount</label><input id="sr-amt" type="range" min="0" max="100" value="20" /><span class="hint" id="sr-amtv">20%</span>
+      <label class="hint">Section</label><select id="sr-cat"><option value="">all</option><option>osc</option><option>filter</option><option>env</option><option>lfo</option><option>fx</option><option>pitch</option></select>
+      <label class="hint" title="keep global volume/pan/voice params out of the randomize"><input type="checkbox" id="sr-smart" checked /> smart</label>
       <button class="btn" id="sr-go"><i class="ti ti-dice" aria-hidden="true"></i> Randomize</button>
       <button class="btn ghost" id="sr-reset">Reset</button>
       <span class="hint" id="sr-info"></span>
@@ -47,9 +49,11 @@ window.LiveStudioPanels.saferandom = function (panel, helpers) {
   }
   async function go() {
     const amt = Number(panel.querySelector("#sr-amt").value);
-    if (demo) { const r = await rnd({ demo: true, action: "randomize", amount: amt }); knobs(r.data.params); return; }
-    const r = await rnd({ action: "randomize", trackIndex: Number(panel.querySelector("#sr-trk").value), deviceIndex: Number(panel.querySelector("#sr-dev").value), amount: amt });
-    panel.querySelector("#sr-info").textContent = r.success ? `Randomized ${r.data.paramsChanged} params (±${r.data.amount}%)` : r.error; if (r.success) read();
+    const cat = panel.querySelector("#sr-cat").value || undefined;
+    const smart = panel.querySelector("#sr-smart").checked;
+    if (demo) { const r = await rnd({ demo: true, action: "randomize", amount: amt, category: cat }); knobs(r.data.params); panel.querySelector("#sr-info").textContent = `Demo · ${cat || "all"} · ±${amt}%`; return; }
+    const r = await rnd({ action: "randomize", trackIndex: Number(panel.querySelector("#sr-trk").value), deviceIndex: Number(panel.querySelector("#sr-dev").value), amount: amt, category: cat, smart });
+    panel.querySelector("#sr-info").textContent = r.success ? `Randomized ${r.data.paramsChanged} params (±${r.data.amount}%, ${r.data.category})${r.data.skipped ? ` · ${r.data.skipped} kept` : ""}` : r.error; if (r.success) read();
   }
   panel.querySelector("#sr-amt").oninput = (e) => (panel.querySelector("#sr-amtv").textContent = e.target.value + "%");
   panel.querySelector("#sr-read").onclick = read;

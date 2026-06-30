@@ -43,8 +43,12 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
       const bpm = song.tempo || 120;
-      const ms = calcDelay(bpm,0.125);
-      return { success:true, data:{ applied:true, trackName:track?.name||"Unknown", noteValue:args.note_value, delayMs:ms, deviceUpdated:args.device_index||0 } };
+      const FRAC: any = { "1/4":1, "1/4d":1.5, "1/8":0.5, "1/8d":0.75, "1/8t":1/3, "1/16":0.25, "1/16d":0.375, "1/16t":1/6 };
+      const ms = Math.round((60000 / bpm) * (FRAC[args.note_value] ?? 0.5));
+      const dev = track?.devices?.[args.device_index ?? 0];
+      let deviceSet = false;
+      if (dev) { const p = (dev.parameters || []).find((pp: any) => /time/i.test(String(pp.name))); if (p) { try { await p.setValue(Math.max(p.min, Math.min(p.max, ms))); deviceSet = true; } catch {} } }
+      return { success:true, data:{ applied:deviceSet, calculated:true, trackName:track?.name||"Unknown", noteValue:args.note_value, delayMs:ms, deviceSet, hint: deviceSet ? undefined : "Dial this delay time on your delay device — no settable Time param was found." } };
     }
   );
 

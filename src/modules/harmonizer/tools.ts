@@ -241,13 +241,20 @@ export function createToolRegistry() {
     async () => ({ success:true, data:Object.entries(VOICINGS).map(([k,v]: any)=>({ name:k, description:v.desc })) })
   );
 
-  reg.register({ name:"harmonize_note", description:"Add harmony voices to selected MIDI notes", category:"harmony", parameters:{ track_index:{type:"number",description:"Track index",required:true}, interval:{type:"string",description:"Harmony interval",required:true,enum:Object.keys(INTERVALS)}, voices:{type:"number",description:"Number of harmony voices",required:false} } },
+  reg.register({ name:"harmonize_note", description:"Add harmony voices stacked above a clip's notes (real note write-back)", category:"harmony", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false}, interval:{type:"string",description:"Harmony interval",required:true,enum:Object.keys(INTERVALS)}, voices:{type:"number",description:"Number of harmony voices",required:false} } },
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
       if (!track) return { success:false, error:"Track not found" };
+      const clip = track.clipSlots?.[args.clip_index ?? 0]?.clip ?? track.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip || !Array.isArray(clip.notes) || !clip.notes.length) return { success:false, error:"No MIDI clip with notes here." };
       const interval = INTERVALS[args.interval] || 4;
-      const voices = args.voices || 2;
-      return { success:true, data:{ applied:true, trackIndex:args.track_index, interval, voices, harmonyNotes:voices*8, trackName:track.name } };
+      const voices = Math.max(1, Math.min(4, args.voices || 2));
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "harmonizer.harmonize_note");
+      const src = clip.notes.slice();
+      const added: any[] = [];
+      for (const n of src) for (let v = 1; v <= voices; v++) { const p = Math.min(127, n.pitch + interval * v); added.push({ pitch: p, startTime: n.startTime, duration: n.duration, velocity: Math.max(1, Math.round((n.velocity ?? 100) * (1 - v * 0.12))) }); }
+      clip.notes = src.concat(added);
+      return { success:true, data:{ applied:true, trackIndex:args.track_index, interval, voices, harmonyNotesAdded:added.length, noteCount:clip.notes.length, clip:clip.name } };
     }
   );
 

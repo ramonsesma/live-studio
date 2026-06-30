@@ -18,7 +18,7 @@ export function createToolRegistry() {
 
   
   reg.register({ name:"apply_compression_preset", description:"Apply compression preset to track", category:"compression", parameters:{ track_index:{type:"number",description:"Track",required:true}, preset:{type:"string",description:"Preset",required:true,enum:["vocal","drum_bus","master","guitar","bass","gentle","heavy"]} } },
-    async (args: any) => {
+    async (args: any, song: any) => {
       const presets: any = {
         vocal: { threshold:-16, ratio:3, attack:2, release:50, knee:6, makeup:2 },
         drum_bus: { threshold:-20, ratio:4, attack:1, release:30, knee:3, makeup:3 },
@@ -30,12 +30,18 @@ export function createToolRegistry() {
       };
       const preset = presets[args.preset];
       if (!preset) return { success:false, error:`Unknown preset: ${args.preset}` };
-      return { success:true, data:{ applied:true, preset:args.preset, params:preset, trackIndex:args.track_index } };
+      const track = song?.tracks?.[args.track_index]; if (!track) return { success:false, error:"Track not found" };
+      if (typeof track.insertDevice !== "function") return { success:false, error:"Open a track in Live to insert the compressor." };
+      let dev: any; try { dev = await track.insertDevice("Compressor", (track.devices || []).length); } catch { return { success:false, error:"Could not insert a Compressor device." }; }
+      const map: any = { threshold:["threshold"], ratio:["ratio"], attack:["attack"], release:["release"], makeup:["makeup","output","gain"], knee:["knee"] };
+      let setN = 0;
+      for (const [k, val] of Object.entries(preset)) { const keys = map[k] || [k]; const p = (dev?.parameters || []).find((pp: any) => keys.some((kw: string) => String(pp.name).toLowerCase().includes(kw))); if (p) { try { await p.setValue(Math.max(p.min, Math.min(p.max, val as number))); setN++; } catch {} } }
+      return { success:true, data:{ applied:true, preset:args.preset, device:"Compressor", paramsSet:setN, params:preset, trackIndex:args.track_index } };
     }
   );
 
-  reg.register({ name:"multi_band_compress", description:"Apply multi-band compression", category:"compression", parameters:{ track_index:{type:"number",description:"Track",required:true}, low_ratio:{type:"number",description:"Low band ratio",required:false}, mid_ratio:{type:"number",description:"Mid band ratio",required:false}, high_ratio:{type:"number",description:"High band ratio",required:false} } },
-    async (args: any) => ({ success:true, data:{ applied:true, bands:{ low:{freq:250,ratio:args.low_ratio||3}, mid:{freq:2000,ratio:args.mid_ratio||2.5}, high:{freq:8000,ratio:args.high_ratio||2} }, trackIndex:args.track_index } })
+  reg.register({ name:"multi_band_compress", description:"Suggested multi-band compression settings (advisory — per-band ratio isn't settable via the SDK)", category:"compression", parameters:{ track_index:{type:"number",description:"Track",required:true}, low_ratio:{type:"number",description:"Low band ratio",required:false}, mid_ratio:{type:"number",description:"Mid band ratio",required:false}, high_ratio:{type:"number",description:"High band ratio",required:false} } },
+    async (args: any) => ({ success:true, data:{ advisory:true, note:"Add a Multiband Dynamics device and dial these in — the SDK can't set per-band ratios.", bands:{ low:{freq:250,ratio:args.low_ratio||3}, mid:{freq:2000,ratio:args.mid_ratio||2.5}, high:{freq:8000,ratio:args.high_ratio||2} }, trackIndex:args.track_index } })
   );
 
   reg.register({ name:"auto_gain_staging", description:"Auto-set gain staging across tracks", category:"mixing", parameters:{ target_level:{type:"number",description:"Target level dB",required:false} } },

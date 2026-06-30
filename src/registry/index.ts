@@ -34,6 +34,13 @@ import { createToolRegistry as drumSynthTools } from "../modules/drumsynth/tools
 import { createToolRegistry as sliceLabTools } from "../modules/slicelab/tools.js";
 import { createToolRegistry as mosaicTools } from "../modules/mosaic/tools.js";
 import { createToolRegistry as riserTools } from "../modules/riser/tools.js";
+import { createToolRegistry as sub808Tools } from "../modules/sub808/tools.js";
+import { createToolRegistry as padEngineTools } from "../modules/padengine/tools.js";
+import { createToolRegistry as pluckEngineTools } from "../modules/pluckengine/tools.js";
+import { createToolRegistry as acid303Tools } from "../modules/acid303/tools.js";
+import { createToolRegistry as chordStabTools } from "../modules/chordstab/tools.js";
+import { createToolRegistry as fmBellTools } from "../modules/fmbell/tools.js";
+import { createToolRegistry as impactTools } from "../modules/impact/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -151,7 +158,7 @@ export function createMasterRegistry(): MasterRegistry {
 
   // --- Batch 9 (mixing / utilities / sequencing / restoration) ---
   m.addModule({ id:"mixscene",    label:"Mix Scene Saver", icon:"🎚️", description:"Save, recall and compare mixer states.", registry: mixSceneTools() });
-  m.addModule({ id:"console",     label:"API Console", icon:"⌨️", description:"Run Live API commands, scripts and explore the API.", registry: consoleTools() });
+  m.addModule({ id:"console",     label:"API Console", icon:"⌨️", description:"Scripting console for the Set — safe commands that mutate it, arbitrary JS via run_script, and save/load scripts that persist to storage.", registry: consoleTools() });
   m.addModule({ id:"clipversions",label:"Clip Versions", icon:"🕰️", description:"Clip version history: save, restore and diff.", registry: clipVersionsTools() });
   m.addModule({ id:"drummap",     label:"Drum Map Editor", icon:"🥁", description:"Map pads to MIDI notes, routing and drum map presets.", registry: drumMapTools() });
   m.addModule({ id:"midigate",    label:"MIDI Gate", icon:"🚪", description:"MIDI gate on audio, gate patterns and render.", registry: midiGateTools() });
@@ -190,7 +197,7 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"warpcompare", label:"Warp Mode A/B Comparator", icon:"🎧", description:"Renders a clip through Live's 6 warp modes for a blind A/B and writes the winner.", registry: warpCompareTools() });
   m.addModule({ id:"paramdiff",   label:"Param Diff & Outlier", icon:"🔬", description:"Compares the same device across N tracks and flags/normalizes outlier parameter values (sonic QA).", registry: paramDiffTools() });
   m.addModule({ id:"phrasefinder", label:"MIDI Phrase Finder", icon:"🔎", description:"Searches the Set's MIDI clips for a melodic pattern (transpose-aware) and highlights matches by color.", registry: phraseFinderTools() });
-  m.addModule({ id:"saferandom",  label:"Safe Randomizer", icon:"🎲", description:"Bounded random of device parameters with per-param locks — explore presets without breaking the sound.", registry: safeRandomTools() });
+  m.addModule({ id:"saferandom",  label:"Safe Randomizer", icon:"🎲", description:"Instrument-aware bounded random of any device's parameters — per-param locks, a smart guard that keeps global volume/pan musical, and section targeting (osc/filter/env/lfo/fx).", registry: safeRandomTools() });
   m.addModule({ id:"groovetemplate", label:"Groove Template Extractor", icon:"🫀", description:"Extracts a clip's micro-timing groove and applies it to another clip — with per-element pocket locks and independent per-lane dynamics.", registry: grooveTemplateTools() });
   m.addModule({ id:"probabilitylab", label:"Probability Lab", icon:"🎰", description:"Variations using native note probability / releaseVelocity / velocityDeviation — patterns that breathe.", registry: probabilityLabTools() });
   m.addModule({ id:"velocompress", label:"Velocity Compressor", icon:"📊", description:"Treats a clip's note velocities like audio: histogram + downward compression (ratio/makeup) written in place.", registry: veloCompressTools() });
@@ -207,6 +214,13 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"slicelab", label:"Slice Lab", icon:"🔪", description:"Slices a clip's audio and reorders/processes each step with pattern lanes (reverse, stutter, pitch, filter, bitcrush…) into a new loop.", registry: sliceLabTools() });
   m.addModule({ id:"mosaic", label:"Mosaic", icon:"🧩", description:"Generative loop variations from a clip's audio — seeded slice shuffle + chance-based per-slice FX, imported as new clips.", registry: mosaicTools() });
   m.addModule({ id:"riser", label:"Riser", icon:"🚀", description:"Synthesizes risers / sweeps / downlifters (noise + osc, pitch + filter sweep, FX) and imports them as a new clip.", registry: riserTools() });
+  m.addModule({ id:"sub808", label:"808 Engine", icon:"🔊", description:"Synthesizes a tuned 808 / sub-bass in-host (pitch glide, long decay, saturation), auditions it and imports as a new clip.", registry: sub808Tools() });
+  m.addModule({ id:"padengine", label:"Pad Engine", icon:"🌫️", description:"Synthesizes evolving pads/drones in-host (detuned-saw chord, moving filter, chorus, long envelopes) and imports as a new clip.", registry: padEngineTools() });
+  m.addModule({ id:"pluckengine", label:"Pluck Engine", icon:"🎸", description:"Synthesizes plucked strings/harp in-host via Karplus-Strong, strumming a chord, and imports as a new clip.", registry: pluckEngineTools() });
+  m.addModule({ id:"acid303", label:"Acid Engine", icon:"🧪", description:"Synthesizes a TB-303-style acid bassline in-host (resonant saw, per-note filter envelope, accent, slide) and imports as a new clip.", registry: acid303Tools() });
+  m.addModule({ id:"chordstab", label:"Chord Stab", icon:"🎹", description:"Synthesizes short, punchy synth chord stabs in-host (saw stack through a fast filter envelope) and imports as a new clip.", registry: chordStabTools() });
+  m.addModule({ id:"fmbell", label:"FM Bell", icon:"🔔", description:"2-operator FM synthesis in-host (bells / tines / e-piano) and imports the result as a new clip.", registry: fmBellTools() });
+  m.addModule({ id:"impact", label:"Impact", icon:"💥", description:"Synthesizes cinematic impacts / booms / downlifters in-host (pitch-glided boom + noise crack + reverb tail) and imports as a new clip.", registry: impactTools() });
 
   // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"84 curated one-click presets that route to real tools — browse by group, or search them in the Cmd-K palette.", registry: quickActionsTools() });

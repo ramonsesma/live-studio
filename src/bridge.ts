@@ -6,6 +6,14 @@ import { olaStretch, varispeed, wavePeaks } from "./core/stretch.js";
 import { synthDrum } from "./core/drumsynth.js";
 import { sliceBuffer, applyFx, assemble, mulberry32, type SliceFx } from "./core/slicefx.js";
 import { synthRiser } from "./core/riser.js";
+import { synth808 } from "./core/sub808.js";
+import { synthPad } from "./core/pad.js";
+import { synthPluck } from "./core/pluck.js";
+import { synthAcid } from "./core/acid303.js";
+import { synthStab } from "./core/chordstab.js";
+import { synthBell } from "./core/fmbell.js";
+import { synthImpact } from "./core/impact.js";
+import { setStorageDir } from "./core/storage.js";
 import { recordNotes } from "./core/history.js";
 import { buildSnapshot, diffSnapshots, applySnapshot, summarize, type Snapshot } from "./core/snapshot.js";
 import { extractFeatures, cosine, tagsFromName, estimateBpm } from "./core/samplebrain.js";
@@ -69,7 +77,7 @@ export interface ListenResult { success: boolean; error?: string; data?: { sourc
 export class Bridge {
   // `resources`/`environment` come from the SDK ExtensionContext and are only present
   // inside Live; the analysis engine itself runs anywhere (used by /api/listen demo + tests).
-  constructor(private registry: MasterRegistry, private song: any, private resources?: any, private environment?: any) {}
+  constructor(private registry: MasterRegistry, private song: any, private resources?: any, private environment?: any) { try { setStorageDir(environment?.storageDirectory); } catch {} }
 
   getTools() { return this.registry.getDefinitionsJson(); }
   getModules() { return this.registry.getModules(); }
@@ -382,6 +390,58 @@ export class Bridge {
         out.push({ variation: v + 1, seed: (req.seed ?? 1) + v * 101, order, audio: served.url, importedPath, wave: wavePeaks(result, 200), outSec: Number((result.length / sr).toFixed(2)) });
       }
       return { success: true, data: { source: req.demo ? "demo" : "clip", name, slices: n, variations: out.length, results: out } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // 808: synthesize a tuned 808/sub from params, serve it for audition and import as a new clip.
+  async synth808Gen(req: { params?: any; import?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const sr = 44100;
+      const samples = synth808(req.params || {}, sr);
+      const served = this.writeServed(samples, sr, "sub808");
+      let importedPath: string | null = null;
+      if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(served.file); } catch { importedPath = null; } }
+      return { success: true, data: { note: req.params?.note ?? 24, durSec: Number((samples.length / sr).toFixed(2)), sampleRate: sr, audio: served.url, importedPath, wave: wavePeaks(samples, 260) } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Generic in-host synth → served WAV + import, shared by the acid/stab/bell/impact engines.
+  private async synthImport(fn: (p: any, sr: number) => Float32Array, prefix: string, req: { params?: any; import?: boolean; demo?: boolean }, extra: any = {}): Promise<any> {
+    try {
+      const sr = 44100;
+      const samples = fn(req.params || {}, sr);
+      const served = this.writeServed(samples, sr, prefix);
+      let importedPath: string | null = null;
+      if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(served.file); } catch { importedPath = null; } }
+      return { success: true, data: { durSec: Number((samples.length / sr).toFixed(2)), sampleRate: sr, audio: served.url, importedPath, wave: wavePeaks(samples, 260), ...extra } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+  async acidGen(req: any): Promise<any> { return this.synthImport(synthAcid, "acid", req, { note: req.params?.note ?? 36, bars: req.params?.bars ?? 1 }); }
+  async stabGen(req: any): Promise<any> { return this.synthImport(synthStab, "stab", req, { note: req.params?.note ?? 48, chord: req.params?.chord || "min7" }); }
+  async bellGen(req: any): Promise<any> { return this.synthImport(synthBell, "bell", req, { note: req.params?.note ?? 60 }); }
+  async impactGen(req: any): Promise<any> { return this.synthImport(synthImpact, "impact", req, { note: req.params?.note ?? 28 }); }
+
+  // Pad: synthesize an evolving pad/chord from params, serve it for audition and import.
+  async padGen(req: { params?: any; import?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const sr = 44100;
+      const samples = synthPad(req.params || {}, sr);
+      const served = this.writeServed(samples, sr, "pad");
+      let importedPath: string | null = null;
+      if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(served.file); } catch { importedPath = null; } }
+      return { success: true, data: { note: req.params?.note ?? 48, chord: req.params?.chord || "min7", durSec: Number((samples.length / sr).toFixed(2)), sampleRate: sr, audio: served.url, importedPath, wave: wavePeaks(samples, 260) } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Pluck: synthesize a Karplus-Strong plucked string/chord, serve it for audition and import.
+  async pluckGen(req: { params?: any; import?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const sr = 44100;
+      const samples = synthPluck(req.params || {}, sr);
+      const served = this.writeServed(samples, sr, "pluck");
+      let importedPath: string | null = null;
+      if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(served.file); } catch { importedPath = null; } }
+      return { success: true, data: { note: req.params?.note ?? 48, chord: req.params?.chord || "min7", durSec: Number((samples.length / sr).toFixed(2)), sampleRate: sr, audio: served.url, importedPath, wave: wavePeaks(samples, 260) } };
     } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
   }
 
@@ -754,13 +814,29 @@ export class Bridge {
 
   async safeRandomize(req: any): Promise<any> {
     try {
+      // instrument-aware layer: keep global params musical (smart guard), target a section
+      // (category), and map an intensity preset to an amount.
+      const SR_INTENSITY: Record<string, number> = { subtle: 10, balanced: 25, wild: 50 };
+      const SR_CATS: Record<string, string[]> = {
+        osc: ["osc", "wave", "shape", "unison", "detune", "spread", "sub", "fm", "ratio", "partial", "tune", "mallet", "noise"],
+        filter: ["filter", "cutoff", "freq", "reso", "slope", "morph"],
+        env: ["env", "attack", "decay", "sustain", "release", "hold"],
+        lfo: ["lfo", "rate", "mod", "depth"],
+        fx: ["reverb", "delay", "chorus", "dist", "drive", "crush", "width", "mix", "dry", "wet"],
+        pitch: ["pitch", "tune", "detune", "octave", "semi", "transpose", "glide"],
+      };
+      const SR_GUARD = ["volume", "vol", "gain", "master", "pan", "mute", "monophon", "poly", "voice"];
+      const lc = (s: any) => String(s).toLowerCase();
+      const cat: string[] | null = req.category && SR_CATS[req.category] ? SR_CATS[req.category] : null;
+      const smart = req.smart !== false; // instrument-aware guard on by default
+      const amt = Math.max(0, Math.min(1, (req.amount != null ? req.amount : (SR_INTENSITY[req.intensity] ?? 20)) / 100));
       const device = this.song?.tracks?.[req.trackIndex]?.devices?.[req.deviceIndex];
       const key = `t${req.trackIndex}_d${req.deviceIndex}`;
       if (req.demo) {
         const base = ["Cutoff", "Reso", "Attack", "Decay", "Drive", "Mix", "Detune", "Width"].map((n, i) => ({ name: n, value: 30 + i * 8, min: 0, max: 127, quantized: false, locked: i === 3 }));
         let params = base;
-        if (req.action === "randomize") { const amt = (req.amount ?? 20) / 100; params = base.map((p) => (p.locked ? p : { ...p, value: Math.max(p.min, Math.min(p.max, Math.round(p.value + (Math.random() * 2 - 1) * amt * (p.max - p.min)))) })); }
-        return { success: true, data: { deviceName: "Demo Synth", params, demo: true } };
+        if (req.action === "randomize") { params = base.map((p) => { if (p.locked) return p; if (cat && !cat.some((k) => lc(p.name).includes(k))) return p; return { ...p, value: Math.max(p.min, Math.min(p.max, Math.round(p.value + (Math.random() * 2 - 1) * amt * (p.max - p.min)))) }; }); }
+        return { success: true, data: { deviceName: "Demo Synth", params, demo: true, category: req.category || "all", amount: Math.round(amt * 100) } };
       }
       if (req.action === "lock" || req.action === "unlock") {
         const st = this.loadLocks(key); const set = new Set(st.locked);
@@ -773,12 +849,16 @@ export class Bridge {
       const read = async () => Promise.all((device.parameters || []).map(async (p: any) => ({ name: p.name, value: await p.getValue(), min: p.min, max: p.max, quantized: p.isQuantized, locked: lockedSet.has(p.name) })));
       if (req.action == null || req.action === "read") return { success: true, data: { deviceName: device.name, params: await read() } };
       if (req.action === "randomize") {
-        const amt = Math.max(0, Math.min(1, (req.amount ?? 20) / 100));
         const before = await read();
         st.last = before.map((p) => ({ name: p.name, value: p.value })); writeFileSync(this.lockPath(key), JSON.stringify(st));
-        let n = 0;
-        for (const p of device.parameters || []) { if (lockedSet.has(p.name)) continue; const cur = await p.getValue(); let v = cur + (Math.random() * 2 - 1) * amt * (p.max - p.min); v = Math.max(p.min, Math.min(p.max, v)); if (p.isQuantized) v = Math.round(v); await p.setValue(v); n++; }
-        return { success: true, data: { randomized: true, paramsChanged: n, amount: Math.round(amt * 100) } };
+        let n = 0, skipped = 0;
+        for (const p of device.parameters || []) {
+          if (lockedSet.has(p.name)) { skipped++; continue; }
+          if (smart && SR_GUARD.some((g) => lc(p.name).includes(g))) { skipped++; continue; }
+          if (cat && !cat.some((k) => lc(p.name).includes(k))) { skipped++; continue; }
+          const cur = await p.getValue(); let v = cur + (Math.random() * 2 - 1) * amt * (p.max - p.min); v = Math.max(p.min, Math.min(p.max, v)); if (p.isQuantized) v = Math.round(v); await p.setValue(v); n++;
+        }
+        return { success: true, data: { randomized: true, paramsChanged: n, skipped, amount: Math.round(amt * 100), category: req.category || "all", smart, instrument: device.name } };
       }
       if (req.action === "reset") {
         if (!st.last) return { success: false, error: "Nothing to reset yet." };

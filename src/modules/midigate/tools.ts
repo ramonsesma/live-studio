@@ -19,7 +19,7 @@ export function createToolRegistry() {
     async (args: any, song: any) => {
       const track = song.tracks[args.track_index];
       const src = song.tracks[args.source_track];
-      return { success:true, data:{ configured:true, trackName:track?.name||"Unknown", sourceTrack:src?.name||"Unknown", mode:args.mode||"trigger", openTime:args.open_time||50, smoothing:args.smooth||5 } };
+      return { success:true, data:{ advisory:true, note:"Routing a MIDI gate device isn't writable via the SDK — set the Gate's sidechain manually. (generate_gate_pattern writes a real pattern clip you can use.)", trackName:track?.name||"Unknown", sourceTrack:src?.name||"Unknown", mode:args.mode||"trigger", openTime:args.open_time||50, smoothing:args.smooth||5 } };
     }
   );
 
