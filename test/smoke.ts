@@ -59,9 +59,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 97 módulos", (mods.modules || []).length === 97, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 130 módulos", (mods.modules || []).length === 130, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions visible con su propio panel (launcher)", mods.modules.find((m: any) => m.id === "quickactions") && !mods.modules.find((m: any) => m.id === "quickactions")?.hidden);
-check("97 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 97);
+check("130 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 130);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -139,12 +139,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer", "arrangement", "timestretch", "drumsynth", "slicelab", "mosaic", "riser", "sub808", "padengine", "pluckengine", "acid303", "chordstab", "fmbell", "impact", "console"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer", "arrangement", "timestretch", "drumsynth", "slicelab", "mosaic", "riser", "sub808", "padengine", "pluckengine", "acid303", "chordstab", "fmbell", "impact", "console", "subbass", "organ", "vocalchop", "instrumentrender", "brass", "wobble", "choir", "subdrop", "pluckbass", "sawlead", "reese", "marimba", "glitch", "tapehiss", "trumpet", "epiano", "musicbox", "harp", "whistle", "subwobble", "vocoder", "noisefx", "cymbal", "guitar", "sitar", "steeldrum", "accordion", "theremin", "hihat808", "stabhit", "glassbell", "subkick", "reversesweep"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 68 paneles ricos", panelsOk);
+check("sirve los 101 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -604,6 +604,89 @@ check("fmbell sintetiza una campana FM", blR.success && blR.data.note === 60 && 
 const imR = await post("/api/impact", { demo: true, params: { note: 28, length: 1.6 } });
 const imAudio = await fetch(base + imR.data.audio);
 check("impact sintetiza un boom y sirve el WAV", imR.success && imR.data.durSec > 1 && imR.data.wave.length > 0 && imAudio.ok && (imAudio.headers.get("content-type") || "").includes("audio/wav"));
+const sbR = await post("/api/subbass", { demo: true, params: { note: 28, length: 1.5, harmonics: 40 } });
+check("subbass sintetiza un sub tonal", sbR.success && sbR.data.note === 28 && sbR.data.durSec > 1 && sbR.data.wave.length > 0 && /audioout/.test(sbR.data.audio));
+const ogR = await post("/api/organ", { demo: true, params: { note: 48, chord: "maj", registration: "jazz" } });
+check("organ sintetiza un acorde de órgano", ogR.success && ogR.data.chord === "maj" && ogR.data.durSec > 1 && ogR.data.wave.length > 0);
+const vchR = await post("/api/vocalchop", { demo: true, params: { note: 60, vowel: "a", bars: 1 } });
+const vchAudio = await fetch(base + vchR.data.audio);
+check("vocalchop sintetiza un chop y sirve el WAV", vchR.success && vchR.data.vowel === "a" && vchR.data.wave.length > 0 && vchAudio.ok && (vchAudio.headers.get("content-type") || "").includes("audio/wav"));
+const brR = await post("/api/brass", { demo: true, params: { note: 55, chord: "maj" } });
+check("brass sintetiza un acorde de brass", brR.success && brR.data.chord === "maj" && brR.data.durSec > 0.5 && brR.data.wave.length > 0);
+const woR = await post("/api/wobble", { demo: true, params: { note: 36, bpm: 140, bars: 1 } });
+check("wobble sintetiza un bajo wobble", woR.success && woR.data.bars === 1 && woR.data.durSec > 1 && woR.data.wave.length > 0);
+const choR = await post("/api/choir", { demo: true, params: { note: 60, chord: "maj", vowel: "a" } });
+check("choir sintetiza un pad coral", choR.success && choR.data.chord === "maj" && choR.data.durSec > 1 && choR.data.wave.length > 0);
+const sdR = await post("/api/subdrop", { demo: true, params: { startNote: 48, endNote: 24, length: 2 } });
+const sdAudio = await fetch(base + sdR.data.audio);
+check("subdrop sintetiza un drop y sirve el WAV", sdR.success && sdR.data.durSec > 1 && sdR.data.wave.length > 0 && sdAudio.ok && (sdAudio.headers.get("content-type") || "").includes("audio/wav"));
+// Instrument Render: cablea un clip MIDI a un motor (demo melody → pluck).
+const renR = await post("/api/render", { demo: true, engine: "pluck" });
+check("instrumentrender renderiza la melodía demo con un motor", renR.success && renR.data.engine === "pluck" && renR.data.noteCount === 6 && renR.data.durSec > 1 && renR.data.wave.length > 0 && /audioout/.test(renR.data.audio));
+const pbR = await post("/api/pluckbass", { demo: true, params: { note: 36 } });
+check("pluckbass sintetiza un pluck de bajo", pbR.success && pbR.data.note === 36 && pbR.data.wave.length > 0);
+const slR = await post("/api/sawlead", { demo: true, params: { note: 60, voices: 5 } });
+check("sawlead sintetiza un supersaw", slR.success && slR.data.note === 60 && slR.data.wave.length > 0);
+const reR = await post("/api/reese", { demo: true, params: { note: 36, length: 2 } });
+check("reese sintetiza un bajo Reese", reR.success && reR.data.note === 36 && reR.data.durSec > 1.5 && reR.data.wave.length > 0);
+const maR = await post("/api/marimba", { demo: true, params: { note: 60 } });
+check("marimba sintetiza una nota de mallet", maR.success && maR.data.note === 60 && maR.data.wave.length > 0);
+const glR = await post("/api/glitch", { demo: true, params: { bpm: 130, bars: 1, seed: 42 } });
+check("glitch sintetiza un FX con seed", glR.success && glR.data.bars === 1 && glR.data.seed === 42 && glR.data.wave.length > 0);
+const thR = await post("/api/tapehiss", { demo: true, params: { length: 2 } });
+const thAudio = await fetch(base + thR.data.audio);
+check("tapehiss sintetiza un noise bed y sirve el WAV", thR.success && thR.data.durSec > 1 && thR.data.wave.length > 0 && thAudio.ok && (thAudio.headers.get("content-type") || "").includes("audio/wav"));
+// Instrument Render con los motores melódicos nuevos.
+const renBass = await post("/api/render", { demo: true, engine: "pluckbass" });
+check("instrumentrender funciona con pluckbass", renBass.success && renBass.data.engine === "pluckbass" && renBass.data.noteCount === 6);
+const renLead = await post("/api/render", { demo: true, engine: "marimba" });
+check("instrumentrender funciona con marimba", renLead.success && renLead.data.engine === "marimba" && renLead.data.noteCount === 6);
+const trR = await post("/api/trumpet", { demo: true, params: { note: 65 } });
+check("trumpet sintetiza un solo de brass", trR.success && trR.data.note === 65 && trR.data.wave.length > 0);
+const epR = await post("/api/epiano", { demo: true, params: { note: 60 } });
+check("epiano sintetiza un Rhodes/DX7", epR.success && epR.data.note === 60 && epR.data.wave.length > 0);
+const mbR = await post("/api/musicbox", { demo: true, params: { note: 72 } });
+check("musicbox sintetiza un tine", mbR.success && mbR.data.note === 72 && mbR.data.wave.length > 0);
+const hpR = await post("/api/harp", { demo: true, params: { note: 60, chord: "maj" } });
+check("harp sintetiza un strum", hpR.success && hpR.data.chord === "maj" && hpR.data.wave.length > 0);
+const whR = await post("/api/whistle", { demo: true, params: { note: 72 } });
+check("whistle sintetiza un silbido", whR.success && whR.data.note === 72 && whR.data.wave.length > 0);
+const swR = await post("/api/subwobble", { demo: true, params: { note: 28, bars: 1 } });
+check("subwobble sintetiza un wobble de amplitud", swR.success && swR.data.bars === 1 && swR.data.wave.length > 0);
+const vcR2 = await post("/api/vocoder", { demo: true, params: { note: 60, bars: 1 } });
+check("vocoder sintetiza palabras vocales", vcR2.success && vcR2.data.bars === 1 && vcR2.data.wave.length > 0);
+const nfR = await post("/api/noisefx", { demo: true, params: { type: "sweep_up", length: 1 } });
+check("noisefx sintetiza un sweep", nfR.success && nfR.data.type === "sweep_up" && nfR.data.wave.length > 0);
+const cyR = await post("/api/cymbal", { demo: true, params: { type: "crash" } });
+const cyAudio = await fetch(base + cyR.data.audio);
+check("cymbal sintetiza un crash y sirve el WAV", cyR.success && cyR.data.type === "crash" && cyR.data.wave.length > 0 && cyAudio.ok && (cyAudio.headers.get("content-type") || "").includes("audio/wav"));
+// Instrument Render con los 6 nuevos motores melódicos.
+const renEP = await post("/api/render", { demo: true, engine: "epiano" });
+check("instrumentrender funciona con epiano", renEP.success && renEP.data.engine === "epiano" && renEP.data.noteCount === 6);
+const gtR = await post("/api/guitar", { demo: true, params: { note: 40, chord: "power" } });
+check("guitar sintetiza un power chord", gtR.success && gtR.data.chord === "power" && gtR.data.wave.length > 0);
+const stR2 = await post("/api/sitar", { demo: true, params: { note: 60 } });
+check("sitar sintetiza con buzz", stR2.success && stR2.data.note === 60 && stR2.data.wave.length > 0);
+const sdR2 = await post("/api/steeldrum", { demo: true, params: { note: 64 } });
+check("steeldrum sintetiza un tono de pan", sdR2.success && sdR2.data.note === 64 && sdR2.data.wave.length > 0);
+const acR2 = await post("/api/accordion", { demo: true, params: { note: 60, chord: "maj" } });
+check("accordion sintetiza un acorde musette", acR2.success && acR2.data.chord === "maj" && acR2.data.wave.length > 0);
+const thR2 = await post("/api/theremin", { demo: true, params: { note: 67, endNote: 72 } });
+check("theremin sintetiza un glide", thR2.success && thR2.data.wave.length > 0);
+const hhR = await post("/api/hihat808", { demo: true, params: { open: false } });
+check("hihat808 sintetiza un hat cerrado", hhR.success && hhR.data.wave.length > 0);
+const shR2 = await post("/api/stabhit", { demo: true, params: { note: 60, chord: "maj" } });
+check("stabhit sintetiza un stab de brass", shR2.success && shR2.data.chord === "maj" && shR2.data.wave.length > 0);
+const gbR = await post("/api/glassbell", { demo: true, params: { note: 72 } });
+check("glassbell sintetiza una campana de cristal", gbR.success && gbR.data.note === 72 && gbR.data.wave.length > 0);
+const skR = await post("/api/subkick", { demo: true, params: { note: 24 } });
+check("subkick sintetiza un sub de kick", skR.success && skR.data.note === 24 && skR.data.wave.length > 0);
+const rsR = await post("/api/reversesweep", { demo: true, params: { length: 1.5 } });
+const rsAudio = await fetch(base + rsR.data.audio);
+check("reversesweep sintetiza un build y sirve el WAV", rsR.success && rsR.data.durSec > 1 && rsR.data.wave.length > 0 && rsAudio.ok && (rsAudio.headers.get("content-type") || "").includes("audio/wav"));
+// Instrument Render con guitar.
+const renGt = await post("/api/render", { demo: true, engine: "guitar" });
+check("instrumentrender funciona con guitar", renGt.success && renGt.data.engine === "guitar" && renGt.data.noteCount === 6);
 
 // API Console: execute_command muta el Set de verdad + save/list/run persistentes.
 const ccSong: any = { tempo: 120, tracks: [] as any[] }; ccSong.createMidiTrack = async () => { const t: any = { _n: "", get name() { return this._n; }, set name(v: any) { this._n = v; } }; ccSong.tracks.push(t); return t; };

@@ -214,6 +214,55 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         sendJson(res, 200, await bridge.impactGen(body as any));
         return;
       }
+      if (url.pathname === "/api/subbass" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.subBassGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/organ" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.organGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/vocalchop" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.vocalChopGen(body as any));
+        return;
+      }
+      if (url.pathname === "/api/render" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.renderClip(body as any));
+        return;
+      }
+      if (url.pathname === "/api/brass" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.brassGen(body as any)); return; }
+      if (url.pathname === "/api/wobble" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.wobbleGen(body as any)); return; }
+      if (url.pathname === "/api/choir" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.choirGen(body as any)); return; }
+      if (url.pathname === "/api/subdrop" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.subDropGen(body as any)); return; }
+      if (url.pathname === "/api/pluckbass" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.pluckBassGen(body as any)); return; }
+      if (url.pathname === "/api/sawlead" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.sawLeadGen(body as any)); return; }
+      if (url.pathname === "/api/reese" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.reeseGen(body as any)); return; }
+      if (url.pathname === "/api/marimba" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.marimbaGen(body as any)); return; }
+      if (url.pathname === "/api/glitch" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.glitchGen(body as any)); return; }
+      if (url.pathname === "/api/tapehiss" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.tapeHissGen(body as any)); return; }
+      if (url.pathname === "/api/trumpet" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.trumpetGen(body as any)); return; }
+      if (url.pathname === "/api/epiano" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.ePianoGen(body as any)); return; }
+      if (url.pathname === "/api/musicbox" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.musicBoxGen(body as any)); return; }
+      if (url.pathname === "/api/harp" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.harpGen(body as any)); return; }
+      if (url.pathname === "/api/whistle" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.whistleGen(body as any)); return; }
+      if (url.pathname === "/api/subwobble" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.subWobbleGen(body as any)); return; }
+      if (url.pathname === "/api/vocoder" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.vocoderGen(body as any)); return; }
+      if (url.pathname === "/api/noisefx" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.noiseFxGen(body as any)); return; }
+      if (url.pathname === "/api/cymbal" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.cymbalGen(body as any)); return; }
+      if (url.pathname === "/api/guitar" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.guitarGen(body as any)); return; }
+      if (url.pathname === "/api/sitar" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.sitarGen(body as any)); return; }
+      if (url.pathname === "/api/steeldrum" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.steelDrumGen(body as any)); return; }
+      if (url.pathname === "/api/accordion" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.accordionGen(body as any)); return; }
+      if (url.pathname === "/api/theremin" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.thereminGen(body as any)); return; }
+      if (url.pathname === "/api/hihat808" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.hiHat808Gen(body as any)); return; }
+      if (url.pathname === "/api/stabhit" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.stabHitGen(body as any)); return; }
+      if (url.pathname === "/api/glassbell" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.glassBellGen(body as any)); return; }
+      if (url.pathname === "/api/subkick" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.subKickGen(body as any)); return; }
+      if (url.pathname === "/api/reversesweep" && method === "POST") { const body = await parseBody(req); sendJson(res, 200, await bridge.reverseSweepGen(body as any)); return; }
       if (url.pathname === "/api/audioout" && method === "GET") {
         const buf = bridge.servedAudio(url.searchParams.get("id") || "");
         if (!buf) { res.writeHead(404); res.end("Not found"); return; }

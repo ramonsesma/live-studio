@@ -14,6 +14,39 @@ import { synthStab } from "./core/chordstab.js";
 import { synthBell } from "./core/fmbell.js";
 import { synthImpact } from "./core/impact.js";
 import { setStorageDir } from "./core/storage.js";
+import { synthSubBass } from "./core/subbass.js";
+import { synthOrgan } from "./core/organ.js";
+import { synthVocalChop } from "./core/vocalchop.js";
+import { renderMidi, clipToNotes, type RenderNote } from "./core/render.js";
+import { synthBrass } from "./core/brass.js";
+import { synthWobble } from "./core/wobble.js";
+import { synthChoir } from "./core/choir.js";
+import { synthSubDrop } from "./core/subdrop.js";
+import { synthPluckBass } from "./core/pluckbass.js";
+import { synthSawLead } from "./core/sawlead.js";
+import { synthReese } from "./core/reese.js";
+import { synthMarimba } from "./core/marimba.js";
+import { synthGlitch } from "./core/glitch.js";
+import { synthTapeHiss } from "./core/tapehiss.js";
+import { synthTrumpet } from "./core/trumpet.js";
+import { synthEPiano } from "./core/epiano.js";
+import { synthMusicBox } from "./core/musicbox.js";
+import { synthHarp } from "./core/harp.js";
+import { synthWhistle } from "./core/whistle.js";
+import { synthSubWobble } from "./core/subwobble.js";
+import { synthVocoder } from "./core/vocoder.js";
+import { synthNoiseFX } from "./core/noisefx.js";
+import { synthCymbal } from "./core/cymbal.js";
+import { synthGuitar } from "./core/guitar.js";
+import { synthSitar } from "./core/sitar.js";
+import { synthSteelDrum } from "./core/steeldrum.js";
+import { synthAccordion } from "./core/accordion.js";
+import { synthTheremin } from "./core/theremin.js";
+import { synthHiHat808 } from "./core/hihat808.js";
+import { synthStabHit } from "./core/stabhit.js";
+import { synthGlassBell } from "./core/glassbell.js";
+import { synthSubKick } from "./core/subkick.js";
+import { synthReverseSweep } from "./core/reversesweep.js";
 import { recordNotes } from "./core/history.js";
 import { buildSnapshot, diffSnapshots, applySnapshot, summarize, type Snapshot } from "./core/snapshot.js";
 import { extractFeatures, cosine, tagsFromName, estimateBpm } from "./core/samplebrain.js";
@@ -417,6 +450,85 @@ export class Bridge {
     } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
   }
   async acidGen(req: any): Promise<any> { return this.synthImport(synthAcid, "acid", req, { note: req.params?.note ?? 36, bars: req.params?.bars ?? 1 }); }
+  async subBassGen(req: any): Promise<any> { return this.synthImport(synthSubBass, "subbass", req, { note: req.params?.note ?? 28 }); }
+  async organGen(req: any): Promise<any> { return this.synthImport(synthOrgan, "organ", req, { note: req.params?.note ?? 48, chord: req.params?.chord || "maj" }); }
+  async vocalChopGen(req: any): Promise<any> { return this.synthImport(synthVocalChop, "vchop", req, { note: req.params?.note ?? 60, vowel: req.params?.vowel || "a", bars: req.params?.bars ?? 1 }); }
+  async brassGen(req: any): Promise<any> { return this.synthImport(synthBrass, "brass", req, { note: req.params?.note ?? 55, chord: req.params?.chord || "single" }); }
+  async wobbleGen(req: any): Promise<any> { return this.synthImport(synthWobble, "wobble", req, { note: req.params?.note ?? 36, bars: req.params?.bars ?? 1 }); }
+  async choirGen(req: any): Promise<any> { return this.synthImport(synthChoir, "choir", req, { note: req.params?.note ?? 60, chord: req.params?.chord || "maj", vowel: req.params?.vowel || "a" }); }
+  async subDropGen(req: any): Promise<any> { return this.synthImport(synthSubDrop, "drop", req, { startNote: req.params?.startNote ?? 48, endNote: req.params?.endNote ?? 24 }); }
+  async pluckBassGen(req: any): Promise<any> { return this.synthImport(synthPluckBass, "pbass", req, { note: req.params?.note ?? 36 }); }
+  async sawLeadGen(req: any): Promise<any> { return this.synthImport(synthSawLead, "lead", req, { note: req.params?.note ?? 60 }); }
+  async reeseGen(req: any): Promise<any> { return this.synthImport(synthReese, "reese", req, { note: req.params?.note ?? 36 }); }
+  async marimbaGen(req: any): Promise<any> { return this.synthImport(synthMarimba, "marimba", req, { note: req.params?.note ?? 60 }); }
+  async glitchGen(req: any): Promise<any> { return this.synthImport(synthGlitch, "glitch", req, { bars: req.params?.bars ?? 1, seed: req.params?.seed ?? 1 }); }
+  async tapeHissGen(req: any): Promise<any> { return this.synthImport(synthTapeHiss, "tape", req, { length: req.params?.length ?? 4 }); }
+  async trumpetGen(req: any): Promise<any> { return this.synthImport(synthTrumpet, "trumpet", req, { note: req.params?.note ?? 65 }); }
+  async ePianoGen(req: any): Promise<any> { return this.synthImport(synthEPiano, "epiano", req, { note: req.params?.note ?? 60 }); }
+  async musicBoxGen(req: any): Promise<any> { return this.synthImport(synthMusicBox, "mbox", req, { note: req.params?.note ?? 72 }); }
+  async harpGen(req: any): Promise<any> { return this.synthImport(synthHarp, "harp", req, { note: req.params?.note ?? 60, chord: req.params?.chord || "maj" }); }
+  async whistleGen(req: any): Promise<any> { return this.synthImport(synthWhistle, "whistle", req, { note: req.params?.note ?? 72 }); }
+  async subWobbleGen(req: any): Promise<any> { return this.synthImport(synthSubWobble, "swobble", req, { note: req.params?.note ?? 28, bars: req.params?.bars ?? 1 }); }
+  async vocoderGen(req: any): Promise<any> { return this.synthImport(synthVocoder, "vocoder", req, { note: req.params?.note ?? 60, bars: req.params?.bars ?? 1 }); }
+  async noiseFxGen(req: any): Promise<any> { return this.synthImport(synthNoiseFX, "nfx", req, { type: req.params?.type || "sweep_up" }); }
+  async cymbalGen(req: any): Promise<any> { return this.synthImport(synthCymbal, "cymbal", req, { type: req.params?.type || "crash" }); }
+  async guitarGen(req: any): Promise<any> { return this.synthImport(synthGuitar, "guitar", req, { note: req.params?.note ?? 40, chord: req.params?.chord || "power" }); }
+  async sitarGen(req: any): Promise<any> { return this.synthImport(synthSitar, "sitar", req, { note: req.params?.note ?? 60 }); }
+  async steelDrumGen(req: any): Promise<any> { return this.synthImport(synthSteelDrum, "steel", req, { note: req.params?.note ?? 64 }); }
+  async accordionGen(req: any): Promise<any> { return this.synthImport(synthAccordion, "accordion", req, { note: req.params?.note ?? 60, chord: req.params?.chord || "single" }); }
+  async thereminGen(req: any): Promise<any> { return this.synthImport(synthTheremin, "theremin", req, { note: req.params?.note ?? 72 }); }
+  async hiHat808Gen(req: any): Promise<any> { return this.synthImport(synthHiHat808, "hat808", req, { open: !!req.params?.open }); }
+  async stabHitGen(req: any): Promise<any> { return this.synthImport(synthStabHit, "stab808", req, { note: req.params?.note ?? 60, chord: req.params?.chord || "maj" }); }
+  async glassBellGen(req: any): Promise<any> { return this.synthImport(synthGlassBell, "gbell", req, { note: req.params?.note ?? 72 }); }
+  async subKickGen(req: any): Promise<any> { return this.synthImport(synthSubKick, "skick", req, { note: req.params?.note ?? 24 }); }
+  async reverseSweepGen(req: any): Promise<any> { return this.synthImport(synthReverseSweep, "revsweep", req, {}); }
+
+  // Instrument Render: render any MIDI clip through any in-host engine into a new audio clip.
+  // engine = "sub808" | "subbass" | "pad" | "pluck" | "bell" | "stab" | "organ" | "vocalchop" | "drumsynth"
+  async renderClip(req: { trackIndex?: number; clipIndex?: number; engine?: string; params?: any; import?: boolean; demo?: boolean }): Promise<any> {
+    try {
+      const sr = 44100, engine = req.engine || "pluck";
+      let notes: RenderNote[] = [], srcName = "Demo";
+      if (req.demo) { notes = [60, 64, 67, 72, 67, 64].map((p, i) => ({ pitch: p, startBeat: i * 0.5, durBeats: 0.45, velocity: 100 })); srcName = "Demo melody"; }
+      else { const t = (this.song?.tracks || [])[req.trackIndex as number]; if (!t) return { success: false, error: "Track not found" }; const clip = t.clipSlots?.[req.clipIndex ?? 0]?.clip ?? t.arrangementClips?.[req.clipIndex ?? 0]; notes = clipToNotes(clip); srcName = clip?.name || t.name || "Clip"; if (!notes.length) return { success: false, error: "No MIDI notes in that clip." }; }
+      const tempo = this.song?.tempo || 120;
+      const ENG = {
+        sub808: (n: RenderNote, s: number) => synth808({ ...req.params, note: n.pitch, length: Math.max(0.3, n.durBeats * 60 / tempo + 0.4) }, s),
+        subbass: (n: RenderNote, s: number) => synthSubBass({ ...req.params, note: n.pitch, length: Math.max(0.2, n.durBeats * 60 / tempo) }, s),
+        pad: (n: RenderNote, s: number) => synthPad({ ...req.params, note: n.pitch, chord: "single", length: Math.max(0.5, n.durBeats * 60 / tempo) }, s),
+        pluck: (n: RenderNote, s: number) => synthPluck({ ...req.params, note: n.pitch, chord: "single", length: Math.max(0.4, n.durBeats * 60 / tempo + 0.6) }, s),
+        bell: (n: RenderNote, s: number) => synthBell({ ...req.params, note: n.pitch, length: Math.max(0.4, n.durBeats * 60 / tempo + 0.8) }, s),
+        stab: (n: RenderNote, s: number) => synthStab({ ...req.params, note: n.pitch, chord: "single", length: Math.max(0.15, n.durBeats * 60 / tempo) }, s),
+        organ: (n: RenderNote, s: number) => synthOrgan({ ...req.params, note: n.pitch, chord: "single", length: Math.max(0.3, n.durBeats * 60 / tempo) }, s),
+        vocalchop: (n: RenderNote, s: number) => synthVocalChop({ ...req.params, note: n.pitch, bars: 1 }, s).subarray(0, Math.floor(s * Math.max(0.3, n.durBeats * 60 / tempo))),
+        drumsynth: (n: RenderNote, s: number) => synthDrum(req.params?.type || (n.pitch <= 38 ? "kick" : n.pitch <= 42 ? "snare" : "hat"), { ...req.params }, s),
+        brass: (n: RenderNote, s: number) => synthBrass({ ...req.params, note: n.pitch, chord: "single", length: Math.max(0.3, n.durBeats * 60 / tempo + 0.3) }, s),
+        choir: (n: RenderNote, s: number) => synthChoir({ ...req.params, note: n.pitch, chord: "single", length: Math.max(0.5, n.durBeats * 60 / tempo + 0.6) }, s),
+        pluckbass: (n: RenderNote, s: number) => synthPluckBass({ ...req.params, note: n.pitch, length: Math.max(0.2, n.durBeats * 60 / tempo + 0.3) }, s),
+        sawlead: (n: RenderNote, s: number) => synthSawLead({ ...req.params, note: n.pitch, length: Math.max(0.15, n.durBeats * 60 / tempo + 0.2) }, s),
+        reese: (n: RenderNote, s: number) => synthReese({ ...req.params, note: n.pitch, length: Math.max(0.2, n.durBeats * 60 / tempo) }, s),
+        marimba: (n: RenderNote, s: number) => synthMarimba({ ...req.params, note: n.pitch, length: Math.max(0.3, n.durBeats * 60 / tempo + 0.5) }, s),
+        trumpet: (n: RenderNote, s: number) => synthTrumpet({ ...req.params, note: n.pitch, length: Math.max(0.2, n.durBeats * 60 / tempo + 0.2) }, s),
+        epiano: (n: RenderNote, s: number) => synthEPiano({ ...req.params, note: n.pitch, length: Math.max(0.4, n.durBeats * 60 / tempo + 0.8) }, s),
+        musicbox: (n: RenderNote, s: number) => synthMusicBox({ ...req.params, note: n.pitch, length: Math.max(0.3, n.durBeats * 60 / tempo + 0.8) }, s),
+        harp: (n: RenderNote, s: number) => synthHarp({ ...req.params, note: n.pitch, chord: "single", length: Math.max(0.5, n.durBeats * 60 / tempo + 1) }, s),
+        whistle: (n: RenderNote, s: number) => synthWhistle({ ...req.params, note: n.pitch, length: Math.max(0.3, n.durBeats * 60 / tempo + 0.3) }, s),
+        guitar: (n: RenderNote, s: number) => synthGuitar({ ...req.params, note: n.pitch, chord: "single", length: Math.max(0.2, n.durBeats * 60 / tempo + 0.3) }, s),
+        sitar: (n: RenderNote, s: number) => synthSitar({ ...req.params, note: n.pitch, length: Math.max(0.3, n.durBeats * 60 / tempo + 0.5) }, s),
+        steeldrum: (n: RenderNote, s: number) => synthSteelDrum({ ...req.params, note: n.pitch, length: Math.max(0.3, n.durBeats * 60 / tempo + 0.5) }, s),
+        accordion: (n: RenderNote, s: number) => synthAccordion({ ...req.params, note: n.pitch, chord: "single", length: Math.max(0.3, n.durBeats * 60 / tempo + 0.3) }, s),
+        theremin: (n: RenderNote, s: number) => synthTheremin({ ...req.params, note: n.pitch, endNote: n.pitch, length: Math.max(0.3, n.durBeats * 60 / tempo + 0.3) }, s),
+        glassbell: (n: RenderNote, s: number) => synthGlassBell({ ...req.params, note: n.pitch, length: Math.max(0.3, n.durBeats * 60 / tempo + 0.8) }, s),
+      } as any;
+      const fn = ENG[engine]; if (!fn) return { success: false, error: `Unknown engine: ${engine}` };
+      const samples = renderMidi(notes, tempo, fn, sr);
+      if (!samples.length) return { success: false, error: "Render produced no audio." };
+      const served = this.writeServed(samples, sr, "render");
+      let importedPath: string | null = null;
+      if (req.import !== false && !req.demo && this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(served.file); } catch { importedPath = null; } }
+      return { success: true, data: { source: req.demo ? "demo" : "clip", srcName, engine, tempo, noteCount: notes.length, durSec: Number((samples.length / sr).toFixed(2)), audio: served.url, importedPath, wave: wavePeaks(samples, 280) } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
   async stabGen(req: any): Promise<any> { return this.synthImport(synthStab, "stab", req, { note: req.params?.note ?? 48, chord: req.params?.chord || "min7" }); }
   async bellGen(req: any): Promise<any> { return this.synthImport(synthBell, "bell", req, { note: req.params?.note ?? 60 }); }
   async impactGen(req: any): Promise<any> { return this.synthImport(synthImpact, "impact", req, { note: req.params?.note ?? 28 }); }

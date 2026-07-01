@@ -1,0 +1,15 @@
+window.LiveStudioPanels = window.LiveStudioPanels || {};
+window.LiveStudioPanels.reversesweep = function (panel, helpers) {
+  const api = helpers.api;
+  const PARAMS = [["length","Length (s)",0.3,4,0.1,1.5],["color","Color (pink↔white)",0,1,0.05,0.5],["drive","Drive",0,1,0.05,0.4],["hit","Hit",0,100,5,40]]; let lastAudio = null;
+  panel.innerHTML = `<div class="panel-head"><h1>⏪ Reverse-Sweep</h1><p>A rising noise/tone build that stops hard at a hit — the reverse-cymbal transition into a downbeat.</p></div>
+    <div class="ss-toolbar"><button class="btn" id="rs-go"><i class="ti ti-arrow-big-up" aria-hidden="true"></i> Synthesize &amp; import</button><button class="btn ghost" id="rs-aud"><i class="ti ti-player-play" aria-hidden="true"></i> Audition</button><span class="hint" id="rs-info"></span></div>
+    <div id="rs-params" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 16px;margin-top:12px"></div><div id="rs-wave" style="margin-top:12px"></div><audio id="rs-audio" style="display:none"></audio>`;
+  panel.querySelector("#rs-params").innerHTML = PARAMS.map(([k, l, mn, mx, st, df]) => `<div style="display:flex;align-items:center;gap:8px"><label class="hint" style="width:110px">${l}</label><input class="rs-p" data-k="${k}" type="range" min="${mn}" max="${mx}" step="${st}" value="${df}" style="flex:1" /><span class="hint rs-pv" style="width:44px;text-align:right">${df}</span></div>`).join("");
+  panel.querySelectorAll(".rs-p").forEach((s) => s.oninput = (e) => e.target.parentElement.querySelector(".rs-pv").textContent = e.target.value);
+  function params() { const p = {}; panel.querySelectorAll(".rs-p").forEach((s) => p[s.dataset.k] = +s.value); return p; }
+  function wave(pk) { if (!pk || !pk.length) return ""; const W = 640, H = 90, mid = H / 2, bw = (W - 4) / pk.length; let r = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#13131a;border:1px solid #2f2f36;border-radius:8px"><line x1="0" y1="${mid}" x2="${W}" y2="${mid}" stroke="#22222a"/>`; pk.forEach((p, i) => { const h = Math.max(0.6, p * (H - 10)), x = 2 + i * bw; r += `<rect x="${x.toFixed(1)}" y="${(mid - h / 2).toFixed(1)}" width="${Math.max(0.6, bw - 0.3).toFixed(1)}" height="${h.toFixed(1)}" fill="#c8c8d0" opacity="0.85"/>`; }); return r + `</svg>`; }
+  async function synth(demo) { panel.querySelector("#rs-info").textContent = "Synthesizing…"; const r = await api.post("/api/reversesweep", { params: params(), import: !demo, demo: !!demo }); if (!r.success) { if (!demo) return synth(true); panel.querySelector("#rs-info").textContent = r.error || "Failed"; return; } lastAudio = r.data.audio; panel.querySelector("#rs-wave").innerHTML = wave(r.data.wave); panel.querySelector("#rs-info").textContent = `${r.data.durSec}s${r.data.importedPath ? " · imported" : ""}`; }
+  async function aud() { if (!lastAudio) await synth(true); if (!lastAudio) return; const a = panel.querySelector("#rs-audio"); a.src = lastAudio; a.currentTime = 0; a.play().catch(() => {}); }
+  panel.querySelector("#rs-go").onclick = () => synth(false); panel.querySelector("#rs-aud").onclick = aud; synth(true);
+};

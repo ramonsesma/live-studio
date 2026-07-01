@@ -3,7 +3,7 @@
 const noteHz = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 function norm(x: Float32Array): Float32Array { let m = 0; for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > m) m = a; } if (m > 0) { const g = 0.94 / m; for (let i = 0; i < x.length; i++) x[i] *= g; } return x; }
-const CHORDS: Record<string, number[]> = { maj:[0,4,7], min:[0,3,7], maj7:[0,4,7,11], min7:[0,3,7,10], dom7:[0,4,7,10], sus4:[0,5,7], min9:[0,3,7,10,14] };
+const CHORDS: Record<string, number[]> = { single:[0], maj:[0,4,7], min:[0,3,7], maj7:[0,4,7,11], min7:[0,3,7,10], dom7:[0,4,7,10], sus4:[0,5,7], min9:[0,3,7,10,14] };
 
 export function synthStab(p: any = {}, sr = 44100): Float32Array {
   const root = p.note ?? 48, chord = CHORDS[p.chord] || CHORDS.min7;

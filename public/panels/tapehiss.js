@@ -1,0 +1,15 @@
+window.LiveStudioPanels = window.LiveStudioPanels || {};
+window.LiveStudioPanels.tapehiss = function (panel, helpers) {
+  const api = helpers.api;
+  const PARAMS = [["length","Length (s)",0.5,16,0.5,4],["tone","Tone",0,1,0.05,0.5],["wow","Wow/flutter",0,100,5,35],["crackle","Crackle",0,100,5,25]]; let lastAudio = null;
+  panel.innerHTML = `<div class="panel-head"><h1>📼 Tape Hiss</h1><p>Generate a pink-ish tape/vinyl noise bed with wow/flutter and crackle pops — a lo-fi texture layer.</p></div>
+    <div class="ss-toolbar"><button class="btn" id="th-go"><i class="ti ti-disc" aria-hidden="true"></i> Synthesize &amp; import</button><button class="btn ghost" id="th-aud"><i class="ti ti-player-play" aria-hidden="true"></i> Audition</button><span class="hint" id="th-info"></span></div>
+    <div id="th-params" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 16px;margin-top:12px"></div><div id="th-wave" style="margin-top:12px"></div><audio id="th-audio" style="display:none"></audio>`;
+  panel.querySelector("#th-params").innerHTML = PARAMS.map(([k, l, mn, mx, st, df]) => `<div style="display:flex;align-items:center;gap:8px"><label class="hint" style="width:86px">${l}</label><input class="th-p" data-k="${k}" type="range" min="${mn}" max="${mx}" step="${st}" value="${df}" style="flex:1" /><span class="hint th-pv" style="width:44px;text-align:right">${df}</span></div>`).join("");
+  panel.querySelectorAll(".th-p").forEach((s) => s.oninput = (e) => e.target.parentElement.querySelector(".th-pv").textContent = e.target.value);
+  function params() { const p = {}; panel.querySelectorAll(".th-p").forEach((s) => p[s.dataset.k] = +s.value); return p; }
+  function wave(pk) { if (!pk || !pk.length) return ""; const W = 640, H = 90, mid = H / 2, bw = (W - 4) / pk.length; let r = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#13131a;border:1px solid #2f2f36;border-radius:8px"><line x1="0" y1="${mid}" x2="${W}" y2="${mid}" stroke="#22222a"/>`; pk.forEach((p, i) => { const h = Math.max(0.6, p * (H - 10)), x = 2 + i * bw; r += `<rect x="${x.toFixed(1)}" y="${(mid - h / 2).toFixed(1)}" width="${Math.max(0.6, bw - 0.3).toFixed(1)}" height="${h.toFixed(1)}" fill="#9a9a9a" opacity="0.7"/>`; }); return r + `</svg>`; }
+  async function synth(demo) { panel.querySelector("#th-info").textContent = "Synthesizing…"; const r = await api.post("/api/tapehiss", { params: params(), import: !demo, demo: !!demo }); if (!r.success) { if (!demo) return synth(true); panel.querySelector("#th-info").textContent = r.error || "Failed"; return; } lastAudio = r.data.audio; panel.querySelector("#th-wave").innerHTML = wave(r.data.wave); panel.querySelector("#th-info").textContent = `${r.data.durSec}s${r.data.importedPath ? " · imported" : ""}`; }
+  async function aud() { if (!lastAudio) await synth(true); if (!lastAudio) return; const a = panel.querySelector("#th-audio"); a.src = lastAudio; a.currentTime = 0; a.play().catch(() => {}); }
+  panel.querySelector("#th-go").onclick = () => synth(false); panel.querySelector("#th-aud").onclick = aud; synth(true);
+};
