@@ -92,7 +92,7 @@ export class MasterRegistry {
   addTool(moduleId: string, def: Omit<ToolDefinition, "module" | "originalName" | "demo">, handler: (args: Record<string, unknown>) => Promise<ToolResult> | ToolResult): void {
     const fqName = `${moduleId}__${def.name}`;
     if (this.handlers.has(fqName)) return; // don't shadow an existing tool
-    this.definitions.push({ ...def, category: moduleId, module: moduleId, originalName: def.name, demo: DEMO_TOOLS.has(fqName) });
+    this.definitions.push({ ...def, name: fqName, category: moduleId, module: moduleId, originalName: def.name, demo: DEMO_TOOLS.has(fqName) });
     this.handlers.set(fqName, (args) => handler(args));
     const mod = this.modules.find((m) => m.id === moduleId);
     if (mod) mod.toolCount++;

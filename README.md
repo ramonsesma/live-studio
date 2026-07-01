@@ -6,17 +6,17 @@
 
 <p align="center">
   <b>A modular super-extension for Ableton Live.</b><br/>
-  132 modules · 370 tools · 83 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
+  132 modules · 382 tools · 83 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/modules-132-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-370-6cc6ff" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-382-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-83-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-104-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-256%20%E2%9C%93-2ea043" />
-  <img alt="bundle" src="https://img.shields.io/badge/bundle-822%20KB-888" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-271%20%E2%9C%93-2ea043" />
+  <img alt="bundle" src="https://img.shields.io/badge/bundle-832%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.es.md"><img alt="readme in Spanish" src="https://img.shields.io/badge/README-Espa%C3%B1ol-yellow" /></a>
 </p>
@@ -39,13 +39,13 @@ of each concept into one place.
 
 ## ✨ Features
 
-- **132 modules** (all visible) with **370 real tools** across categories: music
+- **132 modules** (all visible) with **382 real tools** across categories: music
   generation, drums, mixing/mastering, EQ/analysis, synthesis, sampling, arrangement,
   performance/live, MIDI, hardware/control, project management, audio↔MIDI conversion and more.
 - **AI copilot** (OpenRouter / OpenAI / OpenCode Zen) with a *tool-calling* loop: it discovers and
-  runs **any of the 370 tools** through a meta-toolkit (`find_tools` searches the whole suite,
+  runs **any of the 382 tools** through a meta-toolkit (`find_tools` searches the whole suite,
   `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
-- **Quick command palette** (`⌘K`): indexes the **370 tools** + **83 quick actions**
+- **Quick command palette** (`⌘K`): indexes the **382 tools** + **83 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
 - **104 curated rich panels** where the auto-generated form falls short: piano-roll, clip
   graph, mixer with faders/VU, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
@@ -53,8 +53,8 @@ of each concept into one place.
   session health, performance pad, version diff…
 - **Auto-generated UI** for everything else: any new module shows up with its form without
   writing HTML, reading its tool definitions.
-- **Lightweight**: ~822 KB bundle, no frontend frameworks.
-- **Tested**: 256 end-to-end smoke tests of the server + modules.
+- **Lightweight**: ~832 KB bundle, no frontend frameworks.
+- **Tested**: 271 end-to-end smoke tests of the server + modules.
 
 ## 📸 Screenshots
 
@@ -72,7 +72,7 @@ of each concept into one place.
   <tr>
     <td align="center">
       <img src="assets/screenshots/03-palette.svg" alt="Command palette" width="100%" /><br/>
-      <sub><b>⌘K command palette</b> — mixes 370 real tools and 83 quick actions in one search.</sub>
+      <sub><b>⌘K command palette</b> — mixes 382 real tools and 83 quick actions in one search.</sub>
     </td>
     <td align="center">
       <img src="assets/screenshots/04-mixconsole.svg" alt="Mix Console" width="100%" /><br/>
@@ -201,7 +201,7 @@ and add it to `index.html`. `shell.js` uses it instead of the autoform. There ar
 ```bash
 npm run build       # compile (esbuild)
 npm run typecheck   # tsc --noEmit
-npm run test        # 256 smoke tests (server + modules, simulated song)
+npm run test        # 271 smoke tests (server + modules, simulated song)
 npm run package     # build + package .ablx with the UI
 ```
 

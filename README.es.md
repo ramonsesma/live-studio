@@ -6,17 +6,17 @@
 
 <p align="center">
   <b>Una super-extensión modular para Ableton Live.</b><br/>
-  132 módulos · 370 tools · 83 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
+  132 módulos · 382 tools · 83 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-132-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-370-6cc6ff" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-382-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-83-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-104-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-256%20%E2%9C%93-2ea043" />
-  <img alt="bundle" src="https://img.shields.io/badge/bundle-822%20KB-888" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-271%20%E2%9C%93-2ea043" />
+  <img alt="bundle" src="https://img.shields.io/badge/bundle-832%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.md"><img alt="readme in English" src="https://img.shields.io/badge/README-English-yellow" /></a>
 </p>
@@ -38,13 +38,13 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 
 ## ✨ Características
 
-- **132 módulos** (todos visibles) con **370 tools reales** repartidos por categorías:
+- **132 módulos** (todos visibles) con **382 tools reales** repartidos por categorías:
   generación musical, drums, mezcla/mastering, EQ/análisis, síntesis, sampling, arreglo,
   performance/live, MIDI, hardware/control, gestión de proyectos, conversión audio↔MIDI y más.
 - **Copiloto IA** (OpenRouter / OpenAI / OpenCode Zen) con loop de *tool-calling*: descubre y
-  ejecuta **cualquiera de los 370 tools** mediante un kit de meta-tools (`find_tools` busca en
+  ejecuta **cualquiera de los 382 tools** mediante un kit de meta-tools (`find_tools` busca en
   toda la suite, `list_modules` navega, `run_tool` ejecuta) — alcanza todo sin saturar al modelo.
-- **Paleta de comandos rápidos** (`⌘K`): indexa los **370 tools** + **83 quick actions**
+- **Paleta de comandos rápidos** (`⌘K`): indexa los **382 tools** + **83 quick actions**
   (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
 - **104 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
   grafo de clips, mixer con faders/VU, rejillas de pasos y pads, mapa de drums, comping, curva EQ,
@@ -52,8 +52,8 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
   staging, rack builder, salud de sesión, pad de directo, diff de versiones…
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
-- **Ligero**: bundle de ~822 KB, sin frameworks de frontend.
-- **Probado**: 256 pruebas de humo end-to-end del servidor + módulos.
+- **Ligero**: bundle de ~832 KB, sin frameworks de frontend.
+- **Probado**: 271 pruebas de humo end-to-end del servidor + módulos.
 
 ## 📸 Vistas
 
@@ -175,7 +175,7 @@ y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 104, e
 ```bash
 npm run build       # compila (esbuild)
 npm run typecheck   # tsc --noEmit
-npm run test        # 256 pruebas de humo (servidor + módulos, song simulado)
+npm run test        # 271 pruebas de humo (servidor + módulos, song simulado)
 npm run package     # build + empaqueta .ablx con la UI
 ```
 

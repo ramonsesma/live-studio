@@ -69,6 +69,13 @@ const allTools = (await get("/api/tools")).tools;
 check("GET /api/tools agrega todos los tools", allTools.length >= 240, "n=" + allTools.length);
 const drumTools = (await get("/api/tools?module=drums")).tools;
 check("filtro por módulo (drums)", drumTools.length === 3 && drumTools.every((t: any) => t.module === "drums"));
+// Regression check: MasterRegistry.addTool (used to wire Bridge-backed tools like resonance's
+// masking matrix into the copilot) must expose the fully-qualified name in its definition, not
+// just key the handler correctly — otherwise find_tools/run_tool can't discover it at all even
+// though direct /api/execute calls with the right name still work (which is how this slipped by).
+check("addTool expone el nombre calificado (module__name), no solo el handler", allTools.some((t: any) => t.name === "resonance__mask_matrix") && allTools.some((t: any) => t.name === "stemexport__export") && allTools.some((t: any) => t.name === "mixcoach__analyze"));
+const bridgeToolViaFind = bridge.findTools("masking matrix");
+check("find_tools descubre los tools de addTool con su nombre real", bridgeToolViaFind.some((t: any) => t.name === "resonance__mask_matrix"));
 
 // 3. execute: tool sin song
 const genres = await post("/api/execute", { name: "drums__get_genres", args: {} });
