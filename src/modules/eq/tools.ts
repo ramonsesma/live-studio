@@ -52,23 +52,10 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"suggest_eq", description:"Get suggested EQ settings for a track", category:"analysis", parameters:{ track_index:{type:"number",description:"Track",required:true}, target_genre:{type:"string",description:"Target genre",required:false} } },
-    async (args: any) => {
-      const suggestions: any[] = [
-        { band:"low", freq:100, gain:2, q:0.7, reason:"Add warmth to bass" },
-        { band:"low_mid", freq:300, gain:-1.5, q:1.2, reason:"Remove boxiness" },
-        { band:"high_mid", freq:3000, gain:2, q:0.8, reason:"Add clarity" },
-        { band:"high", freq:10000, gain:1, q:0.5, reason:"Add air" }
-      ];
-      if (args.target_genre === "rock") suggestions.push({ band:"mid", freq:2000, gain:3, q:1, reason:"Rock guitar presence" });
-      if (args.target_genre === "electronic") suggestions.push({ band:"sub", freq:60, gain:4, q:0.5, reason:"Electronic sub bass" });
-      return { success:true, data:{ trackIndex:args.track_index, suggestions } };
-    }
-  );
-
-  reg.register({ name:"get_sidechain_suggestions", description:"Get side-chain compression suggestions", category:"analysis", parameters:{ trigger_track:{type:"number",description:"Trigger track",required:true}, target_track:{type:"number",description:"Target track",required:true} } },
-    async (args: any) => ({ success:true, data:{ suggestions:[{ type:"sidechain", trigger:args.trigger_track, target:args.target_track, ratio:4, attack:1, release:50, threshold:-20 }] } })
-  );
+  // suggest_eq / get_sidechain_suggestions used to return the exact same generic advice
+  // regardless of the track's actual content. Real, render-analyzed versions of both are
+  // registered directly on the Bridge (see registerBridgeTools in bridge.ts), which can reach
+  // resources.renderPreFxAudio — a plain (args, song) module handler here can't.
 
   return reg;
 }

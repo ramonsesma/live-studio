@@ -148,6 +148,13 @@ export class Bridge {
 
     this.registry.addTool("mixcoach", { name: "analyze", description: "Run health/masking/gain-staging analysis together and return a single prioritized list of next steps, each with the exact tool+args to act on it.", category: "coach", parameters: { demo: { type: "boolean", description: "Use synthetic demo data instead of rendering", required: false } } },
       (args) => this.mixCoach({ demo: !!args.demo }));
+
+    this.registry.addTool("eq", { name: "suggest_eq", description: "Get EQ suggestions from the track's REAL rendered spectrum (falls back to generic starting points if it can't be rendered)", category: "analysis", parameters: { track_index: { type: "number", description: "Track", required: true }, demo: { type: "boolean", description: "Use a synthetic demo stem instead of rendering", required: false } } },
+      (args) => this.suggestEq({ trackIndex: args.track_index as number, demo: !!args.demo }));
+    this.registry.addTool("eq", { name: "get_sidechain_suggestions", description: "Get side-chain compression suggestions with a real tempo-synced release time, and (when both tracks can render) a real low-end overlap check", category: "analysis", parameters: { trigger_track: { type: "number", description: "Trigger track", required: true }, target_track: { type: "number", description: "Target track", required: true }, demo: { type: "boolean", description: "Use synthetic demo stems instead of rendering", required: false } } },
+      (args) => this.suggestSidechain({ triggerTrack: args.trigger_track as number, targetTrack: args.target_track as number, demo: !!args.demo }));
+    this.registry.addTool("mixassistant", { name: "suggest_eq", description: "Get EQ suggestions from the track's REAL rendered spectrum (falls back to generic starting points if it can't be rendered)", category: "mixing", parameters: { track_index: { type: "number", description: "Track index", required: true }, demo: { type: "boolean", description: "Use a synthetic demo stem instead of rendering", required: false } } },
+      (args) => this.suggestEq({ trackIndex: args.track_index as number, demo: !!args.demo }));
   }
 
   getTools() { return this.registry.getDefinitionsJson(); }
@@ -179,6 +186,58 @@ export class Bridge {
       const end = req.endBeat ?? Math.max(start + 4, start + 4);
       const wavPath: string = await this.resources.renderPreFxAudio(track, start, end);
       return { success: true, data: { source: "render", trackName: track.name, analysis: analyzeWavFile(wavPath) } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // Real, content-driven EQ suggestions: render the track (or use a synthetic demo stem),
+  // FFT-analyze it, and flag zones that are actually hot/thin relative to the track's own
+  // average — instead of always returning the same fixed 4 bands regardless of what's on the
+  // track. Falls back to honest generic starting points only when no render is possible.
+  async suggestEq(req: { trackIndex?: number; demo?: boolean } = {}): Promise<any> {
+    const GENERIC = [
+      { band: "low", freq: 80, type: "highpass", gain: -6, q: 0.7, reason: "Generic starting point — remove sub rumble" },
+      { band: "low_mid", freq: 300, type: "bell", gain: -3, q: 1.2, reason: "Generic starting point — reduce boxiness" },
+      { band: "high_mid", freq: 3000, type: "bell", gain: 2, q: 1.5, reason: "Generic starting point — add presence" },
+      { band: "high", freq: 10000, type: "highshelf", gain: 1.5, q: 0.7, reason: "Generic starting point — add air" },
+    ];
+    try {
+      const r = await this.listen({ trackIndex: req.trackIndex, demo: req.demo });
+      if (!r.success || !r.data) return { success: true, data: { advisory: true, note: `No real analysis available (${r.error}) — showing generic starting points instead.`, trackIndex: req.trackIndex, suggestions: GENERIC } };
+      const bands = r.data.analysis.bands;
+      const zoneMax = (lo: number, hi: number) => Math.max(0, ...bands.filter((b) => b.f0 >= lo && b.f0 < hi).map((b) => b.norm));
+      const avg = bands.reduce((a, b) => a + b.norm, 0) / bands.length;
+      const sub = zoneMax(20, 100), box = zoneMax(150, 500), harsh = zoneMax(2000, 5000), air = zoneMax(8000, 20000);
+      const suggestions: any[] = [];
+      if (sub > 0.35) suggestions.push({ band: "low", freq: 80, type: "highpass", gain: -6, q: 0.7, reason: `Real sub-rumble detected below 100Hz (energy ${sub.toFixed(2)}) — high-pass to clean it up` });
+      if (box > avg + 0.15) suggestions.push({ band: "low_mid", freq: 300, type: "bell", gain: -3, q: 1.2, reason: `Boxiness detected around 150-500Hz (${box.toFixed(2)} vs avg ${avg.toFixed(2)})` });
+      if (harsh > avg + 0.15) suggestions.push({ band: "high_mid", freq: 3000, type: "bell", gain: -2, q: 1.5, reason: `Harshness detected 2-5kHz (${harsh.toFixed(2)} vs avg ${avg.toFixed(2)})` });
+      else if (harsh < avg - 0.1) suggestions.push({ band: "high_mid", freq: 3000, type: "bell", gain: 2, q: 1.5, reason: "Presence band (2-5kHz) is under-energized relative to the rest of the track" });
+      if (air < avg - 0.05) suggestions.push({ band: "high", freq: 10000, type: "highshelf", gain: 1.5, q: 0.7, reason: "Little energy above 8kHz — could use some air" });
+      if (!suggestions.length) suggestions.push({ band: "none", freq: 1000, type: "none", gain: 0, q: null, reason: "Spectrum looks balanced — no strong corrective move stood out." });
+      return { success: true, data: { source: r.data.source, trackName: r.data.trackName, trackIndex: req.trackIndex, suggestions } };
+    } catch (err: any) {
+      return { success: true, data: { advisory: true, note: `Analysis failed (${err?.message || err}) — showing generic starting points instead.`, trackIndex: req.trackIndex, suggestions: GENERIC } };
+    }
+  }
+
+  // Sidechain suggestion with a real, tempo-synced release time (instead of a fixed 50ms), and
+  // — when both tracks can be rendered — a real check of how much they actually overlap in the
+  // low end, which is the whole reason to sidechain in the first place.
+  async suggestSidechain(req: { triggerTrack?: number; targetTrack?: number; demo?: boolean } = {}): Promise<any> {
+    try {
+      const tempo = this.song?.tempo || 120;
+      const sixteenthMs = (60000 / tempo) / 4;
+      const release = Math.max(10, Math.round(sixteenthMs * 0.9));
+      const base = { type: "sidechain", trigger: req.triggerTrack, target: req.targetTrack, ratio: 4, attack: 1, release, threshold: -20, releaseNote: "1/16 note @ current tempo", tempo };
+      const trig = await this.listen({ trackIndex: req.triggerTrack, demo: req.demo });
+      const targ = await this.listen({ trackIndex: req.targetTrack, demo: req.demo });
+      if (!trig.success || !targ.success || !trig.data || !targ.data) return { success: true, data: { advisory: true, note: "Couldn't render both tracks for a real low-end overlap check — using tempo-synced defaults only.", suggestions: [base] } };
+      const lowEnergy = (bands: any[]) => Math.max(0, ...bands.filter((b: any) => b.f0 < 200).map((b: any) => b.norm));
+      const overlap = Math.min(lowEnergy(trig.data.analysis.bands), lowEnergy(targ.data.analysis.bands));
+      const stronger = { ...base, ratio: overlap > 0.5 ? 6 : overlap > 0.25 ? 4 : 2, lowEndOverlap: Number(overlap.toFixed(2)), note: overlap > 0.5 ? "Strong real low-end overlap — a firm ratio is warranted." : overlap > 0.25 ? "Moderate low-end overlap." : "Low real overlap — a gentle ratio (or none) may be enough." };
+      return { success: true, data: { suggestions: [stronger] } };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }

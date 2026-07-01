@@ -5,6 +5,10 @@ import {
   type Clip,
   type Device,
 } from "@ableton-extensions/sdk";
+import { saveJson } from "../../core/storage.js";
+// Same storage namespace the `templates` module reads — a template generated here is a real,
+// reusable, appliable template via templates__apply_template, not just a returned description.
+const TEMPLATE_SUB = "project_templates";
 
 type V = "1.0.0";
 
@@ -92,36 +96,25 @@ export function createToolRegistry(): ToolRegistry {
   );
 
   reg.register(
-    { name: "auto_organize_tracks", description: "Auto-organize tracks into categories and folders", category: "organization", parameters: { namingConvention: { type: "string", description: "Naming convention (default: 'Genre_Artist_TrackType')", required: false }, createFolders: { type: "boolean", description: "Create folders for track categories", required: false } } },
+    { name: "auto_organize_tracks", description: "Rename tracks by category (real). createFolders is advisory — the SDK has no API to create track groups/folders.", category: "organization", parameters: { namingConvention: { type: "string", description: "Naming convention (default: 'Genre_Artist_TrackType')", required: false }, createFolders: { type: "boolean", description: "Suggest a folder label per category (advisory — not actually created)", required: false } } },
     async (args, song) => {
       const namingConvention = args.namingConvention as string || "Genre_Artist_TrackType";
-      const createFolders = args.createFolders as boolean || true;
+      const createFolders = args.createFolders as boolean || false;
 
       const trackCategories = categorizeTracks(song);
-      const organized: Array<{ originalIndex: number; newName: string; folder?: string }> = [];
+      const organized: Array<{ originalIndex: number; newName: string; suggestedFolder?: string }> = [];
 
       for (const [category, tracks] of Object.entries(trackCategories)) {
         for (const track of tracks) {
           const trackIndex = song.tracks.indexOf(track);
           const newName = generateTrackName(song, track, category, namingConvention);
-          const folder = createFolders ? getFolderForCategory(category) : undefined;
-
           track.name = newName;
-
-          if (folder && createFolders) {
-            // Note: Folder creation would require additional API calls
-            // This is a placeholder for the folder creation logic
-          }
-
-          organized.push({
-            originalIndex: trackIndex,
-            newName,
-            folder
-          });
+          organized.push({ originalIndex: trackIndex, newName, suggestedFolder: createFolders ? getFolderForCategory(category) : undefined });
         }
       }
 
-      return { success: true, data: { organized } };
+      const extra = createFolders ? { advisory: true, note: "Folders/groups aren't creatable via the SDK — suggestedFolder is a label only. Group tracks manually in Live (Cmd/Ctrl+G) using it as a guide." } : {};
+      return { success: true, data: { organized, ...extra } };
     }
   );
 
@@ -205,24 +198,32 @@ export function createToolRegistry(): ToolRegistry {
   );
 
   reg.register(
-    { name: "create_session_template", description: "Create a session template based on genre and style", category: "templates", parameters: { genre: { type: "string", description: "Genre (pop, rock, jazz, electronic, hiphop)", required: true }, tempo: { type: "number", description: "Tempo", required: false }, key: { type: "string", description: "Key", required: false } } },
+    { name: "create_session_template", description: "Create a REAL, reusable session template based on genre — persists to disk and can be applied for real via templates__apply_template", category: "templates", parameters: { genre: { type: "string", description: "Genre (pop, rock, jazz, electronic, hiphop)", required: true }, tempo: { type: "number", description: "Tempo", required: false }, key: { type: "string", description: "Key", required: false } } },
     async (args, song) => {
       const genre = args.genre as string;
       const tempo = args.tempo as number || 120;
       const key = args.key as string || "C major";
+      const trackSpec = createTemplateTracks(genre);
 
       const template = {
         name: `${genre} Session Template`,
         description: `Standard ${genre} session structure`,
         tempo,
         key,
-        tracks: createTemplateTracks(genre),
+        tracks: trackSpec,
         scenes: createTemplateScenes(genre),
         effects: createTemplateEffects(genre),
         workflow: createTemplateWorkflow(genre)
       };
 
-      return { success: true, data: template };
+      // Persist as a real, appliable template — same store templates__list_templates/
+      // apply_template read from. No device chains here (this genre catalog doesn't specify
+      // any); templates__apply_template will simply create the tracks with no devices.
+      const id = `tpl_${Date.now()}_org`;
+      const structure = trackSpec.map((t) => ({ name: t.name, kind: t.type === "AudioTrack" ? "audio" : "midi", devices: [] as string[] }));
+      saveJson(TEMPLATE_SUB, id, { id, name: template.name, timestamp: new Date().toISOString(), builtin: false, structure });
+
+      return { success: true, data: { ...template, templateId: id, applyWith: `templates__apply_template({ template_id: "${id}" })` } };
     }
   );
 

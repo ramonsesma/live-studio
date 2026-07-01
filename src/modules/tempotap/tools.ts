@@ -53,7 +53,7 @@ export function createToolRegistry() {
   );
 
   reg.register({ name:"tap_reset", description:"Reset tap history", category:"tempo", parameters:{} },
-    async () => ({ success:true, data:{ reset:true, tapsCleared:5 } })
+    async () => { const n = taps.length; taps.length = 0; return { success:true, data:{ reset:true, tapsCleared:n } }; }
   );
 
   return reg;

@@ -16,33 +16,51 @@ export class ToolRegistry {
   getDefinitionsJson() { return this.definitions; }
 }
 
+// Named bar-length structures per `sections` arg — this is what actually varies the plan,
+// since we have no way to know real instrumentation from a style name alone.
+const STRUCTURES: Record<string, { name: string; bars: number }[]> = {
+  "intro-verse-chorus": [{ name:"Intro", bars:8 }, { name:"Verse 1", bars:16 }, { name:"Chorus", bars:16 }, { name:"Verse 2", bars:16 }, { name:"Chorus 2", bars:16 }, { name:"Bridge", bars:8 }, { name:"Chorus 3", bars:16 }, { name:"Outro", bars:8 }],
+  "verse-chorus-bridge": [{ name:"Verse 1", bars:16 }, { name:"Chorus", bars:16 }, { name:"Verse 2", bars:16 }, { name:"Chorus 2", bars:16 }, { name:"Bridge", bars:8 }, { name:"Chorus 3", bars:16 }],
+  "ambient-flow": [{ name:"Intro", bars:16 }, { name:"Flow A", bars:32 }, { name:"Flow B", bars:32 }, { name:"Flow C", bars:32 }, { name:"Outro", bars:16 }],
+};
+// Energy shapes actually change the per-section energy value, not just decorate it.
+function energyAt(curve: string, i: number, n: number): number {
+  const t = n > 1 ? i / (n - 1) : 0;
+  if (curve === "build") return Number((0.15 + t * 0.85).toFixed(2));
+  if (curve === "flat") return 0.6;
+  if (curve === "wave") return Number((0.5 + 0.4 * Math.sin(t * Math.PI * 2)).toFixed(2));
+  // "arc" (default): rises to a peak around 2/3 through, then falls
+  const peak = 0.66;
+  const arc = t < peak ? t / peak : 1 - (t - peak) / (1 - peak);
+  return Number((0.15 + arc * 0.85).toFixed(2));
+}
+
 export function createToolRegistry() {
   const reg = new ToolRegistry();
+  // The last generated plan — apply_arrangement uses it if present, so generate_arrangement's
+  // args actually reach the timeline instead of apply_arrangement using its own fixed template.
+  let lastPlan: { name: string; bars: number; energy: number }[] | null = null;
 
-  reg.register({ name:"generate_arrangement", description:"Generate full song arrangement from clips", category:"arranger", parameters:{ style:{type:"string",description:"Genre style",required:false,enum:["electronic","pop","hiphop","ambient","techno","house"]}, energy_curve:{type:"string",description:"Energy shape",required:false,enum:["arc","wave","build","flat"]}, sections:{type:"string",description:"Section structure",required:false,enum:["intro-verse-chorus","verse-chorus-bridge","ambient-flow"]} } },
+  reg.register({ name:"generate_arrangement", description:"Generate a real arrangement plan (section names/bars/energy) that respects style/sections/energy_curve — apply_arrangement then drops THIS plan onto the timeline", category:"arranger", parameters:{ style:{type:"string",description:"Genre style (label only — track instrumentation isn't known here)",required:false,enum:["electronic","pop","hiphop","ambient","techno","house"]}, energy_curve:{type:"string",description:"Energy shape",required:false,enum:["arc","wave","build","flat"]}, sections:{type:"string",description:"Section structure",required:false,enum:["intro-verse-chorus","verse-chorus-bridge","ambient-flow"]} } },
     async (args: any) => {
-      const sections = [
-        { name:"Intro", bars:8, energy:0.2, tracks:[0,1] },
-        { name:"Verse 1", bars:16, energy:0.4, tracks:[0,1,2] },
-        { name:"Chorus", bars:16, energy:0.9, tracks:[0,1,2,3] },
-        { name:"Verse 2", bars:16, energy:0.5, tracks:[0,1,2] },
-        { name:"Chorus", bars:16, energy:1.0, tracks:[0,1,2,3] },
-        { name:"Bridge", bars:8, energy:0.3, tracks:[0,3] },
-        { name:"Chorus", bars:16, energy:1.0, tracks:[0,1,2,3] },
-        { name:"Outro", bars:8, energy:0.1, tracks:[0] }
-      ];
-      return { success:true, data:{ generated:true, style:args.style||"electronic", sections, totalBars:96 } };
+      const structureName = args.sections || "intro-verse-chorus";
+      const structure = STRUCTURES[structureName] || STRUCTURES["intro-verse-chorus"];
+      const curve = args.energy_curve || "arc";
+      const sections = structure.map((s, i) => ({ name:s.name, bars:s.bars, energy: energyAt(curve, i, structure.length) }));
+      lastPlan = sections;
+      const totalBars = sections.reduce((a, s) => a + s.bars, 0);
+      return { success:true, data:{ generated:true, style:args.style||"electronic", sectionStructure:structureName, energyCurve:curve, sections, totalBars } };
     }
   );
 
-  reg.register({ name:"apply_arrangement", description:"Drop the generated arrangement onto the timeline as named section locators (cue points)", category:"arranger", parameters:{ overwrite:{type:"boolean",description:"Clear existing locators first",required:false} } },
+  reg.register({ name:"apply_arrangement", description:"Drop the last generated arrangement (or the default template, if none was generated yet) onto the timeline as named section locators (cue points)", category:"arranger", parameters:{ overwrite:{type:"boolean",description:"Clear existing locators first",required:false} } },
     async (args: any, song: any) => {
       if (!song?.createCuePoint) return { success:false, error:"Cue points are only available inside Live." };
-      const sections = [["Intro",8],["Verse 1",16],["Chorus",16],["Verse 2",16],["Chorus 2",16],["Bridge",8],["Chorus 3",16],["Outro",8]] as [string, number][];
+      const plan = lastPlan || STRUCTURES["intro-verse-chorus"].map((s, i, arr) => ({ name:s.name, bars:s.bars, energy: energyAt("arc", i, arr.length) }));
       if (args.overwrite) { for (const c of [...(song.cuePoints || [])]) { try { await song.deleteCuePoint(c); } catch {} } }
       let bar = 0; const markers: any[] = [];
-      for (const [name, bars] of sections) { try { const cue = await song.createCuePoint(bar * 4); if (cue && "name" in cue) { try { cue.name = name; } catch {} } markers.push({ name, bar }); } catch {} bar += bars; }
-      return { success:true, data:{ applied:true, sections: markers.length, totalBars: bar, markers } };
+      for (const s of plan) { try { const cue = await song.createCuePoint(bar * 4); if (cue && "name" in cue) { try { cue.name = s.name; } catch {} } markers.push({ name:s.name, bar, energy:s.energy }); } catch {} bar += s.bars; }
+      return { success:true, data:{ applied:true, usedGeneratedPlan: !!lastPlan, sections: markers.length, totalBars: bar, markers } };
     }
   );
 

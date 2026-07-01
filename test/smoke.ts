@@ -140,6 +140,13 @@ const ana2 = await post("/api/execute", { name: "organizer__analyze_session_stru
 check("organizer__analyze_session_structure (efficiency)", ana2.success && typeof ana2.data.efficiencyScore === "number");
 const tplg = await post("/api/execute", { name: "organizer__create_session_template", args: { genre: "electronic" } });
 check("organizer__create_session_template", tplg.success && tplg.data.tracks.length > 0);
+check("organizer.create_session_template persiste un template real y appliable", tplg.success && !!tplg.data.templateId);
+const orgApplySong: any = { tracks: [] as any[] };
+const orgMakeTrack = () => { const t: any = { _n: "", get name() { return this._n; }, set name(v: any) { this._n = v; } }; orgApplySong.tracks.push(t); return t; };
+orgApplySong.createMidiTrack = async () => orgMakeTrack();
+orgApplySong.createAudioTrack = async () => orgMakeTrack();
+const tplgApply = await reg.execute("templates__apply_template", { template_id: tplg.data.templateId }, orgApplySong);
+check("el template de organizer se puede aplicar de verdad vía templates__apply_template", tplgApply.success && tplgApply.data.tracksCreated === tplg.data.tracks.length);
 const exp = await post("/api/execute", { name: "organizer__export_session_info", args: { format: "json" } });
 check("organizer__export_session_info json", exp.success && exp.data.content.includes("metadata"));
 const panelJs = await fetch(base + "/panels/organizer.js");
@@ -214,9 +221,33 @@ const drumSong: any = { tracks: [{ name: "Drums", clipSlots: [{ clip: { name: "b
 const drp = await reg.execute("drumreplace__replace_drum", { track_index: 0, clip_index: 0, drum_type: "kick" }, drumSong);
 check("drumreplace__replace_drum extrae los golpes reales de kick", drp.success && drp.data.advisory && drp.data.hitCount === 1);
 const gar = await post("/api/execute", { name: "genarranger__generate_arrangement", args: { style: "techno" } });
-check("genarranger__generate_arrangement", gar.success && gar.data.totalBars === 96);
+check("genarranger__generate_arrangement (plan real, totalBars = suma real de secciones)", gar.success && gar.data.totalBars === 104 && gar.data.sections.reduce((a: number, s: any) => a + s.bars, 0) === 104);
+const garBuild = await post("/api/execute", { name: "genarranger__generate_arrangement", args: { sections: "ambient-flow", energy_curve: "build" } });
+check("genarranger respeta sections/energy_curve de verdad (no ignora los args)", garBuild.success && garBuild.data.sections.length === 5 && garBuild.data.sections[0].name === "Intro" && garBuild.data.sections[0].energy < garBuild.data.sections[garBuild.data.sections.length - 1].energy);
+await post("/api/execute", { name: "genarranger__generate_arrangement", args: {} }); // reset lastPlan to the default structure for the later apply_arrangement test
 const stl = await post("/api/execute", { name: "setlist__create_setlist", args: { name: "Live Set" } });
 check("setlist__create_setlist", stl.success && stl.data.setlistId.startsWith("set_"));
+const stlAdd = await post("/api/execute", { name: "setlist__add_song", args: { setlist_id: stl.data.setlistId, song_name: "Opener", tempo: 128 } });
+check("setlist__add_song persiste de verdad (no es un eco)", stlAdd.success && stlAdd.data.songCount === 1);
+const stlAdd2 = await post("/api/execute", { name: "setlist__add_song", args: { setlist_id: stl.data.setlistId, song_name: "Closer", tempo: 100 } });
+const stlReorder = await post("/api/execute", { name: "setlist__reorder_setlist", args: { setlist_id: stl.data.setlistId, song_index: 1, new_position: 0 } });
+check("setlist__reorder_setlist reordena de verdad", stlReorder.success && stlReorder.data.songs[0] === "Closer" && stlReorder.data.songs[1] === "Opener");
+const stlList = await post("/api/execute", { name: "setlist__list_setlists", args: {} });
+check("setlist__list_setlists ve el guardado", stlList.success && stlList.data.setlists.some((s: any) => s.id === stl.data.setlistId && s.songCount === 2));
+await post("/api/execute", { name: "setlist__delete_setlist", args: { setlist_id: stl.data.setlistId } });
+
+const ttReset = await post("/api/execute", { name: "tempotap__tap", args: {} });
+const ttReset2 = await post("/api/execute", { name: "tempotap__tap_reset", args: {} });
+check("tempotap__tap_reset limpia el historial de verdad (no devuelve 5 fijo)", ttReset2.success && ttReset2.data.tapsCleared >= 1);
+const ttAfterReset = await post("/api/execute", { name: "tempotap__tap_history", args: {} });
+check("tempotap tras reset no tiene taps", ttAfterReset.success && ttAfterReset.data.tapCount === 0);
+
+const maSong: any = { tracks: [
+  { name: "Ref", mixer: { volume: (() => { let v = 0.85; return { async getValue() { return v; }, async setValue(x: number) { v = x; } }; })() } },
+  { name: "Quiet", mixer: { volume: (() => { let v = 0.5; return { async getValue() { return v; }, async setValue(x: number) { v = x; } }; })() } },
+] };
+const maMatch = await reg.execute("mixassistant__reference_match", { reference_track: 0, target_tracks: "1", match_type: "loudness", apply: true }, maSong);
+check("mixassistant.reference_match ajusta el fader real (no devuelve {} vacío)", maMatch.success && maMatch.data.adjustments[0].applied === true && (await maSong.tracks[1].mixer.volume.getValue()) > 0.5);
 const grp = await post("/api/execute", { name: "grouprouting__create_group", args: { name: "Drum Bus", track_indices: "0,1" } });
 check("grouprouting__create_group usa createGroupTrack", grp.success && grp.data.groupCreated);
 const btm = await post("/api/execute", { name: "trackmanager__bulk_action", args: { track_indices: "0,1,2", action: "mute" } });
@@ -302,6 +333,17 @@ check("resonance listen rechaza pista MIDI con mensaje claro", lisMidi.success =
 // real backend tool (resonance__mask_matrix) reachable from the AI copilot's run_tool.
 const mm = await post("/api/execute", { name: "resonance__mask_matrix", args: { demo: true } });
 check("resonance__mask_matrix (copilot-reachable) detecta colisiones reales", mm.success && mm.data.rows.length === 6 && typeof mm.data.collisionCount === "number" && Array.isArray(mm.data.moves));
+
+// EQ/sidechain suggestions used to always return the same fixed bands/values regardless of the
+// track — now they analyze the real (or demo) rendered spectrum. The demo stem has real energy
+// at 60Hz, so a real sub-rumble suggestion must show up.
+const eqSug = await post("/api/execute", { name: "eq__suggest_eq", args: { track_index: 0, demo: true } });
+check("eq__suggest_eq analiza el espectro real (detecta el sub-rumble del demo)", eqSug.success && !eqSug.data.advisory && eqSug.data.suggestions.some((s: any) => s.band === "low"));
+const maSug = await post("/api/execute", { name: "mixassistant__suggest_eq", args: { track_index: 0, demo: true } });
+check("mixassistant__suggest_eq usa el mismo análisis real", maSug.success && !maSug.data.advisory && maSug.data.suggestions.length > 0);
+const scSug = await post("/api/execute", { name: "eq__get_sidechain_suggestions", args: { trigger_track: 0, target_track: 1, demo: true } });
+check("eq__get_sidechain_suggestions sincroniza el release al tempo real (no 50ms fijo)", scSug.success && scSug.data.suggestions[0].release === Math.round((60000 / song.tempo / 4) * 0.9) && scSug.data.suggestions[0].release !== 50);
+check("eq__get_sidechain_suggestions detecta solape real de graves (mismo demo stem = solape fuerte)", scSug.success && scSug.data.suggestions[0].lowEndOverlap > 0.5 && scSug.data.suggestions[0].ratio === 6);
 
 // 7d. Auto-Gain Stager: demo mode proves the render→measure→plan pipeline + fader math.
 const ag = await post("/api/autogain", { demo: true, targetMode: "average" });
