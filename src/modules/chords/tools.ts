@@ -1,4 +1,6 @@
-// Módulo: Acordes & Progresiones — reutilizado de examples/chord-progression-generator
+// Módulo: Acordes & Progresiones — voice_lead now really re-voices the track's existing chord
+// clip's notes (undoable) instead of only echoing the requested strategy back.
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -79,8 +81,28 @@ export function createToolRegistry() {
     async () => ({ success:true, data:{ major:Object.keys(CHORDS.major), minor:Object.keys(CHORDS.minor) } })
   );
 
-  reg.register({ name:"voice_lead", description:"Apply voice leading to chord progression", category:"chords", parameters:{ track_index:{type:"number",description:"Track index",required:true}, strategy:{type:"string",description:"Strategy",required:false,enum:["close","open","drop2"]} } },
-    async (args: any) => ({ success:true, data:{ applied:true, strategy:args.strategy||"close", trackIndex:args.track_index } })
+  reg.register({ name:"voice_lead", description:"Re-voice the track's real chord clip notes (close/open/drop2, undoable)", category:"chords", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false}, strategy:{type:"string",description:"Strategy",required:false,enum:["close","open","drop2"]} } },
+    async (args: any, song: any) => {
+      const track = song.tracks?.[args.track_index];
+      const clip = track?.clipSlots?.[args.clip_index ?? 0]?.clip ?? track?.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip || !Array.isArray(clip.notes) || !clip.notes.length) return { success:false, error:"No MIDI chord clip found on that track." };
+      const strategy = args.strategy || "close";
+      const byTime = new Map<number, any[]>();
+      for (const n of clip.notes) { const arr = byTime.get(n.startTime) || []; arr.push(n); byTime.set(n.startTime, arr); }
+      const out: any[] = [];
+      for (const [, chordNotes] of byTime) {
+        const sorted = chordNotes.slice().sort((a: any, b: any) => a.pitch - b.pitch);
+        if (strategy === "close") { out.push(...sorted); }
+        else if (strategy === "open") { out.push(...sorted.map((n: any, i: number) => i % 2 === 1 ? { ...n, pitch: n.pitch + 12 } : n)); }
+        else { // drop2: drop the 2nd-highest note an octave
+          const idx = sorted.length >= 2 ? sorted.length - 2 : -1;
+          out.push(...sorted.map((n: any, i: number) => i === idx ? { ...n, pitch: n.pitch - 12 } : n));
+        }
+      }
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "chords.voice_lead");
+      clip.notes = out;
+      return { success:true, data:{ applied:true, strategy, trackIndex:args.track_index, noteCount:out.length } };
+    }
   );
 
   return reg;

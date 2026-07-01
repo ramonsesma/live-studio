@@ -84,5 +84,39 @@ export function createToolRegistry() {
     }
   );
 
+  reg.register({ name:"color_by_role", description:"Color clips by their real content role (drums/bass/lead/pad/audio, inferred from actual notes) — across one track or the whole project in a single call (real clip.color write-back, undoable)", category:"clips", parameters:{ track_index:{type:"number",description:"Track index (omit to color every track in the project)",required:false} } },
+    async (args: any, song: any) => {
+      const tracks = args.track_index != null ? [{ t: song.tracks?.[args.track_index], ti: args.track_index }] : (song.tracks || []).map((t: any, ti: number) => ({ t, ti }));
+      const ROLE_COLOR: Record<string, number> = { drums: 0xff8c42, bass: 0x4488ff, lead: 0xffd700, pad: 0x9370db, audio: 0x5ad17a };
+      const roleOf = (c: any): string => {
+        if (isAudioLike(c)) return "audio";
+        const notes = c.notes || [];
+        if (!notes.length) return "audio"; // empty clip — treat as neutral/uncategorized
+        const avgPitch = notes.reduce((a: number, n: any) => a + n.pitch, 0) / notes.length;
+        const avgDur = notes.reduce((a: number, n: any) => a + (n.duration || 0), 0) / notes.length;
+        const inDrumRange = notes.every((n: any) => n.pitch >= 30 && n.pitch <= 59);
+        if (inDrumRange && notes.length >= 3) return "drums";
+        if (avgPitch < 48) return "bass";
+        if (avgDur >= 2) return "pad";
+        return "lead";
+      };
+      let colored = 0; const byRole: Record<string, number> = {}; const applied: any[] = [];
+      for (const { t, ti } of tracks) {
+        if (!t) continue;
+        const clips = collectClips(t);
+        for (let i = 0; i < clips.length; i++) {
+          const c = clips[i]; const role = roleOf(c); const col = ROLE_COLOR[role];
+          recordColor(c, ti, i, "colorizer.color_by_role");
+          c.color = col; colored++; byRole[role] = (byRole[role] || 0) + 1;
+          applied.push({ trackIndex: ti, clip: c.name, role });
+        }
+      }
+      if (!colored) return { success:false, error:"No clips found to color." };
+      return { success:true, data:{ clipsColored: colored, byRole, applied: applied.slice(0, 200) } };
+    }
+  );
+
   return reg;
 }
+
+function isAudioLike(c: any) { return c && typeof c.filePath === "string"; }

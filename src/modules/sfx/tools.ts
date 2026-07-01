@@ -71,8 +71,12 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"add_automation", description:"Add parameter automation to SFX track", category:"sfx", parameters:{ track_index:{type:"number",description:"Track",required:true}, parameter:{type:"string",description:"Parameter",required:true,enum:["volume","pan","pitch","filter"]}, curve:{type:"string",description:"Automation curve",required:false,enum:["linear","exponential","logarithmic","sine","random"]} } },
-    async (args: any) => ({ success:true, data:{ applied:true, parameter:args.parameter, curve:args.curve||"linear", trackIndex:args.track_index } })
+  reg.register({ name:"add_automation", description:"Add parameter automation to SFX track (advisory — the SDK has no arrangement-automation write API to draw a curve over time)", category:"sfx", parameters:{ track_index:{type:"number",description:"Track",required:true}, parameter:{type:"string",description:"Parameter",required:true,enum:["volume","pan","pitch","filter"]}, curve:{type:"string",description:"Automation curve",required:false,enum:["linear","exponential","logarithmic","sine","random"]} } },
+    async (args: any, song: any) => {
+      const track = song.tracks[args.track_index];
+      if (!track) return { success:false, error:"Track not found" };
+      return { success:true, data:{ advisory:true, note:"The SDK can only set a parameter's current value, not draw a time-varying automation curve — this can't be applied. Draw it by hand in Live's automation lane.", parameter:args.parameter, curve:args.curve||"linear", trackIndex:args.track_index } };
+    }
   );
 
   return reg;

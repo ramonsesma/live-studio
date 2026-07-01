@@ -1,6 +1,7 @@
 // Módulo: Project Health Analyzer — REAL checks over the live object model:
 // missing samples (AudioClip.filePath + fs.existsSync), empty tracks/scenes, duplicate
-// names and un-warped long audio. apply_fix performs real, undoable mutations.
+// names, un-warped long audio, empty MIDI clips, MIDI tracks with notes but no instrument,
+// and accidentally tiny clips. apply_fix performs real, undoable mutations.
 import { existsSync } from "node:fs";
 
 export class ToolRegistry {
@@ -33,8 +34,17 @@ function scan(song: any) {
     if (slotClips.length + arr.length === 0) {
       issues.push({ type: "empty_track", severity: "warning", message: `Track "${t.name || ti}" has no clips`, fix: { kind: "delete_track", trackIndex: ti } });
     }
+    let hasNotes = false;
     const checkAudio = (c: any, where: string, idx: number) => {
-      if (!isAudio(c)) return;
+      if (!isAudio(c)) {
+        if (c && Array.isArray(c.notes)) {
+          if (c.notes.length === 0) issues.push({ type: "empty_midi_clip", severity: "info", message: `Empty MIDI clip "${c.name || idx}" on "${t.name || ti}"`, fix: null });
+          else hasNotes = true;
+          const span = c.notes.length ? Math.max(...c.notes.map((n: any) => n.startTime + (n.duration || 0))) : (c.duration || 0);
+          if (span > 0 && span < 1) issues.push({ type: "very_short_clip", severity: "info", message: `Clip "${c.name || idx}" on "${t.name || ti}" is under 1 beat — likely accidental`, fix: null });
+        }
+        return;
+      }
       if (!existsSync(c.filePath)) {
         issues.push({ type: "missing_sample", severity: "error", message: `Missing sample on "${t.name || ti}": ${String(c.filePath).split("/").pop()}`, fix: null });
       } else if (c.warping === false && (c.duration || 0) >= 8) {
@@ -43,6 +53,9 @@ function scan(song: any) {
     };
     slots.forEach((s: any, i: number) => checkAudio(s?.clip, "slot", i));
     arr.forEach((c: any, i: number) => checkAudio(c, "arr", i));
+    if (hasNotes && (t.devices || []).length === 0) {
+      issues.push({ type: "midi_no_instrument", severity: "warning", message: `"${t.name || ti}" has MIDI notes but no instrument device — it will play silently`, fix: null });
+    }
   });
 
   // duplicate track names (rename all but the first)

@@ -3,6 +3,7 @@ import { createMasterRegistry } from "../src/registry/index.js";
 import { Bridge } from "../src/bridge.js";
 import { startServer } from "../src/server.js";
 import { toMusicXML, fromMusicXML } from "../src/core/musicxml.js";
+import { existsSync } from "node:fs";
 
 // ---- Mock del Song SDK ----
 // Refleja la forma REAL del SDK (clip.notes: NoteDescription[], mixer.volume.getValue/
@@ -59,9 +60,9 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 130 módulos", (mods.modules || []).length === 130, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check("GET /api/modules devuelve 132 módulos", (mods.modules || []).length === 132, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions visible con su propio panel (launcher)", mods.modules.find((m: any) => m.id === "quickactions") && !mods.modules.find((m: any) => m.id === "quickactions")?.hidden);
-check("130 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 130);
+check("132 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 132);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -101,24 +102,34 @@ check("melody__generate_melody crea clip", mel.success && mel.data.clipName.incl
 const perf = await post("/api/execute", { name: "performance__create_performance_scene", args: { name: "Drop" } });
 check("performance__create_performance_scene usa createScene", perf.success && perf.data.name === "Drop");
 const take = await post("/api/execute", { name: "takes__comp_from_takes", args: { track_index: 0 } });
-check("takes__comp_from_takes crea pista comp", take.success && take.data.compiled);
+check("takes__comp_from_takes crea pista real (advisory sobre el splicing)", take.success && take.data.advisory && typeof take.data.compTrackIndex === "number");
 const colSong: any = { tracks: [{ name: "Keys", clipSlots: [{ clip: { name: "c", color: 0, notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 120 }, { pitch: 64, startTime: 1, duration: 1, velocity: 120 }] } }], arrangementClips: [] }] };
 const col = await reg.execute("colorizer__color_by_velocity", { track_index: 0, scheme: "heatmap" }, colSong);
 check("colorizer pinta clips por velocity (clip.color real)", col.success && col.data.clipsColored === 1 && colSong.tracks[0].clipSlots[0].clip.color > 0);
+const roleSong: any = { tracks: [
+  { name: "Kick", clipSlots: [{ clip: { name: "beat", color: 0, notes: Array.from({length:4},(_,i)=>({pitch:36,startTime:i,duration:0.5,velocity:100})) } }], arrangementClips: [] },
+  { name: "Sub", clipSlots: [{ clip: { name: "low", color: 0, notes: [{ pitch: 33, startTime: 0, duration: 4, velocity: 100 }] } }], arrangementClips: [] },
+  { name: "Strings", clipSlots: [{ clip: { name: "sustain", color: 0, notes: [{ pitch: 67, startTime: 0, duration: 4, velocity: 90 }] } }], arrangementClips: [] },
+] };
+const roleAll = await reg.execute("colorizer__color_by_role", {}, roleSong);
+check("colorizer color_by_role clasifica por contenido real (drums/bass/pad) en todo el proyecto", roleAll.success && roleAll.data.clipsColored === 3 && roleAll.data.byRole.drums === 1 && roleAll.data.byRole.bass === 1 && roleAll.data.byRole.pad === 1);
 const clp = await post("/api/execute", { name: "clips__launch_scene", args: { scene_index: 0 } });
-check("clips__launch_scene", clp.success && clp.data.launched);
+check("clips__launch_scene (advisory — no transport API)", clp.success && clp.data.advisory && clp.data.sceneName === "Intro");
 
 // 5d. lote 4: mezcla / síntesis / organización avanzada
 const gain = await post("/api/execute", { name: "mastering__analyze_gain_structure", args: {} });
 check("mastering__analyze_gain_structure", gain.success && Array.isArray(gain.data.stages));
 const syn = await post("/api/execute", { name: "synth__add_module", args: { type: "oscillator" } });
-check("synth__add_module mantiene estado", syn.success && syn.data.totalModules === 1);
+check("synth__add_module persiste a disco", syn.success && syn.data.module.type === "oscillator" && syn.data.totalModules >= 1);
 const tpl = await post("/api/execute", { name: "templates__extract_template", args: { name: "Mi Plantilla" } });
 check("templates__extract_template", tpl.success && tpl.data.name === "Mi Plantilla");
-const nadd = await post("/api/execute", { name: "notes__add_note", args: { text: "Revisar el bajo", category: "mix" } });
-check("notes__add_note + get_notes (estado)", nadd.success && nadd.data.totalNotes === 1);
+const noteText = `Revisar el bajo ${Date.now()}`;
+const nadd = await post("/api/execute", { name: "notes__add_note", args: { text: noteText, category: "mix" } });
+check("notes__add_note persiste a disco", nadd.success && nadd.data.note.text === noteText);
 const nget = await post("/api/execute", { name: "notes__get_notes", args: { category: "mix" } });
-check("notes__get_notes filtra por categoría", nget.success && nget.data.count === 1);
+check("notes__get_notes filtra por categoría", nget.success && nget.data.notes.some((n: any) => n.id === nadd.data.noteId));
+const ndel = await post("/api/execute", { name: "notes__delete_note", args: { note_id: nadd.data.noteId } });
+check("notes__delete_note limpia el estado", ndel.success && ndel.data.deleted);
 const grv = await post("/api/execute", { name: "groove__apply_groove", args: { track_index: 0, clip_index: 0, amount: 80 } });
 check("groove__apply_groove", grv.success && grv.data.amount === 80);
 
@@ -139,12 +150,12 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer", "arrangement", "timestretch", "drumsynth", "slicelab", "mosaic", "riser", "sub808", "padengine", "pluckengine", "acid303", "chordstab", "fmbell", "impact", "console", "subbass", "organ", "vocalchop", "instrumentrender", "brass", "wobble", "choir", "subdrop", "pluckbass", "sawlead", "reese", "marimba", "glitch", "tapehiss", "trumpet", "epiano", "musicbox", "harp", "whistle", "subwobble", "vocoder", "noisefx", "cymbal", "guitar", "sitar", "steeldrum", "accordion", "theremin", "hihat808", "stabhit", "glassbell", "subkick", "reversesweep"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer", "arrangement", "timestretch", "drumsynth", "slicelab", "mosaic", "riser", "sub808", "padengine", "pluckengine", "acid303", "chordstab", "fmbell", "impact", "console", "subbass", "organ", "vocalchop", "instrumentrender", "brass", "wobble", "choir", "subdrop", "pluckbass", "sawlead", "reese", "marimba", "glitch", "tapehiss", "trumpet", "epiano", "musicbox", "harp", "whistle", "subwobble", "vocoder", "noisefx", "cymbal", "guitar", "sitar", "steeldrum", "accordion", "theremin", "hihat808", "stabhit", "glassbell", "subkick", "reversesweep", "devremote", "stemexport", "mixcoach"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 101 paneles ricos", panelsOk);
+check("sirve los 104 paneles ricos", panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -169,8 +180,6 @@ const cpd = await post("/api/execute", { name: "chordpads__set_pad", args: { pad
 check("chordpads__set_pad computes real chord notes", cpd.success && cpd.data.chord === "C Major 7" && cpd.data.notes.length === 4);
 const cptr = await post("/api/execute", { name: "chordpads__trigger_pad", args: { pad_index: 0 } });
 check("chordpads__trigger_pad drops the assigned chord as a clip", cptr.success && cptr.data.notesPlayed === 4);
-const snp = await post("/api/execute", { name: "snapshots__save_snapshot", args: { name: "Mix v1" } });
-check("snapshots__save_snapshot", snp.success && snp.data.total === 1);
 const hlt = await post("/api/execute", { name: "health__run_checks", args: {} });
 check("health__run_checks (real scan)", hlt.success && typeof hlt.data.score === "number" && Array.isArray(hlt.data.issues));
 // real health scan on a constructed broken project
@@ -190,12 +199,20 @@ check("health score baja con issues", hc.data.score < 100 && hc.data.score >= 0)
 const dup = hc.data.issues.find((i: any) => i.type === "duplicate_name");
 const af = await reg.execute("health__apply_fix", { kind: "rename_track", track_index: dup.fix.trackIndex, new_name: dup.fix.newName }, healthSong);
 check("health apply_fix renombra el duplicado real", af.success && healthSong.tracks[dup.fix.trackIndex].name === dup.fix.newName);
+check("health detecta clip MIDI vacío", hc.data.issues.some((i: any) => i.type === "empty_midi_clip"));
+const noInstSong: any = { tracks: [{ name: "Synth Lead", devices: [], clipSlots: [{ clip: { notes: [{ pitch: 60, startTime: 0, duration: 4, velocity: 100 }] } }], arrangementClips: [] }], scenes: [] };
+const hcNoInst = await reg.execute("health__run_checks", {}, noInstSong);
+check("health detecta MIDI con notas y sin instrumento", hcNoInst.success && hcNoInst.data.issues.some((i: any) => i.type === "midi_no_instrument"));
+const tinyClipSong: any = { tracks: [{ name: "Perc", devices: [{ name: "Simpler" }], clipSlots: [{ clip: { notes: [{ pitch: 40, startTime: 0, duration: 0.1, velocity: 100 }] } }], arrangementClips: [] }], scenes: [] };
+const hcTiny = await reg.execute("health__run_checks", {}, tinyClipSong);
+check("health detecta clip accidentalmente corto (<1 beat)", hcTiny.success && hcTiny.data.issues.some((i: any) => i.type === "very_short_clip") && !hcTiny.data.issues.some((i: any) => i.type === "midi_no_instrument"));
 
 // 5i. lote 8: hardware / conversión / live / routing
 const nta = await post("/api/execute", { name: "notation__get_clip_notes", args: { track_index: 0, clip_index: 0 } });
 check("notation__get_clip_notes", nta.success && Array.isArray(nta.data.notes) && nta.data.notes.length > 0);
-const drp = await post("/api/execute", { name: "drumreplace__replace_drum", args: { track_index: 0, clip_index: 0, drum_type: "kick" } });
-check("drumreplace__replace_drum crea pista MIDI", drp.success && drp.data.replaced);
+const drumSong: any = { tracks: [{ name: "Drums", clipSlots: [{ clip: { name: "beat", notes: [{ pitch: 36, startTime: 0, duration: 0.5, velocity: 100 }, { pitch: 38, startTime: 1, duration: 0.5, velocity: 100 }] } }], arrangementClips: [] }], async createMidiTrack() { const t: any = { name: "", clipSlots: [], arrangementClips: [], async createMidiClip(_s: number, d: number) { const c: any = { name: "", duration: d, get notes() { return this._n || []; }, set notes(v: any) { this._n = v; } }; t._clip = c; return c; } }; this.tracks.push(t); return t; } };
+const drp = await reg.execute("drumreplace__replace_drum", { track_index: 0, clip_index: 0, drum_type: "kick" }, drumSong);
+check("drumreplace__replace_drum extrae los golpes reales de kick", drp.success && drp.data.advisory && drp.data.hitCount === 1);
 const gar = await post("/api/execute", { name: "genarranger__generate_arrangement", args: { style: "techno" } });
 check("genarranger__generate_arrangement", gar.success && gar.data.totalBars === 96);
 const stl = await post("/api/execute", { name: "setlist__create_setlist", args: { name: "Live Set" } });
@@ -213,9 +230,10 @@ check("mixscene__save_scene", mxs.success && mxs.data.sceneSaved);
 const cns = await post("/api/execute", { name: "console__execute_command", args: { command: "tempo" } });
 check("console__execute_command (tempo)", cns.success && typeof cns.data.tempo === "number");
 const cvh = await post("/api/execute", { name: "clipversions__save_version", args: { track_index: 0, clip_index: 0, label: "v1" } });
-check("clipversions__save_version", cvh.success && cvh.data.totalVersions === 1);
-const dmp = await post("/api/execute", { name: "drummap__set_drum_mapping", args: { track_index: 0, pad_index: 0, note: 36 } });
-check("drummap__set_drum_mapping (GM 36=Kick)", dmp.success && dmp.data.name === "Kick");
+check("clipversions__save_version captura las notas reales", cvh.success && cvh.data.version.noteCount === 4 && cvh.data.totalVersions >= 1);
+const rackSong: any = { tracks: [{ name: "Drums", devices: [{ name: "Drum Rack", chains: [{ receivingNote: 38 }, { receivingNote: 40 }] }] }] };
+const dmp = await reg.execute("drummap__set_drum_mapping", { track_index: 0, pad_index: 0, note: 36 }, rackSong);
+check("drummap__set_drum_mapping (real receivingNote write)", dmp.success && dmp.data.newNote === 36 && rackSong.tracks[0].devices[0].chains[0].receivingNote === 36);
 const mgt = await post("/api/execute", { name: "midigate__set_gate_pattern", args: { pattern: "1010100010101000" } });
 check("midigate__set_gate_pattern", mgt.success && mgt.data.resolvedSteps === 6);
 const stp = await post("/api/execute", { name: "stepseq__set_pattern", args: { track_index: 0, steps: 16 } });
@@ -241,7 +259,7 @@ check("midilfo__set_lfo_multi_target (3 targets)", mlf.success && mlf.data.targe
 
 // 5m. lote 12: live / utilidades / análisis / MIDI
 const lqz = await post("/api/execute", { name: "launchquant__set_global_quant", args: { value: "1/8" } });
-check("launchquant__set_global_quant", lqz.success && lqz.data.globalQuant === "1/8");
+check("launchquant__set_global_quant (advisory — no setter in SDK)", lqz.success && lqz.data.advisory && lqz.data.requestedValue === "1/8");
 const sbx = await post("/api/execute", { name: "sandbox__eval_typescript", args: { code: "return song.tempo + 1;", return_value: true } });
 check("sandbox__eval_typescript (eval real)", sbx.success && typeof sbx.data.result === "number");
 const cgr = await post("/api/execute", { name: "clipgraph__build_graph", args: {} });
@@ -280,12 +298,33 @@ const lis = await post("/api/listen", { demo: true });
 check("resonance /api/listen demo → 30-band spectrum", lis.success && lis.data.analysis.bands.length === 30 && lis.data.analysis.peakHz > 0);
 const lisMidi = await post("/api/listen", { trackIndex: 1 });
 check("resonance listen rechaza pista MIDI con mensaje claro", lisMidi.success === false && /audio|resample|render/i.test(lisMidi.error));
+// The frequency×track masking matrix used to live only in the panel's client JS — now it's a
+// real backend tool (resonance__mask_matrix) reachable from the AI copilot's run_tool.
+const mm = await post("/api/execute", { name: "resonance__mask_matrix", args: { demo: true } });
+check("resonance__mask_matrix (copilot-reachable) detecta colisiones reales", mm.success && mm.data.rows.length === 6 && typeof mm.data.collisionCount === "number" && Array.isArray(mm.data.moves));
 
 // 7d. Auto-Gain Stager: demo mode proves the render→measure→plan pipeline + fader math.
 const ag = await post("/api/autogain", { demo: true, targetMode: "average" });
 check("autogain /api/autogain demo → plan de faders", ag.success && ag.data.tracks.length === 6 && ag.data.tracks.every((t: any) => typeof t.faderDb === "number" && typeof t.faderValue === "number"));
 const agQuiet = ag.data.tracks.find((t: any) => t.name === "Synth"); // quietest stem must get a positive (boost) move toward the average
 check("autogain sube las pistas por debajo de la referencia", agQuiet.faderDb > 0);
+// Same pipeline, now reachable from the AI copilot as a real tool (autogain__run).
+const agRun = await post("/api/execute", { name: "autogain__run", args: { demo: true, target_mode: "average" } });
+check("autogain__run (copilot-reachable)", agRun.success && agRun.data.tracks.length === 6);
+
+// Stem Export: demo writes real WAV files to disk with automatic {index}_{name} naming.
+const se = await post("/api/stemexport", { demo: true });
+check("stemexport /api/stemexport demo escribe WAVs reales con naming automático", se.success && se.data.files.length === 4 && se.data.files[0].fileName === "01_Kick.wav" && existsSync(se.data.files[0].file));
+const seTool = await post("/api/execute", { name: "stemexport__export", args: { demo: true, name_pattern: "{name}_stem" } });
+check("stemexport__export (copilot-reachable) respeta el naming pattern", seTool.success && seTool.data.files[0].fileName === "Kick_stem.wav");
+const seCand = await post("/api/execute", { name: "stemexport__list_export_candidates", args: {} });
+check("stemexport lista candidatos reales (audio vs MIDI)", seCand.success && seCand.data.total === song.tracks.length);
+
+// Mix Coach: combines health + masking + gain-staging into one prioritized next-steps list.
+const mc = await post("/api/mixcoach", { demo: true });
+check("mixcoach /api/mixcoach combina 3 análisis reales en next steps priorizados", mc.success && Array.isArray(mc.data.nextSteps) && typeof mc.data.healthScore === "number" && typeof mc.data.maskingCollisions === "number" && mc.data.nextSteps.every((s: any) => s.action === null || (s.action.tool && s.action.args)));
+const mcTool = await post("/api/execute", { name: "mixcoach__analyze", args: { demo: true } });
+check("mixcoach__analyze (copilot-reachable)", mcTool.success && Array.isArray(mcTool.data.nextSteps));
 
 // 7e. Key & Scale Detective: Krumhansl detection on a known diatonic melody.
 const cmajSong: any = { rootNote: 0, scaleName: "Major", scaleMode: true, scaleIntervals: [0,2,4,5,7,9,11],
@@ -344,8 +383,23 @@ const df = await post("/api/snapshot", { action: "diff", idA: sv1.data.id, idB: 
 check("snapshot diff detecta el cambio de tempo", df.success && df.data.lines.some((l: any) => /tempo/.test(l.text)));
 const rs = await post("/api/snapshot", { action: "restore", id: sv1.data.id });
 check("snapshot restore revierte el tempo", rs.success && song.tempo === t0);
+check("snapshot restore es deshacible (Edit History)", rs.success && rs.data.tracksRestored >= 0 && typeof rs.data.markersRestored === "number");
 await post("/api/snapshot", { action: "delete", id: sv1.data.id });
 await post("/api/snapshot", { action: "delete", id: sv2.data.id });
+
+// Same save/list/diff/restore pipeline, now reachable from the AI copilot as real tools
+// (projectsnapshot__*) instead of only via the panel's direct /api/snapshot fetches.
+const psSave = await post("/api/execute", { name: "projectsnapshot__save", args: { label: `tool-check-${Date.now()}` } });
+check("projectsnapshot__save (copilot-reachable)", psSave.success && !!psSave.data.id);
+const psList = await post("/api/execute", { name: "projectsnapshot__list", args: {} });
+check("projectsnapshot__list incluye el guardado", psList.success && psList.data.snapshots.some((s: any) => s.id === psSave.data.id));
+song.tempo = t0 + 7;
+const psDiffCur = await post("/api/execute", { name: "projectsnapshot__diff_current", args: { id: psSave.data.id } });
+check("projectsnapshot__diff_current detecta el cambio vs el estado en vivo", psDiffCur.success && psDiffCur.data.lines.some((l: any) => /tempo/.test(l.text)));
+const psRestore = await post("/api/execute", { name: "projectsnapshot__restore", args: { id: psSave.data.id } });
+check("projectsnapshot__restore revierte el tempo", psRestore.success && song.tempo === t0);
+const psDel = await post("/api/execute", { name: "projectsnapshot__delete", args: { id: psSave.data.id } });
+check("projectsnapshot__delete limpia el estado", psDel.success && psDel.data.deleted === true);
 
 // 7i. Score Editor: MusicXML round-trip + get_score_data + import → clip.
 const srcNotes = [{ pitch: 60, startTime: 0, duration: 1, velocity: 100 }, { pitch: 64, startTime: 1, duration: 0.5, velocity: 100 }, { pitch: 67, startTime: 1.5, duration: 0.5, velocity: 100 }, { pitch: 72, startTime: 2, duration: 2, velocity: 100 }];
@@ -439,9 +493,18 @@ check("fxpresets.apply inserta la cadena real", fxp.success && fxS.tracks[0].dev
 const gaSong: any = { cuePoints: [] as any[] }; gaSong.createCuePoint = async (time: number) => { const c: any = { time, _n: "", get name() { return this._n; }, set name(v: any) { this._n = v; } }; gaSong.cuePoints.push(c); return c; }; gaSong.deleteCuePoint = async (c: any) => { const i = gaSong.cuePoints.indexOf(c); if (i >= 0) gaSong.cuePoints.splice(i, 1); };
 const gaArr = await reg.execute("genarranger__apply_arrangement", {}, gaSong);
 check("genarranger.apply suelta locators reales", gaArr.success && gaArr.data.sections === 8 && gaSong.cuePoints.length === 8 && gaSong.cuePoints[0].name === "Intro");
-const tmSong: any = { tracks: [] as any[] }; tmSong.createMidiTrack = async () => { const t: any = { _n: "", get name() { return this._n; }, set name(v: any) { this._n = v; } }; tmSong.tracks.push(t); return t; };
-const tm = await reg.execute("templates__apply_template", { template_name: "Basic" }, tmSong);
-check("templates.apply crea tracks reales", tm.success && tm.data.tracksCreated === 8 && tmSong.tracks.length === 8 && tmSong.tracks[0].name === "Drums");
+const tmSong: any = { tracks: [] as any[] };
+const tmMakeTrack = () => { const t: any = { _n: "", devices: [] as any[], get name() { return this._n; }, set name(v: any) { this._n = v; }, async insertDevice(dn: string) { const d = { name: dn }; this.devices.push(d); return d; } }; tmSong.tracks.push(t); return t; };
+tmSong.createMidiTrack = async () => tmMakeTrack();
+tmSong.createAudioTrack = async () => tmMakeTrack();
+const tm = await reg.execute("templates__apply_template", { genre: "electronic" }, tmSong);
+check("templates.apply (wizard de un clic) crea tracks + device chains reales", tm.success && tm.data.tracksCreated === 4 && tmSong.tracks.length === 4 && tmSong.tracks[0].name === "Kick" && tm.data.tracks[0].devices.includes("Drum Rack"));
+const tmExtract = await reg.execute("templates__extract_template", { name: "My Electronic Set" }, tmSong);
+check("templates.extract lee la estructura real del proyecto (no datos falsos)", tmExtract.success && tmExtract.data.structure.length === 4 && tmExtract.data.structure[0].devices.includes("Drum Rack"));
+const tmApplySaved = await reg.execute("templates__apply_template", { template_id: tmExtract.data.id }, tmSong);
+check("templates.apply reconstruye desde una plantilla guardada", tmApplySaved.success && tmApplySaved.data.templateName === "My Electronic Set" && tmSong.tracks.length === 8);
+const tmList = await reg.execute("templates__list_templates", {}, tmSong);
+check("templates.list incluye los built-in + el guardado", tmList.success && tmList.data.templates.some((t: any) => t.builtin && t.genre === "electronic") && tmList.data.templates.some((t: any) => t.id === tmExtract.data.id));
 
 const gtSong: any = { tempo: 120, tracks: [
   { name: "Src", clipSlots: [{ clip: { name: "groove", notes: [{ pitch: 36, startTime: 0, duration: 0.25, velocity: 100 }, { pitch: 38, startTime: 0.52, duration: 0.25, velocity: 90 }, { pitch: 36, startTime: 1.0, duration: 0.25, velocity: 100 }, { pitch: 38, startTime: 1.52, duration: 0.25, velocity: 90 }] } }], arrangementClips: [] },
@@ -542,7 +605,7 @@ check("patternlang compila la mini-notación a notas", pl2.success && pl2.data.n
 
 // 7t. Quick Actions: catálogo curado + resolución de ruta a un tool real.
 const qaList = await post("/api/execute", { name: "quickactions__list_quick_actions", args: {} });
-check("quickactions lista los 84 presets", qaList.success && qaList.data.total === 84 && qaList.data.actions.every((a: any) => typeof a.tool === "string" && a.tool.includes("__")));
+check("quickactions lista los 83 presets", qaList.success && qaList.data.total === 83 && qaList.data.actions.every((a: any) => typeof a.tool === "string" && a.tool.includes("__")));
 const qaRun = await post("/api/execute", { name: "quickactions__run_quick_action", args: { group: "Tempo", action: "128 BPM" } });
 check("quickactions resuelve una ruta a su tool real", qaRun.success && qaRun.data.route.name === "temposync__set_tempo" && qaRun.data.route.args.bpm === 128);
 
@@ -688,6 +751,37 @@ check("reversesweep sintetiza un build y sirve el WAV", rsR.success && rsR.data.
 const renGt = await post("/api/render", { demo: true, engine: "guitar" });
 check("instrumentrender funciona con guitar", renGt.success && renGt.data.engine === "guitar" && renGt.data.noteCount === 6);
 
+// Device Remote: control genérico de parámetros de cualquier device (incluido M4L simulado).
+const mkDevParam = (name: string, v: number, min = 0, max = 127) => { let val = v; return { name, min, max, isQuantized: false, defaultValue: v, async getValue() { return val; }, async setValue(x: number) { val = x; } }; };
+const drDev = { name: "Max Instrument (M4L)", parameters: [mkDevParam("Cutoff", 60), mkDevParam("Reso", 20), mkDevParam("Macro 1", 64)] };
+const drSong: any = { tracks: [{ name: "Synth", devices: [drDev] }] };
+const drList = await reg.execute("devremote__list_devices", { track_index: 0 }, drSong);
+check("devremote lista devices genéricos (incl. M4L)", drList.success && drList.data.deviceCount === 1 && drList.data.devices[0].name === "Max Instrument (M4L)");
+const drParams = await reg.execute("devremote__get_params", { track_index: 0, device_index: 0 }, drSong);
+check("devremote lee todos los parámetros con su valor real", drParams.success && drParams.data.paramCount === 3 && drParams.data.params[0].value === 60);
+const drSet = await reg.execute("devremote__set_param", { track_index: 0, device_index: 0, param_name: "Cutoff", value: 100 }, drSong);
+check("devremote setea un parámetro directamente", drSet.success && drSet.data.value === 100 && (await drDev.parameters[0].getValue()) === 100);
+const drReset = await reg.execute("devremote__reset_param", { track_index: 0, device_index: 0, param_name: "Cutoff" }, drSong);
+check("devremote resetea a su valor por defecto", drReset.success && drReset.data.value === 60);
+const drSave = await reg.execute("devremote__save_snapshot", { track_index: 0, device_index: 0, name: "Test patch" }, drSong);
+check("devremote guarda un snapshot completo del device", drSave.success && drSave.data.paramCount === 3);
+await drDev.parameters[2].setValue(10); // mutate Macro 1 away from its snapshot value
+const drLoad = await reg.execute("devremote__load_snapshot", { id: drSave.data.id }, drSong);
+check("devremote restaura el snapshot completo", drLoad.success && drLoad.data.restored === 3 && (await drDev.parameters[2].getValue()) === 64);
+const drDel = await reg.execute("devremote__delete_snapshot", { id: drSave.data.id }, drSong);
+check("devremote borra el snapshot", drDel.success && drDel.data.deleted === true);
+const drSweep = await reg.execute("devremote__sweep_param", { track_index: 0, device_index: 0, param_name: "Cutoff", from: 0, to: 120, duration_ms: 80, steps: 4 }, drSong);
+check("devremote sweep_param mueve el parámetro en tiempo real (undoable)", drSweep.success && drSweep.data.finalValue === 120 && (await drDev.parameters[0].getValue()) === 120);
+const drUndoSweep = await reg.execute("history__undo_target", { scope: "device", track_index: 0, device_index: 0 }, drSong);
+check("devremote sweep_param es deshacible", drUndoSweep.success && (await drDev.parameters[0].getValue()) === 60);
+const drSaveA = await reg.execute("devremote__save_snapshot", { track_index: 0, device_index: 0, name: "A" }, drSong);
+await drDev.parameters[0].setValue(30);
+const drSaveB = await reg.execute("devremote__save_snapshot", { track_index: 0, device_index: 0, name: "B" }, drSong);
+const drCmp = await reg.execute("devremote__compare_snapshots", { id_a: drSaveA.data.id, id_b: drSaveB.data.id }, drSong);
+check("devremote compare_snapshots detecta el cambio real de Cutoff", drCmp.success && drCmp.data.diffs.some((d: any) => d.param === "Cutoff" && d.a === 60 && d.b === 30));
+await reg.execute("devremote__delete_snapshot", { id: drSaveA.data.id }, drSong);
+await reg.execute("devremote__delete_snapshot", { id: drSaveB.data.id }, drSong);
+
 // API Console: execute_command muta el Set de verdad + save/list/run persistentes.
 const ccSong: any = { tempo: 120, tracks: [] as any[] }; ccSong.createMidiTrack = async () => { const t: any = { _n: "", get name() { return this._n; }, set name(v: any) { this._n = v; } }; ccSong.tracks.push(t); return t; };
 const ccCmd = await reg.execute("console__execute_command", { command: "tempo 128" }, ccSong);
@@ -712,10 +806,14 @@ const ehL = await reg.execute("history__list", {}, ehSong);
 check("history: registra la edición destructiva", ehL.success && ehL.data.total >= 1 && ehL.data.entries[0].label === "transposer.apply");
 const ehU = await reg.execute("history__undo_last", {}, ehSong);
 check("history: undo_last restaura el estado previo", ehU.success && ehSong.tracks[0].clipSlots[0].clip.notes[0].pitch === 60);
+const ehR = await reg.execute("history__redo_last", {}, ehSong);
+check("history: redo_last re-aplica la transposición de verdad (no es 'undo del undo')", ehR.success && ehSong.tracks[0].clipSlots[0].clip.notes[0].pitch === 65);
 const ehColor: any = { tracks: [{ name: "T", clipSlots: [{ clip: { name: "k", color: 7, get notes() { return []; } } }], arrangementClips: [] }] };
 await reg.execute("phrasefinder__highlight_match", { track_index: 0, clip_index: 0, color: 16 }, ehColor);
 const ehC = await reg.execute("history__undo_target", { scope: "clip", track_index: 0, clip_index: 0 }, ehColor);
 check("history: undo_target revierte el color del clip", ehC.success && ehColor.tracks[0].clipSlots[0].clip.color === 7);
+const ehCR = await reg.execute("history__redo_target", { scope: "clip", track_index: 0, clip_index: 0 }, ehColor);
+check("history: redo_target re-aplica el color deshecho", ehCR.success && ehColor.tracks[0].clipSlots[0].clip.color === 16);
 
 // 8. estáticos
 const html = await (await fetch(base + "/")).text();

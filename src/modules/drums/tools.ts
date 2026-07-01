@@ -24,6 +24,7 @@ const GENRE_PATTERNS: any = {
 };
 
 const DRUM_MAP: any = { kick:36, snare:38, hat:42, open_hat:46, clap:39, rim:37, tom_hi:48, tom_mid:47, tom_lo:45, crash:49, ride:51 };
+import { recordNotes } from "../../core/history.js";
 
 
 // Collect notes into a buffer, then write clip.notes ONCE. The real MidiClip setter
@@ -66,8 +67,22 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"add_variation", description:"Add variation to existing drum pattern", category:"patterns", parameters:{ track_index:{type:"number",description:"Track",required:true}, variation_type:{type:"string",description:"Type",required:false,enum:["fill","break","ghost","open"]} } },
-    async (args: any) => ({ success:true, data:{ applied:true, type:args.variation_type||"fill", trackIndex:args.track_index } })
+  reg.register({ name:"add_variation", description:"Add a real variation to the track's existing drum pattern clip (undoable)", category:"patterns", parameters:{ track_index:{type:"number",description:"Track",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false}, variation_type:{type:"string",description:"Type",required:false,enum:["fill","break","ghost","open"]} } },
+    async (args: any, song: any) => {
+      const track = song.tracks?.[args.track_index];
+      const clip = track?.clipSlots?.[args.clip_index ?? 0]?.clip ?? track?.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip || !Array.isArray(clip.notes) || !clip.notes.length) return { success:false, error:"No MIDI drum pattern clip found on that track." };
+      const type = args.variation_type || "fill";
+      const notes = clip.notes.map((n: any) => ({ ...n }));
+      const dur = clip.duration || 4;
+      if (type === "fill") { for (let t = dur - 1; t < dur; t += 0.25) notes.push({ pitch:DRUM_MAP.snare, startTime:t, duration:0.2, velocity:80 + Math.round(Math.random()*30) }); }
+      else if (type === "break") { const cut = notes.filter((n: any) => n.startTime < dur * 0.75 || n.pitch === DRUM_MAP.hat); notes.length = 0; notes.push(...cut); }
+      else if (type === "ghost") { for (const n of clip.notes) if (n.pitch === DRUM_MAP.snare) notes.push({ pitch:DRUM_MAP.snare, startTime: Math.max(0, n.startTime - 0.125), duration:0.1, velocity:30 }); }
+      else if (type === "open") { for (const n of notes) if (n.pitch === DRUM_MAP.hat && Math.random() > 0.7) n.pitch = DRUM_MAP.open_hat; }
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "drums.add_variation");
+      clip.notes = notes;
+      return { success:true, data:{ applied:true, type, trackIndex:args.track_index, noteCount:notes.length } };
+    }
   );
 
   return reg;

@@ -1,4 +1,6 @@
-// Módulo: Time Signature Editor — reutilizado de examples/time-signature-editor
+// Módulo: Time Signature Editor — Scene.signatureNumerator/Denominator are READ-ONLY in the SDK
+// (no setter at all), and there's no arrangement-position time-signature-change marker concept.
+// get_sig_map now reads the real per-scene signatures; add_sig_change is honestly advisory.
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -25,18 +27,12 @@ export function createToolRegistry() {
   );
 
   
-  reg.register({ name:"add_sig_change", description:"Add a time signature change marker", category:"time-sig", parameters:{ bar:{type:"number",description:"Bar position",required:true}, time_sig:{type:"string",description:"New time signature (e.g. 3/4)",required:true}, name:{type:"string",description:"Change marker name",required:false} } },
-    async (args: any) => ({ success:true, data:{ added:true, bar:args.bar, timeSig:args.time_sig, name:args.name||`Sig: ${args.time_sig}`, changeId:`sig_${Date.now()}` } })
+  reg.register({ name:"add_sig_change", description:"Add a time signature change marker (advisory — Scene.signature has no setter, and there's no arrangement-position time-sig-change concept in the SDK)", category:"time-sig", parameters:{ bar:{type:"number",description:"Bar position",required:true}, time_sig:{type:"string",description:"New time signature (e.g. 3/4)",required:true}, name:{type:"string",description:"Change marker name",required:false} } },
+    async (args: any) => ({ success:true, data:{ advisory:true, note:"Scene.signatureNumerator/Denominator are read-only, and Live's arrangement has no per-bar time-signature-change marker exposed by the SDK. Set it from Live's time signature track/clip.", bar:args.bar, timeSig:args.time_sig, name:args.name||`Sig: ${args.time_sig}` } })
   );
 
-  reg.register({ name:"get_sig_map", description:"Get full time signature map", category:"time-sig", parameters:{} },
-    async () => ({ success:true, data:{ changes:[
-      { bar:1, timeSig:"4/4", name:"Intro" },
-      { bar:9, timeSig:"3/4", name:"Waltz Section" },
-      { bar:25, timeSig:"4/4", name:"Chorus" },
-      { bar:41, timeSig:"6/8", name:"Bridge" },
-      { bar:57, timeSig:"4/4", name:"Outro" }
-    ]}})
+  reg.register({ name:"get_sig_map", description:"Get the real per-scene time signatures from Live", category:"time-sig", parameters:{} },
+    async (_a: any, song: any) => ({ success:true, data:{ changes:(song.scenes||[]).map((s: any, i: number) => ({ scene:i, name:s.name, timeSig:`${s.signatureNumerator ?? 4}/${s.signatureDenominator ?? 4}` })) } })
   );
 
   reg.register({ name:"apply_polyrhythm", description:"Create polyrhythm layers with different time signatures", category:"time-sig", parameters:{ track_count:{type:"number",description:"Number of polyrhythm tracks",required:false}, sigs:{type:"string",description:"Comma-separated time signatures",required:true}, length:{type:"number",description:"Pattern length in bars of LMC",required:false} } },

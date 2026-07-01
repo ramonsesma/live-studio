@@ -61,10 +61,29 @@ export function createToolRegistry() {
 
   
   
-  reg.register({ name:"suggest_arrangement", description:"Suggest arrangement based on clip relationships", category:"graph", parameters:{ seed_clip:{type:"string",description:"Starting clip",required:true}, target_length:{type:"number",description:"Target bars",required:false} } },
-    async (args: any) => {
-      const suggestion = Array.from({length:8},(_, i)=>({ section:`Section ${i+1}`, clips:[`clip_${i}`,`clip_${i+1}`], bars:4, rationale:"Harmonic progression" }));
-      return { success:true, data:{ seed:args.seed_clip, suggestion, totalBars:32 } };
+  reg.register({ name:"suggest_arrangement", description:"Suggest a real clip sequence by walking the actual same-track/same-color relationship graph from a seed clip", category:"graph", parameters:{ seed_clip:{type:"string",description:"Starting clip (t<track>_c<slot>)",required:true}, target_length:{type:"number",description:"Target number of sections",required:false} } },
+    async (args: any, song: any) => {
+      const m = String(args.seed_clip).match(/t(\d+)_c(\d+)/);
+      if (!m) return { success:false, error:"seed_clip must look like t<track>_c<slot>" };
+      let ti = +m[1], si = +m[2];
+      const target = args.target_length || 8;
+      const visited = new Set<string>([`${ti}_${si}`]);
+      const suggestion: any[] = [];
+      for (let i = 0; i < target; i++) {
+        const clip = song.tracks?.[ti]?.clipSlots?.[si]?.clip;
+        if (!clip) break;
+        suggestion.push({ section:`Section ${i + 1}`, clipId:`t${ti}_c${si}`, name:clip.name, bars: Math.max(1, Math.round((clip.duration || 4) / 4)) });
+        let next: { ti: number; si: number; rel: string } | null = null;
+        (song.tracks || []).forEach((t: any, tj: number) => (t.clipSlots || []).forEach((s: any, sj: number) => {
+          if (next || !s?.clip || visited.has(`${tj}_${sj}`)) return;
+          if (tj === ti) next = { ti: tj, si: sj, rel:"same-track" };
+          else if (s.clip.color != null && s.clip.color === clip.color) next = { ti: tj, si: sj, rel:"same-color" };
+        }));
+        if (!next) break;
+        ({ ti, si } = next); visited.add(`${ti}_${si}`);
+      }
+      if (!suggestion.length) return { success:false, error:"Seed clip not found." };
+      return { success:true, data:{ seed:args.seed_clip, suggestion, totalBars: suggestion.reduce((a, s) => a + s.bars, 0) } };
     }
   );
 

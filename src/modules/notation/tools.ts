@@ -1,4 +1,6 @@
-// Módulo: Notation Viewer — reutilizado de examples/notation-viewer
+// Módulo: Notation Viewer — get_score now derives real measures from the clip's actual notes
+// instead of a fixed hardcoded score, and transpose_score really rewrites clip.notes (undoable).
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -34,23 +36,35 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"get_score", description:"Get notation score as structured data", category:"notation", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, include_rests:{type:"boolean",description:"Include rest symbols",required:false}, beam:{type:"string",description:"Beaming style",required:false,enum:["auto","grouped","none"]} } },
-    async (args: any) => {
-      const measures = Array.from({length:8}, (_, i) => ({
-        measure:i+1, beats:4, notes:[
-          { symbol:"quarter", pitch:"C4", accidental:null, dot:false },
-          { symbol:"eighth", pitch:"E4", accidental:null, dot:false },
-          { symbol:"eighth", pitch:"G4", accidental:null, dot:false },
-          { symbol:"quarter", pitch:"C5", accidental:null, dot:false }
-        ]
-      }));
-      return { success:true, data:{ trackIndex:args.track_index, clipIndex:args.clip_index, measures, totalMeasures:8, resolution:"1/16" } };
+  reg.register({ name:"get_score", description:"Get notation score as structured data, grouped into real measures (4 beats each) from the clip's actual notes", category:"notation", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true} } },
+    async (args: any, song: any) => {
+      const track = song.tracks?.[args.track_index];
+      const clip = track?.clipSlots?.[args.clip_index ?? 0]?.clip ?? track?.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip || !Array.isArray(clip.notes)) return { success:false, error:"MIDI clip not found" };
+      const beatsPerMeasure = 4;
+      const totalMeasures = Math.max(1, Math.ceil((clip.duration || 4) / beatsPerMeasure));
+      const durSymbol = (d: number) => d >= 3.5 ? "whole" : d >= 1.75 ? "half" : d >= 0.875 ? "quarter" : d >= 0.4375 ? "eighth" : "sixteenth";
+      const measures = Array.from({ length: totalMeasures }, (_, i) => {
+        const mStart = i * beatsPerMeasure, mEnd = mStart + beatsPerMeasure;
+        const notes = clip.notes
+          .filter((n: any) => n.startTime >= mStart && n.startTime < mEnd)
+          .sort((a: any, b: any) => a.startTime - b.startTime)
+          .map((n: any) => ({ symbol: durSymbol(n.duration || 0.25), pitch: `${NOTE_NAMES[n.pitch % 12]}${Math.floor(n.pitch / 12 - 1)}`, accidental: NOTE_NAMES[n.pitch % 12].includes("#") ? "sharp" : null, dot:false }));
+        return { measure:i + 1, beats:beatsPerMeasure, notes };
+      });
+      return { success:true, data:{ trackIndex:args.track_index, clipIndex:args.clip_index, measures, totalMeasures, resolution:"1/16" } };
     }
   );
 
-  
-  reg.register({ name:"transpose_score", description:"Transpose displayed notation", category:"notation", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, semitones:{type:"number",description:"Semitones to transpose",required:true} } },
-    async (args: any) => ({ success:true, data:{ transposed:true, by:args.semitones, newKey:`${NOTE_NAMES[(NOTE_NAMES.indexOf("C")+args.semitones+1200)%12]} major` } })
+  reg.register({ name:"transpose_score", description:"Transpose the clip's real MIDI notes by N semitones (undoable)", category:"notation", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true}, semitones:{type:"number",description:"Semitones to transpose",required:true} } },
+    async (args: any, song: any) => {
+      const track = song.tracks?.[args.track_index];
+      const clip = track?.clipSlots?.[args.clip_index ?? 0]?.clip ?? track?.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip || !Array.isArray(clip.notes)) return { success:false, error:"MIDI clip not found" };
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "notation.transpose_score");
+      clip.notes = clip.notes.map((n: any) => ({ ...n, pitch: Math.max(0, Math.min(127, n.pitch + args.semitones)) }));
+      return { success:true, data:{ transposed:true, by:args.semitones, noteCount:clip.notes.length } };
+    }
   );
 
   return reg;

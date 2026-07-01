@@ -49,19 +49,45 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"set_step_param", description:"Set velocity/accent/flam for a step", category:"step-seq", parameters:{ track_index:{type:"number",description:"Track index",required:true}, step:{type:"number",description:"Step index",required:true}, param:{type:"string",description:"Parameter",required:true,enum:["velocity","accent","flam","prob"]}, value:{type:"number",description:"Parameter value",required:true} } },
-    async (args: any) => ({ success:true, data:{ step:args.step, param:args.param, value:args.value, trackIndex:args.track_index } })
-  );
-
-  reg.register({ name:"chain_patterns", description:"Chain multiple patterns for song structure", category:"step-seq", parameters:{ pattern_order:{type:"string",description:"Pattern order (e.g. A,A,B,A,B,C)",required:true}, track_index:{type:"number",description:"Track index",required:true} } },
-    async (args: any) => {
-      const order = String(args.pattern_order).split(",").map((s: string)=>s.trim());
-      return { success:true, data:{ chained:true, patternCount:order.length, uniquePatterns:[...new Set(order)], totalBars:order.length*4 } };
+  reg.register({ name:"set_step_param", description:"Set velocity/accent/flam/prob for a step by editing the real note (undoable)", category:"step-seq", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false}, step:{type:"number",description:"Step index",required:true}, pitch:{type:"number",description:"MIDI pitch of the step (default 60)",required:false}, param:{type:"string",description:"Parameter",required:true,enum:["velocity","accent","flam","prob"]}, value:{type:"number",description:"Parameter value",required:true} } },
+    async (args: any, song: any) => {
+      const t = song.tracks?.[args.track_index];
+      const clip = t?.clipSlots?.[args.clip_index ?? 0]?.clip ?? t?.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip || !Array.isArray(clip.notes)) return { success:false, error:"MIDI clip not found" };
+      const g = 0.25, pitch = args.pitch ?? 60, time = args.step * g;
+      const notes = (clip.notes || []).slice();
+      const idx = notes.findIndex((n: any) => n.pitch === pitch && Math.abs(n.startTime - time) < g / 2);
+      if (idx === -1) return { success:false, error:"No active note at that step — toggle it on first." };
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "stepseq.set_step_param");
+      if (args.param === "velocity") notes[idx] = { ...notes[idx], velocity: Math.max(1, Math.min(127, args.value)) };
+      else if (args.param === "accent") notes[idx] = { ...notes[idx], velocity: Math.max(1, Math.min(127, (notes[idx].velocity ?? 100) + args.value)) };
+      else if (args.param === "prob") notes[idx] = { ...notes[idx], probability: Math.max(0.01, Math.min(1, args.value)) };
+      else if (args.param === "flam" && args.value > 0) { notes.push({ pitch, startTime: Math.max(0, time - Math.min(g * 0.4, args.value)), duration: g * 0.3, velocity: Math.round((notes[idx].velocity ?? 100) * 0.5) }); }
+      clip.notes = notes;
+      return { success:true, data:{ step:args.step, param:args.param, value:args.value, trackIndex:args.track_index, noteCount:notes.length } };
     }
   );
 
-  reg.register({ name:"randomize_pattern", description:"Randomize step pattern with constraints", category:"step-seq", parameters:{ track_index:{type:"number",description:"Track index",required:true}, density:{type:"number",description:"Step density 0-100%",required:false}, variation:{type:"number",description:"Variation from original 0-100%",required:false} } },
-    async (args: any) => ({ success:true, data:{ randomized:true, density:args.density||50, activeSteps:Math.round(16*(args.density||50)/100) } })
+  reg.register({ name:"chain_patterns", description:"Chain named pattern letters into a song structure (advisory — the SDK has no pattern-bank concept; arrange real clips in Arrangement instead, see Session → Arrangement)", category:"step-seq", parameters:{ pattern_order:{type:"string",description:"Pattern order (e.g. A,A,B,A,B,C)",required:true}, track_index:{type:"number",description:"Track index",required:true} } },
+    async (args: any) => {
+      const order = String(args.pattern_order).split(",").map((s: string)=>s.trim());
+      return { success:true, data:{ advisory:true, note:"No pattern-bank exists to chain — build each pattern as its own clip (set_pattern) and place them in Arrangement with Session → Arrangement.", patternCount:order.length, uniquePatterns:[...new Set(order)], totalBars:order.length*4 } };
+    }
+  );
+
+  reg.register({ name:"randomize_pattern", description:"Randomize a clip's step pattern for real, mutating existing notes toward a target density (undoable)", category:"step-seq", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false}, density:{type:"number",description:"Step density 0-100%",required:false}, variation:{type:"number",description:"How much to change vs. the current pattern 0-100%",required:false} } },
+    async (args: any, song: any) => {
+      const t = song.tracks?.[args.track_index];
+      const clip = t?.clipSlots?.[args.clip_index ?? 0]?.clip ?? t?.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const g = 0.25, pitch = 60, density = Math.max(0, Math.min(100, args.density ?? 50)) / 100, variation = Math.max(0, Math.min(100, args.variation ?? 100)) / 100;
+      const existing = new Set((clip.notes || []).map((n: any) => Math.round(n.startTime / g)));
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "stepseq.randomize_pattern");
+      const steps: boolean[] = [];
+      for (let i = 0; i < 16; i++) { const was = existing.has(i); steps.push(Math.random() < variation ? Math.random() < density : was); }
+      clip.notes = steps.map((on, i) => on ? { pitch, startTime: i * g, duration: g * 0.9, velocity: 70 + Math.round(Math.random() * 50) } : null).filter(Boolean);
+      return { success:true, data:{ randomized:true, density: Math.round(density * 100), activeSteps: clip.notes.length } };
+    }
   );
 
   return reg;

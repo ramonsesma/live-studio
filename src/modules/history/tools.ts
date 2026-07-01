@@ -1,5 +1,7 @@
-// Módulo: Edit History — a global undo for every destructive edit across the toolkit. Modules
-// record a restore snapshot in src/core/history.ts before mutating; this exposes undo/list/clear.
+// Módulo: Edit History — a global undo/redo for every destructive edit across the toolkit.
+// Modules record a self-toggling restore closure in src/core/history.ts before mutating; this
+// exposes undo/redo/list/clear. Redo genuinely re-applies the edit (not just "undo of undo") —
+// see the toggler() comment in core/history.ts for how that works without any call-site changes.
 import { history, keyClip, keyTrack, keyDevice } from "../../core/history.js";
 
 export class ToolRegistry {
@@ -43,8 +45,29 @@ export function createToolRegistry() {
     }
   );
 
+  reg.register({ name:"redo_last", description:"Redo the most recently undone edit (global) — re-applies it for real, it's not just undoing the undo", category:"utility", parameters:{} },
+    async () => {
+      const e = await history.redoLast();
+      if (!e) return { success:false, error:"Nothing to redo." };
+      return { success:true, data:{ redone:e.label, target:e.key, remainingRedo: history.redoDepth() } };
+    }
+  );
+
+  reg.register({ name:"redo_target", description:"Redo the latest undone edit on a specific clip/track/device", category:"utility", parameters:{ scope:{type:"string",description:"What to redo",required:false,enum:["clip","track","device"]}, track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index (clip scope, default 0)",required:false}, device_index:{type:"number",description:"Device index (device scope, default 0)",required:false} } },
+    async (args: any) => {
+      const k = keyFor(args); if (!k) return { success:false, error:"Provide a track_index (and clip/device index for that scope)." };
+      const e = await history.redoTarget(k);
+      if (!e) return { success:false, error:`Nothing to redo for ${k}.` };
+      return { success:true, data:{ redone:e.label, target:e.key, remainingRedo: history.redoDepth() } };
+    }
+  );
+
   reg.register({ name:"list", description:"List recent destructive edits (most recent first)", category:"utility", parameters:{ limit:{type:"number",description:"How many (default 25)",required:false} } },
     async (args: any) => ({ success:true, data:{ total: history.depth(), entries: history.list(Math.max(1, Math.min(100, args.limit || 25))) } })
+  );
+
+  reg.register({ name:"list_redo", description:"List edits available to redo (most recently undone first)", category:"utility", parameters:{ limit:{type:"number",description:"How many (default 25)",required:false} } },
+    async (args: any) => ({ success:true, data:{ total: history.redoDepth(), entries: history.listRedo(Math.max(1, Math.min(100, args.limit || 25))) } })
   );
 
   reg.register({ name:"clear", description:"Clear the edit history (everything, or one target)", category:"utility", parameters:{ scope:{type:"string",description:"Limit to a target",required:false,enum:["clip","track","device"]}, track_index:{type:"number",description:"Track index (for a scoped clear)",required:false}, clip_index:{type:"number",description:"Clip index",required:false}, device_index:{type:"number",description:"Device index",required:false} } },

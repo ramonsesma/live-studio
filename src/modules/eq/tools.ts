@@ -1,4 +1,6 @@
-// Módulo: EQ & Análisis — reutilizado de examples/smart-eq-assistant
+// Módulo: EQ & Análisis — apply_eq_preset now actually writes gain bands on the inserted EQ Eight
+// (undoable) instead of only inserting the device and echoing numbers back.
+import { recordParamAt, keyTrack } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -30,9 +32,23 @@ export function createToolRegistry() {
       };
       const preset = presets[args.preset];
       if (!preset) return { success:false, error:`Unknown preset: ${args.preset}` };
-      // Built-in Live devices are inserted by name (there is no track.createEq()).
-      try { if (args.create_eq !== false && track.insertDevice) await track.insertDevice("EQ Eight", track.devices?.length ?? 0); } catch(e) {}
-      return { success:true, data:{ applied:true, preset:args.preset, values:preset, trackIndex:args.track_index } };
+      let dev = (track.devices || []).find((d: any) => /eq\s*eight/i.test(d?.name || ""));
+      if (!dev && args.create_eq !== false && typeof track.insertDevice === "function") {
+        try { dev = await track.insertDevice("EQ Eight", track.devices?.length ?? 0); } catch { /* insertion failed — fall through to advisory */ }
+      }
+      if (!dev) return { success:true, data:{ advisory:true, note:"No EQ Eight device on this track and none could be inserted — open a track in Live first.", preset:args.preset, values:preset } };
+      // Map the 5 named bands to EQ Eight's band 1-5 Gain parameters (bands 6-8 unused here).
+      const bandGain = ["1 Gain", "2 Gain", "3 Gain", "4 Gain", "5 Gain"];
+      const order = ["low", "lowMid", "mid", "highMid", "high"] as const;
+      let setN = 0; const applied: any = {};
+      for (let i = 0; i < order.length; i++) {
+        const p = (dev.parameters || []).find((pp: any) => pp.name === bandGain[i] || pp.name.toLowerCase().includes(bandGain[i].toLowerCase()));
+        if (!p) continue;
+        await recordParamAt(p, keyTrack(args.track_index), "eq.apply_eq_preset");
+        await p.setValue(Math.max(p.min, Math.min(p.max, preset[order[i]])));
+        applied[order[i]] = preset[order[i]]; setN++;
+      }
+      return { success:true, data:{ applied: setN > 0, preset:args.preset, values:preset, paramsSet:setN, appliedBands:applied, device:dev.name, trackIndex:args.track_index } };
     }
   );
 

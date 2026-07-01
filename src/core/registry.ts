@@ -83,6 +83,21 @@ export class MasterRegistry {
     });
   }
 
+  // Add a single tool to an already-registered module, backed by an arbitrary handler instead
+  // of a module's own ChildRegistry. Used for capabilities that need the Bridge's `resources`/
+  // `environment` (audio render, disk storage) — those can't live behind the plain (args, song)
+  // signature every module handler gets, so the Bridge wires them in directly after construction
+  // (see Bridge.registerBridgeTools). This is what makes e.g. mix analysis or snapshot save/
+  // restore reachable from the AI copilot's run_tool, not just from a panel's own fetch calls.
+  addTool(moduleId: string, def: Omit<ToolDefinition, "module" | "originalName" | "demo">, handler: (args: Record<string, unknown>) => Promise<ToolResult> | ToolResult): void {
+    const fqName = `${moduleId}__${def.name}`;
+    if (this.handlers.has(fqName)) return; // don't shadow an existing tool
+    this.definitions.push({ ...def, category: moduleId, module: moduleId, originalName: def.name, demo: DEMO_TOOLS.has(fqName) });
+    this.handlers.set(fqName, (args) => handler(args));
+    const mod = this.modules.find((m) => m.id === moduleId);
+    if (mod) mod.toolCount++;
+  }
+
   async execute(name: string, args: Record<string, unknown>, song: any): Promise<ToolResult> {
     const handler = this.handlers.get(name);
     if (!handler) return { success: false, error: `Unknown tool: ${name}` };

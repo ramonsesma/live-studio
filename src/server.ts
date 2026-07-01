@@ -93,6 +93,21 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         sendJson(res, 200, await bridge.autoGain(body as any));
         return;
       }
+      if (url.pathname === "/api/maskmatrix" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.maskMatrix(body as any));
+        return;
+      }
+      if (url.pathname === "/api/stemexport" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.exportStems(body as any));
+        return;
+      }
+      if (url.pathname === "/api/mixcoach" && method === "POST") {
+        const body = await parseBody(req);
+        sendJson(res, 200, await bridge.mixCoach(body as any));
+        return;
+      }
       if (url.pathname === "/api/texturemap" && method === "POST") {
         const body = await parseBody(req);
         sendJson(res, 200, await bridge.textureMap(body as any));

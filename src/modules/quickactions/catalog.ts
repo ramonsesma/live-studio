@@ -68,7 +68,6 @@ export const QUICK_ACTIONS: QuickAction[] = [
   { group:"Mixer", name:"Mute track 1", tool:"mixconsole__toggle_mute", args:{"track_index": 0} },
   { group:"Mixer", name:"Solo track 1", tool:"mixconsole__toggle_solo", args:{"track_index": 0} },
   { group:"Mixer", name:"Match levels", tool:"mastering__match_levels", args:{"track_indices": "0,1,2"} },
-  { group:"State", name:"Save snapshot", tool:"snapshots__save_snapshot", args:{"name": "Snapshot"} },
   { group:"State", name:"Save mix scene", tool:"mixscene__save_scene", args:{"name": "Mix"} },
   { group:"State", name:"Add marker", tool:"arrangement__add_marker", args:{"name": "Marker", "time": 0} },
   { group:"Analyze", name:"Session summary", tool:"organizer__get_session_summary", args:{} },

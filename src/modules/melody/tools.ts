@@ -1,4 +1,6 @@
-// Módulo: Generador de Melodías — reutilizado de examples/melody-composer
+// Módulo: Generador de Melodías — apply_articulation now really rewrites the track's melody
+// clip notes (undoable) instead of only echoing the requested style back.
+import { recordNotes } from "../../core/history.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -72,8 +74,20 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"apply_articulation", description:"Apply articulation to melody", category:"melody", parameters:{ track_index:{type:"number",description:"Track",required:true}, articulation:{type:"string",description:"Style",required:true,enum:["legato","staccato","accent","swing"]} } },
-    async (args: any) => ({ success:true, data:{ applied:true, articulation:args.articulation, trackIndex:args.track_index } })
+  reg.register({ name:"apply_articulation", description:"Apply articulation to the track's real melody clip notes (undoable)", category:"melody", parameters:{ track_index:{type:"number",description:"Track",required:true}, clip_index:{type:"number",description:"Clip index (default 0)",required:false}, articulation:{type:"string",description:"Style",required:true,enum:["legato","staccato","accent","swing"]} } },
+    async (args: any, song: any) => {
+      const track = song.tracks?.[args.track_index];
+      const clip = track?.clipSlots?.[args.clip_index ?? 0]?.clip ?? track?.arrangementClips?.[args.clip_index ?? 0];
+      if (!clip || !Array.isArray(clip.notes) || !clip.notes.length) return { success:false, error:"No MIDI melody clip found on that track." };
+      const notes = clip.notes.map((n: any) => ({ ...n })).sort((a: any, b: any) => a.startTime - b.startTime);
+      if (args.articulation === "legato") { for (let i = 0; i < notes.length - 1; i++) notes[i].duration = Math.max(notes[i].duration, notes[i + 1].startTime - notes[i].startTime); }
+      else if (args.articulation === "staccato") { for (const n of notes) n.duration = Math.max(0.05, n.duration * 0.4); }
+      else if (args.articulation === "accent") { for (const n of notes) if (Math.abs(n.startTime - Math.round(n.startTime)) < 0.01) n.velocity = Math.min(127, Math.round((n.velocity ?? 100) * 1.2)); }
+      else if (args.articulation === "swing") { for (let i = 0; i < notes.length; i++) { const frac = notes[i].startTime % 1; if (Math.abs(frac - 0.5) < 0.01) notes[i].startTime += 1 / 6; } }
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "melody.apply_articulation");
+      clip.notes = notes;
+      return { success:true, data:{ applied:true, articulation:args.articulation, trackIndex:args.track_index, noteCount:notes.length } };
+    }
   );
 
   return reg;

@@ -1,6 +1,7 @@
 // Project Snapshot core — serialize the live Set to a plain JSON, diff two snapshots and
 // restore one. Pure logic over the SDK object model (async because mixer/device params are
 // read via getValue). Disk persistence lives in the Bridge (needs environment.storageDirectory).
+import { history, keyTrack, recordNotes, recordParamAt, recordToggle } from "./history.js";
 
 export interface Snapshot {
   version: number; label: string; timestamp: string;
@@ -89,30 +90,70 @@ export function diffSnapshots(a: Snapshot, b: Snapshot): { lines: DiffLine[]; co
   return { lines, counts };
 }
 
+// Every mutation is recorded to the shared Edit History first, so a bad restore can be undone
+// with the regular undo_last/undo_target tools — same granularity as any other destructive edit.
 export async function applySnapshot(song: any, snap: Snapshot): Promise<any> {
-  let names = 0, mixers = 0, clips = 0, scenes = 0;
-  if (snap.tempo != null && song && "tempo" in song) { try { song.tempo = snap.tempo; } catch {} }
+  let names = 0, mixers = 0, clips = 0, scenes = 0, markers = 0;
+  if (snap.tempo != null && song && "tempo" in song && song.tempo !== snap.tempo) {
+    recordToggle("song:tempo", "snapshot.restore(tempo)", () => song.tempo, (v) => { song.tempo = v; });
+    try { song.tempo = snap.tempo; } catch {}
+  }
   for (const ts of snap.tracks) {
     const t = song?.tracks?.[ts.index]; if (!t) continue;
-    try { t.name = ts.name; t.mute = ts.mute; t.solo = ts.solo; names++; } catch {}
+    const prevState = { name: t.name, mute: t.mute, solo: t.solo };
+    if (prevState.name !== ts.name || prevState.mute !== ts.mute || prevState.solo !== ts.solo) {
+      recordToggle(keyTrack(ts.index), "snapshot.restore(track)", () => ({ name: t.name, mute: t.mute, solo: t.solo }), (v) => { t.name = v.name; t.mute = v.mute; t.solo = v.solo; });
+      try { t.name = ts.name; t.mute = ts.mute; t.solo = ts.solo; names++; } catch {}
+    }
     if (t.mixer && ts.mixer) {
       try {
-        if (t.mixer.volume && ts.mixer.volume != null) await t.mixer.volume.setValue(ts.mixer.volume);
-        if (t.mixer.panning && ts.mixer.pan != null) await t.mixer.panning.setValue(ts.mixer.pan);
-        if (t.mixer.sends && ts.mixer.sends) for (let k = 0; k < t.mixer.sends.length && k < ts.mixer.sends.length; k++) await t.mixer.sends[k].setValue(ts.mixer.sends[k]);
+        if (t.mixer.volume && ts.mixer.volume != null) { await recordParamAt(t.mixer.volume, keyTrack(ts.index), "snapshot.restore(volume)"); await t.mixer.volume.setValue(ts.mixer.volume); }
+        if (t.mixer.panning && ts.mixer.pan != null) { await recordParamAt(t.mixer.panning, keyTrack(ts.index), "snapshot.restore(pan)"); await t.mixer.panning.setValue(ts.mixer.pan); }
+        if (t.mixer.sends && ts.mixer.sends) for (let k = 0; k < t.mixer.sends.length && k < ts.mixer.sends.length; k++) { await recordParamAt(t.mixer.sends[k], keyTrack(ts.index), "snapshot.restore(send)"); await t.mixer.sends[k].setValue(ts.mixer.sends[k]); }
         mixers++;
       } catch {}
     }
     for (const cs of ts.clips) {
       if (cs.kind !== "midi" || !cs.notes) continue;
       const c = t.clipSlots?.[cs.slot]?.clip;
-      if (c && Array.isArray(c.notes)) { c.notes = cs.notes.map((n) => ({ pitch: n.p, startTime: n.t, duration: n.d, velocity: n.v })); clips++; }
+      if (c && Array.isArray(c.notes)) { recordNotes(c, ts.index, cs.slot, "snapshot.restore(notes)"); c.notes = cs.notes.map((n) => ({ pitch: n.p, startTime: n.t, duration: n.d, velocity: n.v })); clips++; }
     }
   }
   for (let i = 0; i < (snap.scenes || []).length; i++) {
-    const sc = song?.scenes?.[i]; if (sc && "name" in sc) { try { sc.name = snap.scenes[i].name; scenes++; } catch {} }
+    const sc = song?.scenes?.[i]; if (sc && "name" in sc && sc.name !== snap.scenes[i].name) {
+      recordToggle(`scene:${i}`, "snapshot.restore(scene)", () => sc.name, (v) => { sc.name = v; });
+      try { sc.name = snap.scenes[i].name; scenes++; } catch {}
+    }
   }
-  return { restored: true, tracksRestored: names, mixersRestored: mixers, clipsRestored: clips, scenesRestored: scenes };
+  // Cue points: additive-only restore. We re-create any snapshotted marker missing from the
+  // live Set (by name+time) — we never delete markers the user added since the snapshot, since
+  // that's real user work, not something the snapshot has an opinion about. Undo deletes the
+  // marker again; redo re-creates it (create/delete is a toggle too, just not a value swap).
+  if (typeof song?.createCuePoint === "function") {
+    const live = song.cuePoints || [];
+    for (const cp of snap.cuePoints || []) {
+      const exists = live.some((c: any) => c.name === cp.name && Math.abs(c.time - cp.time) < 0.01);
+      if (exists) continue;
+      try {
+        let cue: any = await song.createCuePoint(cp.time);
+        cue.name = cp.name;
+        const toggle = async () => {
+          if (cue) { try { await song.deleteCuePoint(cue); } catch {} cue = null; }
+          else { try { cue = await song.createCuePoint(cp.time); cue.name = cp.name; } catch {} }
+        };
+        history.push("song:cuepoints", "snapshot.restore(marker)", toggle);
+        markers++;
+      } catch {}
+    }
+  }
+  return { restored: true, tracksRestored: names, mixersRestored: mixers, clipsRestored: clips, scenesRestored: scenes, markersRestored: markers };
+}
+
+// Diff a saved snapshot against the Set's CURRENT live state without saving a new snapshot first
+// — "what changed since this checkpoint?" without cluttering the snapshot list.
+export async function diffAgainstCurrent(song: any, saved: Snapshot): Promise<{ lines: DiffLine[]; counts: { added: number; removed: number; changed: number } }> {
+  const current = await buildSnapshot(song, "current");
+  return diffSnapshots(saved, current);
 }
 
 export function summarize(s: Snapshot) {

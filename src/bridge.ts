@@ -48,7 +48,7 @@ import { synthGlassBell } from "./core/glassbell.js";
 import { synthSubKick } from "./core/subkick.js";
 import { synthReverseSweep } from "./core/reversesweep.js";
 import { recordNotes } from "./core/history.js";
-import { buildSnapshot, diffSnapshots, applySnapshot, summarize, type Snapshot } from "./core/snapshot.js";
+import { buildSnapshot, diffSnapshots, applySnapshot, diffAgainstCurrent, summarize, type Snapshot } from "./core/snapshot.js";
 import { extractFeatures, cosine, tagsFromName, estimateBpm } from "./core/samplebrain.js";
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, unlinkSync, copyFileSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -110,7 +110,45 @@ export interface ListenResult { success: boolean; error?: string; data?: { sourc
 export class Bridge {
   // `resources`/`environment` come from the SDK ExtensionContext and are only present
   // inside Live; the analysis engine itself runs anywhere (used by /api/listen demo + tests).
-  constructor(private registry: MasterRegistry, private song: any, private resources?: any, private environment?: any) { try { setStorageDir(environment?.storageDirectory); } catch {} }
+  constructor(private registry: MasterRegistry, private song: any, private resources?: any, private environment?: any) {
+    try { setStorageDir(environment?.storageDirectory); } catch {}
+    this.registerBridgeTools();
+  }
+
+  // Several capabilities (audio render + FFT, disk-backed project snapshots) need `resources`/
+  // `environment`, which the plain (args, song) module handler signature has no way to reach —
+  // that's why they were originally only wired to bespoke /api/* routes for their panels. That
+  // left them invisible to the AI copilot's find_tools/run_tool loop: a user could ask the
+  // copilot in chat to "check my mix for masking" or "save a project snapshot" and it had no
+  // tool to do it with. Wiring them into the registry here closes that gap.
+  private registerBridgeTools(): void {
+    const parseIdx = (s: unknown) => typeof s === "string" && s.length ? s.split(",").map((v) => parseInt(v.trim(), 10)).filter((n) => !isNaN(n)) : undefined;
+
+    this.registry.addTool("resonance", { name: "mask_matrix", description: "Render every audio track (or a subset), FFT-analyze each, and find frequency bands where 2+ tracks mask each other — with concrete EQ-carve suggestions.", category: "resonance", parameters: { track_indices: { type: "string", description: "Comma-separated track indices (default: all audio tracks)", required: false }, demo: { type: "boolean", description: "Use synthetic demo stems instead of rendering", required: false } } },
+      (args) => this.maskMatrix({ trackIndices: parseIdx(args.track_indices), demo: !!args.demo }));
+
+    this.registry.addTool("autogain", { name: "run", description: "Render each audio track pre-fx, measure real RMS/peak, and compute (optionally apply) the fader move needed to bring every track to a common reference level.", category: "gain-staging", parameters: { track_indices: { type: "string", description: "Comma-separated track indices (default: all audio tracks)", required: false }, target_mode: { type: "string", description: "Reference level", required: false, enum: ["average", "-18", "-12", "loudest", "quietest"] }, apply: { type: "boolean", description: "Write the computed fader moves to track.mixer.volume", required: false }, demo: { type: "boolean", description: "Use synthetic demo levels instead of rendering", required: false } } },
+      (args) => this.autoGain({ trackIndices: parseIdx(args.track_indices), targetMode: args.target_mode as string, apply: !!args.apply, demo: !!args.demo }));
+
+    this.registry.addTool("projectsnapshot", { name: "save", description: "Serialize the whole Live Set to disk as a named snapshot (tempo, scale, scenes, cue points, every track's mixer/devices/clips/notes).", category: "versioning", parameters: { label: { type: "string", description: "Snapshot label", required: false } } },
+      (args) => this.snapshot({ action: "save", label: args.label as string }));
+    this.registry.addTool("projectsnapshot", { name: "list", description: "List saved project snapshots", category: "versioning", parameters: {} },
+      () => this.snapshot({ action: "list" }));
+    this.registry.addTool("projectsnapshot", { name: "diff", description: "Diff two saved snapshots (git-style +/-/~ lines)", category: "versioning", parameters: { id_a: { type: "string", description: "First snapshot id", required: true }, id_b: { type: "string", description: "Second snapshot id", required: true } } },
+      (args) => this.snapshot({ action: "diff", idA: args.id_a as string, idB: args.id_b as string }));
+    this.registry.addTool("projectsnapshot", { name: "diff_current", description: "Diff a saved snapshot against the Set's CURRENT live state — \"what changed since this checkpoint?\" — without saving a new snapshot first.", category: "versioning", parameters: { id: { type: "string", description: "Snapshot id to compare against the live state", required: true } } },
+      (args) => this.snapshot({ action: "diff_current", id: args.id as string }));
+    this.registry.addTool("projectsnapshot", { name: "restore", description: "Restore a saved snapshot onto the live Set (tempo, track names/mute/solo/mixer, clip notes, scene names, and any missing cue points). Every change is recorded to Edit History and can be undone.", category: "versioning", parameters: { id: { type: "string", description: "Snapshot id to restore", required: true } } },
+      (args) => this.snapshot({ action: "restore", id: args.id as string }));
+    this.registry.addTool("projectsnapshot", { name: "delete", description: "Delete a saved snapshot", category: "versioning", parameters: { id: { type: "string", description: "Snapshot id to delete", required: true } } },
+      (args) => this.snapshot({ action: "delete", id: args.id as string }));
+
+    this.registry.addTool("stemexport", { name: "export", description: "Batch-render every audio track (or a subset) to a real WAV file on disk with automatic naming. MIDI tracks are skipped (resample them to audio first).", category: "stem-export", parameters: { track_indices: { type: "string", description: "Comma-separated track indices (default: all)", required: false }, name_pattern: { type: "string", description: "File name pattern with {index}/{name} placeholders (default \"{index}_{name}\")", required: false }, demo: { type: "boolean", description: "Write synthetic demo stems instead of rendering", required: false } } },
+      (args) => this.exportStems({ trackIndices: parseIdx(args.track_indices), namePattern: args.name_pattern as string, demo: !!args.demo }));
+
+    this.registry.addTool("mixcoach", { name: "analyze", description: "Run health/masking/gain-staging analysis together and return a single prioritized list of next steps, each with the exact tool+args to act on it.", category: "coach", parameters: { demo: { type: "boolean", description: "Use synthetic demo data instead of rendering", required: false } } },
+      (args) => this.mixCoach({ demo: !!args.demo }));
+  }
 
   getTools() { return this.registry.getDefinitionsJson(); }
   getModules() { return this.registry.getModules(); }
@@ -141,6 +179,154 @@ export class Bridge {
       const end = req.endBeat ?? Math.max(start + 4, start + 4);
       const wavPath: string = await this.resources.renderPreFxAudio(track, start, end);
       return { success: true, data: { source: "render", trackName: track.name, analysis: analyzeWavFile(wavPath) } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // Frequency×track masking matrix: render every audio track (or a given subset), FFT-analyze
+  // each, and find bands where 2+ tracks are simultaneously loud (a masking collision). This was
+  // previously computed only client-side in the Mix Radar panel — invisible to the copilot, which
+  // could only tell users to go look at the panel. Now it's a real backend capability both the
+  // panel and the chat copilot can call and reason about.
+  async maskMatrix(req: { trackIndices?: number[]; demo?: boolean } = {}): Promise<any> {
+    try {
+      const NB = 30;
+      const bandHz = (b: number) => Math.round(20 * Math.pow(1000, (b + 0.5) / NB));
+      let rows: { index: number; name: string; bands: number[]; rmsDb: number }[];
+      if (req.demo) {
+        const base = analyzePcm(synthPcm(44100, 1, [{ hz: 60, amp: 0.8 }, { hz: 220, amp: 0.4 }, { hz: 6000, amp: 0.25 }]), 44100).bands.map((b) => b.norm);
+        const names = ["Kick", "Bass", "Rhodes", "Vocal", "Hats", "Pad"];
+        const shifts = [0, 3, 9, 12, 20, 6], scales = [1, 0.95, 0.85, 0.9, 0.8, 0.7];
+        rows = names.map((name, t) => {
+          const bands = base.map((_, b) => {
+            const src = (b - shifts[t] + NB) % NB;
+            let v = base[src] * scales[t];
+            if (t === 5) v = Math.max(v, 0.35 * Math.exp(-Math.pow((b - 14) / 9, 2)));
+            return Math.max(0, Math.min(1, v));
+          });
+          return { index: t, name, bands, rmsDb: -6 - t * 2 };
+        });
+      } else {
+        if (!this.resources?.renderPreFxAudio) return { success: false, error: "Audio render is only available inside Live." };
+        const tracks = this.song?.tracks || [];
+        const idxs = req.trackIndices?.length ? req.trackIndices : tracks.map((_: any, i: number) => i);
+        rows = [];
+        for (const i of idxs) {
+          const t = tracks[i];
+          if (!t || !("createAudioClip" in t)) continue;
+          try {
+            const wav: string = await this.resources.renderPreFxAudio(t, 0, 8);
+            const a = analyzeWavFile(wav);
+            rows.push({ index: i, name: t.name, bands: a.bands.map((b) => b.norm), rmsDb: a.rmsDb });
+          } catch { /* skip tracks that fail to render */ }
+        }
+        if (!rows.length) return { success: false, error: "No audio tracks could be rendered. Resample MIDI tracks to audio first." };
+      }
+      const collisions: { band: number; hz: number; tracks: number[] }[] = [];
+      for (let b = 0; b < NB; b++) {
+        const hot = rows.filter((r) => r.bands[b] > 0.6);
+        if (hot.length >= 2) collisions.push({ band: b, hz: bandHz(b), tracks: hot.map((r) => r.index) });
+      }
+      const seen = new Set<string>(); const moves: any[] = [];
+      for (const c of collisions) {
+        const sorted = [...c.tracks].sort((x, y) => (rows.find((r) => r.index === y)!.bands[c.band]) - (rows.find((r) => r.index === x)!.bands[c.band]));
+        const louder = sorted[0], quieter = sorted[1];
+        const key = `${louder}_${Math.round(c.band / 3)}`;
+        if (seen.has(key)) continue; seen.add(key);
+        const louderRow = rows.find((r) => r.index === louder)!, quieterRow = rows.find((r) => r.index === quieter)!;
+        moves.push({ trackIndex: louder, trackName: louderRow.name, vsIndex: quieter, vsName: quieterRow.name, hz: c.hz, suggestion: `Carve EQ on "${louderRow.name}" near ${c.hz} Hz — it's masking "${quieterRow.name}" there.` });
+        if (moves.length >= 5) break;
+      }
+      return { success: true, data: { source: req.demo ? "demo" : "render", rows, collisionCount: collisions.length, moves } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // Stem Export: batch-render every audio track's pre-fx audio to a real WAV on disk with
+  // automatic naming ({index}/{name} placeholders). MIDI tracks are skipped, not faked — the
+  // response says exactly which ones and why. Formalizes the same renderPreFxAudio pipeline
+  // already used for analysis (resonance/autogain) into an actual file-export feature.
+  async exportStems(req: { trackIndices?: number[]; startBeat?: number; endBeat?: number; namePattern?: string; demo?: boolean } = {}): Promise<any> {
+    try {
+      const start = req.startBeat ?? 0, end = req.endBeat ?? 16;
+      const pattern = req.namePattern || "{index}_{name}";
+      const sanitize = (s: string) => String(s || "track").replace(/[^a-z0-9_-]+/gi, "_").slice(0, 40);
+      const nameFor = (i: number, name: string) => pattern.replace("{index}", String(i + 1).padStart(2, "0")).replace("{name}", sanitize(name)) + ".wav";
+      const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio");
+      const dir = join(base, "stem-exports", `stems_${Date.now()}`);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      const exported: { trackIndex: number; name: string; file: string; fileName: string }[] = [];
+      if (req.demo) {
+        const names = ["Kick", "Bass", "Keys", "Vocal"];
+        for (let i = 0; i < names.length; i++) {
+          const pcm = synthPcm(44100, 1.5, [{ hz: 110 + i * 80, amp: 0.5 }]);
+          const fileName = nameFor(i, names[i]);
+          const file = join(dir, fileName);
+          writeFileSync(file, encodeWav16(pcm, 44100));
+          exported.push({ trackIndex: i, name: names[i], file, fileName });
+        }
+        return { success: true, data: { exported: true, source: "demo", folder: dir, count: exported.length, files: exported } };
+      }
+      if (!this.resources?.renderPreFxAudio) return { success: false, error: "Audio render is only available inside Live." };
+      const tracks = this.song?.tracks || [];
+      const idxs = req.trackIndices?.length ? req.trackIndices : tracks.map((_: any, i: number) => i);
+      const skippedMidi: number[] = [];
+      for (const i of idxs) {
+        const t = tracks[i];
+        if (!t) continue;
+        if (!("createAudioClip" in t)) { skippedMidi.push(i); continue; } // MIDI needs resampling first — skipped, not faked
+        try {
+          const wav: string = await this.resources.renderPreFxAudio(t, start, end);
+          const fileName = nameFor(i, t.name);
+          const dest = join(dir, fileName);
+          copyFileSync(wav, dest);
+          exported.push({ trackIndex: i, name: t.name, file: dest, fileName });
+        } catch { /* skip tracks that fail to render */ }
+      }
+      if (!exported.length) return { success: false, error: skippedMidi.length ? "All requested tracks are MIDI — resample them to audio first." : "No audio tracks could be rendered." };
+      return { success: true, data: { exported: true, source: "render", folder: dir, count: exported.length, files: exported, skippedMidiTracks: skippedMidi.length || undefined } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
+  // Mix Coach: combines three already-real analyses (health__run_checks, the masking matrix,
+  // auto-gain staging) into one prioritized "what to do next" list, instead of the copilot
+  // running each in isolation and the user having to piece the picture together themselves.
+  // Every suggestion carries the exact tool+args that would act on it.
+  async mixCoach(req: { demo?: boolean } = {}): Promise<any> {
+    try {
+      const SEV: Record<string, number> = { error: 3, warning: 2, info: 1 };
+      const health = await this.registry.execute("health__run_checks", {}, this.song);
+      const mask = await this.maskMatrix({ demo: req.demo });
+      const gain = await this.autoGain({ demo: req.demo, targetMode: "average" });
+      const steps: { priority: number; category: string; message: string; action: { tool: string; args: any } | null }[] = [];
+      if (health.success) {
+        const issues = [...((health.data as any).issues || [])].sort((a: any, b: any) => (SEV[b.severity] || 0) - (SEV[a.severity] || 0));
+        for (const issue of issues.slice(0, 3)) {
+          steps.push({ priority: 4 - (SEV[issue.severity] || 1), category: "health", message: issue.message, action: issue.fix ? { tool: "health__apply_fix", args: issue.fix } : null });
+        }
+      }
+      if (mask.success) {
+        for (const m of (mask.data as any).moves.slice(0, 2)) {
+          steps.push({ priority: 2, category: "masking", message: m.suggestion, action: { tool: "eq__apply_eq_preset", args: { track_index: m.trackIndex, preset: "bass_cut", create_eq: true } } });
+        }
+      }
+      if (gain.success) {
+        const worst = [...(gain.data as any).tracks].sort((a: any, b: any) => Math.abs(b.faderDb) - Math.abs(a.faderDb))[0];
+        if (worst && Math.abs(worst.faderDb) > 3) {
+          steps.push({ priority: 2, category: "gain-staging", message: `"${worst.name}" is ${Math.abs(worst.faderDb).toFixed(1)} dB ${worst.faderDb > 0 ? "quieter" : "louder"} than the mix average.`, action: { tool: "autogain__run", args: { track_indices: String(worst.index), apply: true } } });
+        }
+      }
+      steps.sort((a, b) => a.priority - b.priority);
+      return { success: true, data: {
+        healthScore: health.success ? (health.data as any).score : null,
+        maskingCollisions: mask.success ? (mask.data as any).collisionCount : null,
+        gainTargetDb: gain.success ? (gain.data as any).targetDb : null,
+        nextSteps: steps.slice(0, 7),
+      } };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
@@ -684,6 +870,11 @@ export class Bridge {
         const a = this.loadSnap(dir, String(req.idA)), b = this.loadSnap(dir, String(req.idB));
         if (!a || !b) return { success: false, error: "Snapshot not found" };
         return { success: true, data: diffSnapshots(a, b) };
+      }
+      if (req.action === "diff_current") {
+        const a = this.loadSnap(dir, String(req.id ?? req.idA));
+        if (!a) return { success: false, error: "Snapshot not found" };
+        return { success: true, data: await diffAgainstCurrent(this.song, a) };
       }
       if (req.action === "restore") {
         const s = this.loadSnap(dir, String(req.id)); if (!s) return { success: false, error: "Snapshot not found" };

@@ -1,5 +1,7 @@
-// Módulo: Groove & Humanize — reutilizado de examples/groove-editor
+// Módulo: Groove & Humanize — groove templates now persist to disk (src/core/storage.ts)
+// instead of a fixed fake catalog that ignored what was actually saved.
 import { recordNotes } from "../../core/history.js";
+import { saveJson, listJson } from "../../core/storage.js";
 export class ToolRegistry {
   private handlers = new Map();
   definitions: any[] = [];
@@ -12,6 +14,8 @@ export class ToolRegistry {
   }
   getDefinitionsJson() { return this.definitions; }
 }
+
+const SUB = "groove_templates";
 
 function getClip(song: any, ti: number, ci: number) {
   const t = song?.tracks?.[ti];
@@ -48,19 +52,22 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"save_groove", description:"Save current groove as a named template", category:"groove", parameters:{ name:{type:"string",description:"Groove template name",required:true}, category:{type:"string",description:"Category",required:false,enum:["timing","velocity","both"]} } },
-    async (args: any) => ({ success:true, data:{ saved:true, name:args.name, category:args.category||"both", timestamp:new Date().toISOString(), templateId:`grv_${Date.now()}` } })
+  reg.register({ name:"save_groove", description:"Extract the real timing/velocity groove from a clip and save it as a named template (persists to disk)", category:"groove", parameters:{ name:{type:"string",description:"Groove template name",required:true}, track_index:{type:"number",description:"Source clip's track index",required:true}, clip_index:{type:"number",description:"Source clip index (default 0)",required:false}, category:{type:"string",description:"Category",required:false,enum:["timing","velocity","both"]} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index ?? 0);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const g = 0.25;
+      const offsets = (clip.notes || []).map((n: any) => { const slot = Math.round(n.startTime / g); return +(n.startTime - slot * g).toFixed(4); });
+      const velocities = (clip.notes || []).map((n: any) => n.velocity ?? 100);
+      const id = `grv_${Date.now()}`;
+      const groove = { id, name:args.name, category:args.category||"both", source:clip.name, timestamp:new Date().toISOString(), offsets, velocities };
+      saveJson(SUB, id, groove);
+      return { success:true, data:{ saved:true, name:args.name, category:groove.category, templateId:id, noteCount:offsets.length } };
+    }
   );
 
   reg.register({ name:"list_grooves", description:"List saved groove templates", category:"groove", parameters:{} },
-    async () => ({
-      success:true, data:{ grooves:[
-        { name:"Tight 16th", category:"timing", source:"808 hi-hats", date:"2025-03-10" },
-        { name:"Lo-Fi Shuffle", category:"both", source:"Vinyl drum break", date:"2025-04-22" },
-        { name:"Trap Roll", category:"timing", source:"Hi-hat rolls", date:"2025-05-15" },
-        { name:"Soul Swing", category:"timing", source:"Soul drum break", date:"2025-06-01" }
-      ]}
-    })
+    async () => ({ success:true, data:{ grooves: listJson(SUB).map((g: any) => ({ name:g.name, category:g.category, source:g.source, date:g.timestamp?.slice(0,10) })) } })
   );
 
   reg.register({ name:"extract_velocity", description:"Extract velocity pattern from a clip as a groove", category:"groove", parameters:{ track_index:{type:"number",description:"Track index",required:true}, clip_index:{type:"number",description:"Clip index",required:true} } },

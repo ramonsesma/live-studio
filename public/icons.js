@@ -81,6 +81,9 @@ window.LiveStudioIcons = (function () {
     glassbell: '<path d="M7 17a5 7 0 0 1 10 0z"/><path d="M5 17h14"/><path d="M9 6l1.5-3 1.5 3" opacity=".7"/>',
     subkick: '<circle cx="12" cy="12" r="8"/><path d="M8 12h8M12 8v8" opacity=".5"/><path d="M12 4v3M12 17v3" stroke-width="2.5"/>',
     reversesweep: '<path d="M3 18c4 0 4-14 8-14s4 12 10 12"/><path d="M18 12l3 2-3 2"/>',
+    devremote: '<rect x="4" y="6" width="16" height="12" rx="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/><path d="M9 6V4M15 6V4"/>',
+    stemexport: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>',
+    mixcoach: '<path d="M12 3a4 4 0 0 0-4 4v3a4 4 0 0 0 8 0V7a4 4 0 0 0-4-4z"/><path d="M8 12v1a4 4 0 0 0 8 0v-1M12 17v3M9 21h6"/>',
 
     eq: '<path d="M6 4v16M12 4v16M18 4v16"/><circle cx="6" cy="9" r="2"/><circle cx="12" cy="14" r="2"/><circle cx="18" cy="7" r="2"/>',
     compressor: '<path d="M4 8h16M4 16h16M8 4l4 3 4-3M8 20l4-3 4 3"/>',
@@ -156,8 +159,8 @@ window.LiveStudioIcons = (function () {
     arrangement: "#82c98a", sections: "#82c98a", genarranger: "#82c98a", performance: "#82c98a", takes: "#82c98a", colorizer: "#82c98a", colortheory: "#82c98a", takeorganizer: "#82c98a", clipgraph: "#82c98a", launchquant: "#82c98a", sessionbridge: "#82c98a",
     audio2midi: "#74b8e0",
     temposync: "#f0a04b", tempotap: "#f0a04b", timesig: "#f0a04b", delaycalc: "#f0a04b",
-    synth: "#9d8cff", sfx: "#9d8cff", vocal: "#9d8cff", padengine: "#9d8cff", pluckengine: "#5ec4a8", acid303: "#e8617a", chordstab: "#b58ce0", fmbell: "#57c7e0", impact: "#9a9aa3", subbass: "#e0a23a", organ: "#6cc6ff", vocalchop: "#d4537e", instrumentrender: "#74b8e0", brass: "#e89a3a", wobble: "#7a4dff", choir: "#bc8df0", subdrop: "#74b8e0", pluckbass: "#5ec4a8", sawlead: "#f0a04b", reese: "#a04bff", marimba: "#c79568", glitch: "#e8e857", tapehiss: "#9a9a9a", trumpet: "#e89a3a", epiano: "#74c4e0", musicbox: "#f0c068", harp: "#79c5b0", whistle: "#a4d4ea", subwobble: "#5e4ac4", vocoder: "#d077a0", noisefx: "#b8b8c0", cymbal: "#d4b878", guitar: "#e8617a", sitar: "#c78d5e", steeldrum: "#8dd0d8", accordion: "#e0985e", theremin: "#9a8cd8", hihat808: "#e8617a", stabhit: "#e89a3a", glassbell: "#a8e0e8", subkick: "#e0a23a", reversesweep: "#c8c8d0",
-    grouprouting: "#9a9aa2", console: "#9a9aa2", sandbox: "#9a9aa2", history: "#9a9aa2", quickactions: "#f0a04b",
+    synth: "#9d8cff", sfx: "#9d8cff", vocal: "#9d8cff", padengine: "#9d8cff", pluckengine: "#5ec4a8", acid303: "#e8617a", chordstab: "#b58ce0", fmbell: "#57c7e0", impact: "#9a9aa3", subbass: "#e0a23a", organ: "#6cc6ff", vocalchop: "#d4537e", instrumentrender: "#74b8e0", brass: "#e89a3a", wobble: "#7a4dff", choir: "#bc8df0", subdrop: "#74b8e0", pluckbass: "#5ec4a8", sawlead: "#f0a04b", reese: "#a04bff", marimba: "#c79568", glitch: "#e8e857", tapehiss: "#9a9a9a", trumpet: "#e89a3a", epiano: "#74c4e0", musicbox: "#f0c068", harp: "#79c5b0", whistle: "#a4d4ea", subwobble: "#5e4ac4", vocoder: "#d077a0", noisefx: "#b8b8c0", cymbal: "#d4b878", guitar: "#e8617a", sitar: "#c78d5e", steeldrum: "#8dd0d8", accordion: "#e0985e", theremin: "#9a8cd8", hihat808: "#e8617a", stabhit: "#e89a3a", glassbell: "#a8e0e8", subkick: "#e0a23a", reversesweep: "#c8c8d0", devremote: "#9a9aa3",
+    grouprouting: "#9a9aa2", console: "#9a9aa2", sandbox: "#9a9aa2", history: "#9a9aa2", quickactions: "#f0a04b", stemexport: "#5ad17a", mixcoach: "#e24b4a",
     copilot: "#6cc6ff",
   };
 

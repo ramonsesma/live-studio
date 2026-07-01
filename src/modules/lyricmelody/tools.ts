@@ -73,8 +73,22 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"suggest_harmony", description:"Suggest harmony for melody", category:"harmony", parameters:{ track_index:{type:"number",description:"Melody track",required:true}, style:{type:"string",description:"Harmony style",required:false,enum:["close","open","octave","third","fifth","cluster"]} } },
-    async (args: any) => ({ success:true, data:{ suggested:true, style:args.style||"third", parts:2, intervals:[0,4,7], trackIndex:args.track_index } })
+  reg.register({ name:"suggest_harmony", description:"Generate a real harmony MIDI track from the melody track's existing clip notes", category:"harmony", parameters:{ track_index:{type:"number",description:"Melody track",required:true}, clip_index:{type:"number",description:"Melody clip index (default 0)",required:false}, style:{type:"string",description:"Harmony style",required:false,enum:["close","open","octave","third","fifth","cluster"]} } },
+    async (args: any, song: any) => {
+      const INTERVALS: Record<string, number[]> = { close:[3], open:[7], octave:[12], third:[4], fifth:[7], cluster:[1,2] };
+      const style = args.style || "third";
+      const track = song.tracks?.[args.track_index];
+      const melodyClip = track?.clipSlots?.[args.clip_index ?? 0]?.clip ?? track?.arrangementClips?.[args.clip_index ?? 0];
+      if (!melodyClip || !Array.isArray(melodyClip.notes) || !melodyClip.notes.length) return { success:false, error:"No MIDI notes found on that track/clip." };
+      const intervals = INTERVALS[style];
+      const harmonyNotes = melodyClip.notes.flatMap((n: any) => intervals.map((iv) => ({ pitch: Math.max(0, Math.min(127, n.pitch + iv)), startTime:n.startTime, duration:n.duration, velocity: Math.round((n.velocity ?? 100) * 0.85) })));
+      const harmTrack = await song.createMidiTrack();
+      harmTrack.name = `Harmony (${style})`;
+      const clip = await harmTrack.createMidiClip(0, melodyClip.duration || 4);
+      clip.name = harmTrack.name;
+      clip.notes = harmonyNotes;
+      return { success:true, data:{ suggested:true, style, parts:intervals.length, intervals, trackIndex:song.tracks.indexOf(harmTrack), noteCount:harmonyNotes.length } };
+    }
   );
 
   return reg;

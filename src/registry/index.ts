@@ -74,6 +74,9 @@ import { createToolRegistry as stabHitTools } from "../modules/stabhit/tools.js"
 import { createToolRegistry as glassBellTools } from "../modules/glassbell/tools.js";
 import { createToolRegistry as subKickTools } from "../modules/subkick/tools.js";
 import { createToolRegistry as reverseSweepTools } from "../modules/reversesweep/tools.js";
+import { createToolRegistry as devRemoteTools } from "../modules/devremote/tools.js";
+import { createToolRegistry as stemExportTools } from "../modules/stemexport/tools.js";
+import { createToolRegistry as mixCoachTools } from "../modules/mixcoach/tools.js";
 import { createToolRegistry as chordsTools } from "../modules/chords/tools.js";
 import { createToolRegistry as drumsTools } from "../modules/drums/tools.js";
 import { createToolRegistry as eqTools } from "../modules/eq/tools.js";
@@ -103,7 +106,6 @@ import { createToolRegistry as lyricMelodyTools } from "../modules/lyricmelody/t
 import { createToolRegistry as fxPresetsTools } from "../modules/fxpresets/tools.js";
 import { createToolRegistry as timeSigTools } from "../modules/timesig/tools.js";
 import { createToolRegistry as chordPadsTools } from "../modules/chordpads/tools.js";
-import { createToolRegistry as snapshotsTools } from "../modules/snapshots/tools.js";
 import { createToolRegistry as healthTools } from "../modules/health/tools.js";
 import { createToolRegistry as notationTools } from "../modules/notation/tools.js";
 import { createToolRegistry as drumReplaceTools } from "../modules/drumreplace/tools.js";
@@ -177,7 +179,6 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"fxpresets",   label:"FX Chain Presets", icon:"🎛️", description:"Save, search, apply and compare effects chains.", registry: fxPresetsTools() });
   m.addModule({ id:"timesig",     label:"Time Signature", icon:"🕐", description:"Time signatures, meter changes, map and polyrhythms.", registry: timeSigTools() });
   m.addModule({ id:"chordpads",   label:"Chord Pads", icon:"🎹", description:"Assign chords to pads, trigger them and configure layout.", registry: chordPadsTools() });
-  m.addModule({ id:"snapshots",   label:"Snapshots", icon:"📸", description:"Save, load and manage set states.", registry: snapshotsTools() });
   m.addModule({ id:"health",      label:"Project Health", icon:"🩺", description:"Project health checks: dead tracks, plugins, CPU.", registry: healthTools() });
 
   // --- Batch 8 (hardware / conversion / live / routing) ---
@@ -287,9 +288,12 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"glassbell", label:"Glass Bell", icon:"💎", description:"Crystalline glass bell (additive inharmonic partials, brighter and colder than FM Bell).", registry: glassBellTools() });
   m.addModule({ id:"subkick", label:"Sub Kick", icon:"🥁", description:"Pure-sine sub layer tuned to a kick fundamental — layer it under Drum Synth's kick for extra low-end.", registry: subKickTools() });
   m.addModule({ id:"reversesweep", label:"Reverse-Sweep", icon:"⏪", description:"A rising noise/tone build that stops hard at a hit — reverse-cymbal transition into a downbeat.", registry: reverseSweepTools() });
+  m.addModule({ id:"devremote", label:"Device Remote", icon:"🎛️", description:"Remote-controls every parameter of any device already on a track — including Max for Live instruments — with snapshots and undo.", registry: devRemoteTools() });
+  m.addModule({ id:"stemexport", label:"Stem Export", icon:"📤", description:"Batch-renders every audio track to a real WAV on disk with automatic naming — MIDI tracks are skipped, not faked.", registry: stemExportTools() });
+  m.addModule({ id:"mixcoach", label:"Mix Coach", icon:"🩺", description:"Combines real health/masking/gain-staging analysis into one prioritized list of concrete next steps, each with the exact tool to run it.", registry: mixCoachTools() });
 
-  // --- Backend for the quick command palette (hidden: its UX is Cmd/Ctrl+K) ---
-  m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"84 curated one-click presets that route to real tools — browse by group, or search them in the Cmd-K palette.", registry: quickActionsTools() });
+  // --- Backend for the quick command palette (its UX is Cmd/Ctrl+K, plus its own launcher panel) ---
+  m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"83 curated one-click presets that route to real tools — browse by group, or search them in the Cmd-K palette.", registry: quickActionsTools() });
 
   return m;
 }
