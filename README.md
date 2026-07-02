@@ -14,7 +14,7 @@
   <img alt="modules" src="https://img.shields.io/badge/modules-132-ffb347" />
   <img alt="tools" src="https://img.shields.io/badge/tools-382-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-83-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-104-9370db" />
+  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-115-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-271%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-832%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
@@ -47,7 +47,7 @@ of each concept into one place.
   `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
 - **Quick command palette** (`⌘K`): indexes the **382 tools** + **83 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
-- **104 curated rich panels** where the auto-generated form falls short: piano-roll, clip
+- **115 curated rich panels** where the auto-generated form falls short: piano-roll, clip
   graph, mixer with faders/VU, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
   trance gate, synth patchbay, arrangement timeline, track grid, gain staging, rack builder,
   session health, performance pad, version diff…
@@ -106,7 +106,7 @@ of each concept into one place.
 - **Act** — turns each collision into a one-click corrective **move** (carve EQ, trim, pan) written back via `DeviceParameter.setValue`, all collapsed into a single undo (`withinTransaction`).
 - **Remember** — caches spectral fingerprints per project in `environment.storageDirectory`.
 
-The Mix Radar is the most elaborate of the 104.
+The Mix Radar is the most elaborate of the 115.
 
 ---
 
@@ -180,7 +180,7 @@ src/
 └── modules/<id>/tools.ts # each module = its own toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + palette
-└── panels/<id>.js                        # 104 rich panels
+└── panels/<id>.js                        # 115 rich panels
 ```
 
 ### Adding a module (3 steps)
@@ -193,8 +193,8 @@ public/
 
 ### Rich panels
 Create `public/panels/<id>.js` that registers `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`
-and add it to `index.html`. `shell.js` uses it instead of the autoform. There are 104 already, including:
-`organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (graph), `notation` (piano-roll), `takes`, `eq` (EQ curve), `midilfo` (LFO designer), `midigate` (trance gate), `synth` (patchbay), `genarranger` (arrangement timeline), `trackmanager` (track grid), `health` (session health), `mastering` (gain staging), `rackbuilder` (rack), `performance` (performance pad), `clipversions` (versions & snapshots), `resonance` (mix radar + masking matrix), `autogain` (auto gain-staging), `keyscale` (key detection), `genrhythm` (generative rhythm), `texturemap` (audio→MIDI), `spectrumcompare` (spectrum match), `projectsnapshot` (git for Live Sets), `scoreeditor` (notation + MusicXML), `clipvariations` (variation engine), `stemalign` (stem aligner), `samplebrain` (sample library brain), `macromorph` (macro snapshot morph), `loopdetect` (loop BPM), `warpcompare` (warp A/B), `paramdiff` (outlier QA), `phrasefinder` (MIDI phrase search), `saferandom` (safe randomizer), `groovetemplate` (groove extractor), `probabilitylab` (probability lab), `devremote` (remote-control any device, incl. Max for Live), `stemexport` (batch stem export), `mixcoach` (prioritized mix next-steps), `history` (undo/redo timeline).
+and add it to `index.html`. `shell.js` uses it instead of the autoform. There are 115 already, including:
+`organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (graph), `notation` (piano-roll), `takes`, `eq` (EQ curve), `midilfo` (LFO designer), `midigate` (trance gate), `synth` (patchbay), `genarranger` (arrangement timeline), `trackmanager` (track grid), `health` (session health), `mastering` (gain staging), `rackbuilder` (rack), `performance` (performance pad), `clipversions` (versions & snapshots), `resonance` (mix radar + masking matrix), `autogain` (auto gain-staging), `keyscale` (key detection), `genrhythm` (generative rhythm), `texturemap` (audio→MIDI), `spectrumcompare` (spectrum match), `projectsnapshot` (git for Live Sets), `scoreeditor` (notation + MusicXML), `clipvariations` (variation engine), `stemalign` (stem aligner), `samplebrain` (sample library brain), `macromorph` (macro snapshot morph), `loopdetect` (loop BPM), `warpcompare` (warp A/B), `paramdiff` (outlier QA), `phrasefinder` (MIDI phrase search), `saferandom` (safe randomizer), `groovetemplate` (groove extractor), `probabilitylab` (probability lab), `devremote` (remote-control any device, incl. Max for Live), `stemexport` (batch stem export), `mixcoach` (prioritized mix next-steps), `history` (undo/redo timeline), `templates` (genre starter kits), `mixscene` (mixer A/B recall), `tempotap` (tap tempo), `notes` (sticky notes), `sandbox` (live-coding REPL), `delaycalc` (delay time table), `setlist` (reorderable setlist), `fxpresets` (saved FX chains), `groove` (groove extractor/humanizer), `colorizer` (clip coloring by metric), `vocal` (vocal chain builder).
 
 ## 🛠️ Development
 

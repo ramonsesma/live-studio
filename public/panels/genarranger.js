@@ -7,17 +7,20 @@ window.LiveStudioPanels.genarranger = function (panel, helpers) {
   const api = helpers.api;
   const STYLES = ["electronic", "pop", "hiphop", "ambient", "techno", "house"];
   const CURVES = ["arc", "wave", "build", "flat"];
+  const STRUCTURES = ["intro-verse-chorus", "verse-chorus-bridge", "ambient-flow"];
 
   panel.innerHTML = `
     <div class="panel-head"><h1>🎚️ Arrangement Timeline</h1><p>Generate a song structure and see sections + energy over time. Markers come from the real Set.</p></div>
     <div class="ss-toolbar">
       <label class="hint">Style</label><select id="ar-style">${STYLES.map((s) => `<option>${s}</option>`).join("")}</select>
+      <label class="hint">Structure</label><select id="ar-struct">${STRUCTURES.map((s) => `<option>${s}</option>`).join("")}</select>
       <label class="hint">Energy</label><select id="ar-curve">${CURVES.map((s) => `<option>${s}</option>`).join("")}</select>
-      <button class="btn" id="ar-gen">Generate</button>
-      <button class="btn ghost" id="ar-apply">Apply energy curve</button>
+      <button class="btn" id="ar-gen">Generate plan</button>
+      <button class="btn" id="ar-drop"><i class="ti ti-map-pin" aria-hidden="true"></i> Drop on timeline (real cue points)</button>
       <span class="hint" id="ar-info"></span>
     </div>
-    <div id="ar-svg"></div>`;
+    <div id="ar-svg"></div>
+    <div id="ar-note" style="margin-top:8px" class="hint"></div>`;
 
   let sections = [];
   function energyColor(e) {
@@ -63,18 +66,19 @@ window.LiveStudioPanels.genarranger = function (panel, helpers) {
   async function generate() {
     const r = await exec("generate_arrangement", {
       style: panel.querySelector("#ar-style").value,
+      sections: panel.querySelector("#ar-struct").value,
       energy_curve: panel.querySelector("#ar-curve").value,
     });
     if (!r.success) { panel.querySelector("#ar-info").textContent = r.error; return; }
     sections = r.data.sections || [];
     draw();
   }
-  async function applyCurve() {
-    const points = sections.map((s) => s.energy).join(",");
-    const r = await exec("set_energy_curve", { points });
-    panel.querySelector("#ar-info").textContent = r.success ? `energy curve set (${r.data.pointCount} pts)` : r.error;
+  async function dropOnTimeline() {
+    const r = await exec("apply_arrangement", { overwrite: false });
+    panel.querySelector("#ar-note").textContent = r.success ? `Dropped ${r.data.sections} real cue points (${r.data.totalBars} bars).` : r.error;
+    if (r.success) draw();
   }
   panel.querySelector("#ar-gen").onclick = generate;
-  panel.querySelector("#ar-apply").onclick = applyCurve;
+  panel.querySelector("#ar-drop").onclick = dropOnTimeline;
   generate();
 };

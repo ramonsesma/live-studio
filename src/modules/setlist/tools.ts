@@ -54,8 +54,8 @@ export function createToolRegistry() {
     }
   );
 
-  reg.register({ name:"list_setlists", description:"List saved setlists", category:"setlist", parameters:{} },
-    async () => ({ success:true, data:{ setlists: listJson(SUB).map((s: any) => ({ id:s.id, name:s.name, tempo:s.tempo, genre:s.genre, songCount:(s.songs||[]).length, createdAt:s.createdAt })) } })
+  reg.register({ name:"list_setlists", description:"List saved setlists, including each one's real song list", category:"setlist", parameters:{} },
+    async () => ({ success:true, data:{ setlists: listJson(SUB).map((s: any) => ({ id:s.id, name:s.name, tempo:s.tempo, genre:s.genre, songCount:(s.songs||[]).length, songs:s.songs||[], createdAt:s.createdAt })) } })
   );
 
   reg.register({ name:"delete_setlist", description:"Delete a saved setlist", category:"setlist", parameters:{ setlist_id:{type:"string",description:"Setlist ID",required:true} } },

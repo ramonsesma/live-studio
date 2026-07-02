@@ -8,6 +8,11 @@ window.LiveStudioPanels.notation = function (panel, helpers) {
       <label class="hint">Track</label><input id="nt-track" type="number" value="0" style="width:70px" />
       <label class="hint">Clip</label><input id="nt-clip" type="number" value="0" style="width:70px" />
       <button class="btn" id="nt-load">Load notes</button>
+      <span class="hint">Transpose</span>
+      <button class="btn ghost" id="nt-down12">-12</button>
+      <button class="btn ghost" id="nt-down1">-1</button>
+      <button class="btn ghost" id="nt-up1">+1</button>
+      <button class="btn ghost" id="nt-up12">+12</button>
       <span class="hint" id="nt-info"></span>
     </div>
     <div id="nt-roll" class="cg-svg"><span class="hint">Click "Load notes".</span></div>`;
@@ -40,6 +45,16 @@ window.LiveStudioPanels.notation = function (panel, helpers) {
     svg += `</svg>`;
     wrap.innerHTML = svg;
   }
+  async function transpose(semitones) {
+    const track_index = Number(panel.querySelector("#nt-track").value)||0, clip_index = Number(panel.querySelector("#nt-clip").value)||0;
+    const r = await exec("transpose_score", { track_index, clip_index, semitones });
+    panel.querySelector("#nt-info").textContent = r.success ? `Transposed ${semitones > 0 ? "+" : ""}${semitones} (undoable via Edit History)` : r.error;
+    if (r.success) load();
+  }
   panel.querySelector("#nt-load").onclick = load;
+  panel.querySelector("#nt-down12").onclick = () => transpose(-12);
+  panel.querySelector("#nt-down1").onclick = () => transpose(-1);
+  panel.querySelector("#nt-up1").onclick = () => transpose(1);
+  panel.querySelector("#nt-up12").onclick = () => transpose(12);
   load();
 };
