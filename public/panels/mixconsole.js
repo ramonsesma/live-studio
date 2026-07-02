@@ -44,5 +44,11 @@ window.LiveStudioPanels.mixconsole = function (panel, helpers) {
     }
   }
   panel.querySelector("#mc-refresh").onclick = refresh;
+  // Live refresh via SSE — suppressed for 1.2s after any local interaction so a rebuild
+  // never interrupts a fader drag (oninput keeps firing during the whole drag).
+  let lastTouch = 0;
+  panel.onpointerdown = () => { lastTouch = Date.now(); };
+  panel.oninput = () => { lastTouch = Date.now(); };
+  if (helpers.onSongChanged) helpers.onSongChanged(() => { if (Date.now() - lastTouch > 1200) refresh(); });
   refresh();
 };

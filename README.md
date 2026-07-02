@@ -15,8 +15,8 @@
   <img alt="tools" src="https://img.shields.io/badge/tools-382-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-83-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-115-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-271%20%E2%9C%93-2ea043" />
-  <img alt="bundle" src="https://img.shields.io/badge/bundle-832%20KB-888" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-280%20%E2%9C%93-2ea043" />
+  <img alt="bundle" src="https://img.shields.io/badge/bundle-840%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.es.md"><img alt="readme in Spanish" src="https://img.shields.io/badge/README-Espa%C3%B1ol-yellow" /></a>
 </p>
@@ -48,13 +48,24 @@ of each concept into one place.
 - **Quick command palette** (`⌘K`): indexes the **382 tools** + **83 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
 - **115 curated rich panels** where the auto-generated form falls short: piano-roll, clip
-  graph, mixer with faders/VU, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
+  graph, mixer with faders/pan/sends, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
   trance gate, synth patchbay, arrangement timeline, track grid, gain staging, rack builder,
   session health, performance pad, version diff…
+- **Dashboard + live updates**: a home view with the project at a glance (BPM, key, tracks,
+  clips, scenes, snapshots) that refreshes live — the server diffs the Set every 1.5s and pushes
+  SSE events; panels like the Mix Console re-render themselves when the Set changes.
+- **Favorites, recents & work profiles**: pin modules, jump back to recent ones, and filter the
+  sidebar by profile (Mixing / Sound design / Performance) — persisted server-side.
+- **Copilot plan mode**: "Plan first" makes the AI propose a reviewable step-by-step plan
+  (read-only exploration, zero execution) that you apply with one click — every step undoable
+  via Edit History.
+- **Self-documenting**: `npm run gen:catalog` regenerates a static, searchable catalog of all
+  modules/tools (docs/) straight from the registry; `npm run new:module` scaffolds a complete
+  module (tools + panel + registration + tests) in one command.
 - **Auto-generated UI** for everything else: any new module shows up with its form without
   writing HTML, reading its tool definitions.
-- **Lightweight**: ~832 KB bundle, no frontend frameworks.
-- **Tested**: 271 end-to-end smoke tests of the server + modules.
+- **Lightweight**: ~840 KB bundle, no frontend frameworks.
+- **Tested**: 280 end-to-end smoke tests of the server + modules.
 
 ## 📸 Screenshots
 
@@ -76,7 +87,7 @@ of each concept into one place.
     </td>
     <td align="center">
       <img src="assets/screenshots/04-mixconsole.svg" alt="Mix Console" width="100%" /><br/>
-      <sub><b>Mix Console</b> — channel strips with VU meters, vertical faders, pan and mute/solo.</sub>
+      <sub><b>Mix Console</b> — channel strips with vertical faders, pan, sends and mute/solo (no VU — the SDK exposes no live metering).</sub>
     </td>
   </tr>
   <tr>
@@ -201,7 +212,7 @@ and add it to `index.html`. `shell.js` uses it instead of the autoform. There ar
 ```bash
 npm run build       # compile (esbuild)
 npm run typecheck   # tsc --noEmit
-npm run test        # 271 smoke tests (server + modules, simulated song)
+npm run test        # 280 smoke tests (server + modules, simulated song)
 npm run package     # build + package .ablx with the UI
 ```
 

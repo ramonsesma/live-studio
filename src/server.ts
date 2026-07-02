@@ -7,6 +7,7 @@ import * as path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { Bridge } from "./bridge.js";
 import { createLLMClient, type LLMClient } from "./core/llm.js";
+import { saveJson, loadJson } from "./core/storage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Sirve la UI tanto en build (dist/ui) como en dev (public/) — primera ruta que exista.
@@ -57,6 +58,36 @@ function sendJson(res: http.ServerResponse, status: number, data: unknown) {
 export async function startServer(bridge: Bridge): Promise<AppServer> {
   const config: Config = { provider: "openrouter", apiKey: "", model: "" };
 
+  // ---- Live updates (SSE) ----
+  // The webview subscribes to /api/events; a poller diffs a cheap song fingerprint and
+  // broadcasts "song" events only when something actually changed. The poller only runs
+  // while at least one client is connected, so a closed webview costs Live nothing.
+  const sseClients = new Set<http.ServerResponse>();
+  let lastFingerprint: string | null = null;
+  let poller: ReturnType<typeof setInterval> | null = null;
+  let polling = false;
+  const broadcast = (event: string, data: unknown) => {
+    const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+    for (const c of sseClients) { try { c.write(msg); } catch { sseClients.delete(c); } }
+  };
+  const pollTick = async () => {
+    if (polling) return; // a slow tick (many tracks) must not overlap the next one
+    polling = true;
+    try {
+      const fp = await bridge.fingerprint();
+      if (fp !== null && lastFingerprint !== null && fp !== lastFingerprint) broadcast("song", { changed: true, at: Date.now() });
+      if (fp !== null) lastFingerprint = fp;
+    } finally { polling = false; }
+  };
+  const ensurePoller = () => {
+    if (poller || !sseClients.size) return;
+    poller = setInterval(pollTick, 1500);
+    (poller as any).unref?.();
+  };
+  const stopPollerIfIdle = () => {
+    if (poller && !sseClients.size) { clearInterval(poller); poller = null; lastFingerprint = null; }
+  };
+
   const server = http.createServer(async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -75,6 +106,28 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         const mod = url.searchParams.get("module");
         const all = bridge.getTools();
         sendJson(res, 200, { tools: mod ? all.filter((t: any) => t.module === mod) : all });
+        return;
+      }
+      if (url.pathname === "/api/overview" && method === "GET") {
+        sendJson(res, 200, { success: true, data: await bridge.overview() });
+        return;
+      }
+      if (url.pathname === "/api/prefs" && method === "GET") {
+        sendJson(res, 200, { success: true, prefs: loadJson("prefs", "ui") || {} });
+        return;
+      }
+      if (url.pathname === "/api/prefs" && method === "POST") {
+        const body = await parseBody(req);
+        saveJson("prefs", "ui", body || {});
+        sendJson(res, 200, { success: true });
+        return;
+      }
+      if (url.pathname === "/api/events" && method === "GET") {
+        res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+        res.write("retry: 3000\n\nevent: hello\ndata: {}\n\n");
+        sseClients.add(res);
+        ensurePoller();
+        req.on("close", () => { sseClients.delete(res); stopPollerIfIdle(); });
         return;
       }
       if (url.pathname === "/api/execute" && method === "POST") {
@@ -309,7 +362,9 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
         const model = (body.model as string) || config.model;
         if (!apiKey) { sendJson(res, 400, { success: false, error: "Falta API key. Configúrala en el panel de Copiloto." }); return; }
         const client: LLMClient = createLLMClient(provider, apiKey, model);
-        const result = await bridge.processChat({ messages: (body.messages as any) || [] }, client);
+        const result = body.mode === "plan"
+          ? await bridge.processPlan({ messages: (body.messages as any) || [] }, client)
+          : await bridge.processChat({ messages: (body.messages as any) || [] }, client);
         sendJson(res, 200, { success: true, ...result });
         return;
       }
@@ -334,7 +389,13 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
       const addr = server.address();
       const port = addr && typeof addr === "object" ? addr.port : 0;
       console.error(`[LiveStudio] Server on http://127.0.0.1:${port}`);
-      resolve({ url: `http://127.0.0.1:${port}`, port, close: () => new Promise((r) => server.close(() => r())) });
+      resolve({ url: `http://127.0.0.1:${port}`, port, close: () => new Promise((r) => {
+        // SSE connections are long-lived by design; end them explicitly or server.close() never fires.
+        if (poller) { clearInterval(poller); poller = null; }
+        for (const c of sseClients) { try { c.end(); } catch { /* already gone */ } }
+        sseClients.clear();
+        server.close(() => r());
+      }) });
     });
   });
 }

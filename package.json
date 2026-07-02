@@ -1,6 +1,6 @@
 {
   "name": "live-studio",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Live Studio — modular super-extension for Ableton Live: 132 modules, 382 tools, 83 quick-actions, AI copilot and a Cmd-K command palette in a single tabbed webview.",
   "keywords": [
     "ableton",
@@ -19,6 +19,8 @@
     "build": "tsx build.ts",
     "typecheck": "tsc --noEmit",
     "gen:demo": "python3 scripts/gen-demo-tools.py",
+    "gen:catalog": "tsx scripts/gen-catalog.ts",
+    "new:module": "tsx scripts/new-module.ts",
     "test": "tsx test/smoke.ts",
     "dev": "tsx build.ts && extensions-cli run",
     "package": "tsx build.ts && find . -name '.DS_Store' -not -path './node_modules/*' -delete; rm -f live-studio.ablx && find manifest.json dist -type f -not -name '.DS_Store' -not -name '*.map' -print0 | xargs -0 zip -q -X live-studio.ablx && python3 scripts/verify-ablx.py",

@@ -203,7 +203,7 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"drumbus",     label:"Drum Bus Processor", icon:"🥁", description:"Bus compression, parallel, transient shaper and analysis.", registry: drumBusTools() });
 
   // --- Batch 11 (mixing / MIDI / FX / export) ---
-  m.addModule({ id:"mixconsole",  label:"Mix Console View", icon:"🎛️", description:"Full mixer: faders, pan, sends, mute/solo and VU.", registry: mixConsoleTools() });
+  m.addModule({ id:"mixconsole",  label:"Mix Console View", icon:"🎛️", description:"Full mixer: faders (dB), pan, sends and mute/solo — live-refreshing. No VU: the SDK exposes no live metering.", registry: mixConsoleTools() });
   m.addModule({ id:"trackcolor",  label:"Track Color Coordinator", icon:"🌈", description:"Color schemes for tracks and color map export.", registry: trackColorTools() });
   m.addModule({ id:"rackbuilder", label:"Rack Builder", icon:"🧰", description:"Create racks, add chains with zones and configure macros.", registry: rackBuilderTools() });
   m.addModule({ id:"miditransform",label:"MIDI Transformer", icon:"🔧", description:"Transpose, quantize, humanize, invert and arpeggiate MIDI — plus a generative arp engine (modes, rate, octaves, variations).", registry: midiTransformTools() });

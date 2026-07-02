@@ -15,8 +15,8 @@
   <img alt="tools" src="https://img.shields.io/badge/tools-382-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-83-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-115-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-271%20%E2%9C%93-2ea043" />
-  <img alt="bundle" src="https://img.shields.io/badge/bundle-832%20KB-888" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-280%20%E2%9C%93-2ea043" />
+  <img alt="bundle" src="https://img.shields.io/badge/bundle-840%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.md"><img alt="readme in English" src="https://img.shields.io/badge/README-English-yellow" /></a>
 </p>
@@ -47,13 +47,24 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 - **Paleta de comandos rápidos** (`⌘K`): indexa los **382 tools** + **83 quick actions**
   (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
 - **115 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
-  grafo de clips, mixer con faders/VU, rejillas de pasos y pads, mapa de drums, comping, curva EQ,
+  grafo de clips, mixer con faders/pan/sends, rejillas de pasos y pads, mapa de drums, comping, curva EQ,
   diseñador de LFO, trance gate, synth patchbay, timeline de arreglo, rejilla de pistas, gain
   staging, rack builder, salud de sesión, pad de directo, diff de versiones…
+- **Dashboard + actualizaciones en vivo**: una vista de inicio con el proyecto de un vistazo
+  (BPM, tonalidad, pistas, clips, escenas, snapshots) que se refresca sola — el servidor hace diff
+  del Set cada 1,5 s y emite eventos SSE; paneles como el Mix Console se re-renderizan al cambiar el Set.
+- **Favoritos, recientes y perfiles de trabajo**: fija módulos, vuelve a los recientes y filtra el
+  sidebar por perfil (Mixing / Sound design / Performance) — persistido en el servidor.
+- **Modo plan del copiloto**: "Plan first" hace que la IA proponga un plan revisable paso a paso
+  (exploración de solo lectura, cero ejecución) que aplicas con un clic — cada paso deshacible
+  vía Edit History.
+- **Auto-documentado**: `npm run gen:catalog` regenera un catálogo estático y buscable de todos los
+  módulos/tools (docs/) directamente desde el registry; `npm run new:module` genera un módulo
+  completo (tools + panel + registro + tests) en un comando.
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
-- **Ligero**: bundle de ~832 KB, sin frameworks de frontend.
-- **Probado**: 271 pruebas de humo end-to-end del servidor + módulos.
+- **Ligero**: bundle de ~840 KB, sin frameworks de frontend.
+- **Probado**: 280 pruebas de humo end-to-end del servidor + módulos.
 
 ## 📸 Vistas
 
@@ -62,7 +73,7 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
 > - **Módulos** — barra lateral + panel con formularios auto-generados por tool.
 > - **Copiloto IA** — chat que encadena `session__create_midi_track` → `chords__generate_chords` → `drums__generate_pattern` en una sola instrucción.
 > - **Paleta ⌘K** — buscador que mezcla tools reales y micro-acciones.
-> - **Paneles ricos** — Mix Console (faders/VU), Notation (piano-roll), Step Sequencer, grafo de clips…
+> - **Paneles ricos** — Mix Console (faders/pan/sends), Notation (piano-roll), Step Sequencer, grafo de clips…
 
 *(Captura las pantallas reales desde Live y colócalas en `assets/` para enriquecer esta sección.)*
 
@@ -175,7 +186,7 @@ y añádelo a `index.html`. `shell.js` lo usa en vez del autoform. Ya hay 115, e
 ```bash
 npm run build       # compila (esbuild)
 npm run typecheck   # tsc --noEmit
-npm run test        # 271 pruebas de humo (servidor + módulos, song simulado)
+npm run test        # 280 pruebas de humo (servidor + módulos, song simulado)
 npm run package     # build + empaqueta .ablx con la UI
 ```
 

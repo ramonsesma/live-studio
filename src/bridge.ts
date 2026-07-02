@@ -54,7 +54,9 @@ import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, unlink
 import { join, basename } from "node:path";
 import { tmpdir } from "node:os";
 
-const SYSTEM_PROMPT = `You are the Live Studio copilot, integrated into Ableton Live 12. You control Live with the full Live Studio toolset — 242 tools across 57 modules (session, chords, drums, eq, mixconsole, miditransform, randomizer, organizer, fxchain, …).
+// {{TOOLS}}/{{MODULES}} are replaced with the registry's real counts at chat time,
+// so the prompt never drifts from reality as modules are added.
+const SYSTEM_PROMPT = `You are the Live Studio copilot, integrated into Ableton Live 12. You control Live with the full Live Studio toolset — {{TOOLS}} tools across {{MODULES}} modules (session, chords, drums, eq, mixconsole, miditransform, randomizer, organizer, fxchain, …).
 
 You don't see every tool up front. Use these three meta-tools to reach the whole toolset:
 - find_tools(query): search the toolset by keywords and get matching tools with their exact name + parameters.
@@ -68,6 +70,22 @@ WORKFLOW:
 4. Reply in the user's language and summarize what you did.`;
 
 const MAX_ITERATIONS = 12;
+
+// Plan mode: the model can explore the toolset (find_tools / list_modules) but must NOT
+// execute anything. It answers with a JSON plan the user reviews and applies from the panel —
+// each applied step goes through the normal tool path, so it lands in Edit History undo.
+const PLAN_SYSTEM_PROMPT = `You are the Live Studio copilot for Ableton Live 12, in PLAN mode: you prepare a plan but never execute it.
+
+You have {{TOOLS}} tools across {{MODULES}} modules. Discover them with:
+- find_tools(query): search tools by keywords; returns exact names + parameters.
+- list_modules(): browse the module list.
+You do NOT have run_tool in this mode. Do not claim to have done anything.
+
+When you know which tools to use, end your reply with ONE fenced json block:
+\`\`\`json
+{"summary": "one-line description of the plan", "plan": [{"tool": "exact__tool_name", "args": {...}, "why": "short reason"}]}
+\`\`\`
+Rules: use exact tool names from find_tools; args must match the tool's parameters (indices start at 0); order steps so later ones can rely on earlier ones; 1-10 steps. Reply in the user's language before the json block.`;
 
 // The compact toolkit the LLM actually sees. It discovers and runs the 242 real tools
 // through these, so the per-call payload stays small and we never hit provider tool caps.
@@ -159,6 +177,49 @@ export class Bridge {
 
   getTools() { return this.registry.getDefinitionsJson(); }
   getModules() { return this.registry.getModules(); }
+
+  // Compact project summary for the dashboard (home view). Reads the song directly —
+  // no rendering, no tool round-trips — so it's cheap enough to refresh on every SSE tick.
+  async overview(): Promise<any> {
+    const tracks = this.song?.tracks || [];
+    const isAudio = (t: any) => "createAudioClip" in t;
+    let sessionClips = 0, arrangementClips = 0;
+    const trackList = tracks.map((t: any, i: number) => {
+      const slots = t.clipSlots || [];
+      const filled = slots.filter((s: any) => s?.clip).length;
+      sessionClips += filled;
+      arrangementClips += (t.arrangementClips || []).length;
+      return { index: i, name: t.name, kind: isAudio(t) ? "audio" : "midi", mute: !!t.mute, solo: !!t.solo, arm: !!t.arm, sessionClips: filled };
+    });
+    return {
+      tempo: this.song?.tempo ?? null,
+      rootNote: this.song?.rootNote ?? null,
+      scaleName: this.song?.scaleName ?? null,
+      tracks: { total: tracks.length, audio: trackList.filter((t: any) => t.kind === "audio").length, midi: trackList.filter((t: any) => t.kind === "midi").length, returns: (this.song?.returnTracks || []).length },
+      clips: { session: sessionClips, arrangement: arrangementClips },
+      scenes: (this.song?.scenes || []).length,
+      cuePoints: (this.song?.cuePoints || []).length,
+      trackList,
+    };
+  }
+
+  // Cheap state fingerprint for the SSE poller: only sync property reads plus the mixer's
+  // volume/pan getValue()s. If anything throws (e.g. a track mid-deletion), returns null and
+  // the poller simply skips that tick instead of crashing the interval.
+  async fingerprint(): Promise<string | null> {
+    try {
+      const tracks = this.song?.tracks || [];
+      const rows = await Promise.all(tracks.map(async (t: any) => {
+        let vol = null, pan = null;
+        try { if (t.mixer?.volume?.getValue) vol = Number((await t.mixer.volume.getValue()).toFixed(3)); } catch {}
+        try { if (t.mixer?.panning?.getValue) pan = Number((await t.mixer.panning.getValue()).toFixed(3)); } catch {}
+        return [t.name, t.mute ? 1 : 0, t.solo ? 1 : 0, t.arm ? 1 : 0, vol, pan, (t.clipSlots || []).filter((s: any) => s?.clip).length];
+      }));
+      return JSON.stringify([this.song?.tempo, this.song?.rootNote, this.song?.scaleName, (this.song?.scenes || []).length, (this.song?.cuePoints || []).length, rows]);
+    } catch {
+      return null;
+    }
+  }
 
   async executeTool(name: string, args: Record<string, unknown>) {
     return this.registry.execute(name, args, this.song);
@@ -1232,8 +1293,14 @@ export class Bridge {
     } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
   }
 
+  private renderPrompt(tpl: string): string {
+    return tpl
+      .replace("{{TOOLS}}", String(this.registry.getDefinitionsJson().length))
+      .replace("{{MODULES}}", String(this.registry.getModules().length));
+  }
+
   async processChat(req: ChatRequest, client: LLMClient): Promise<ChatResponse> {
-    const prompt = req.systemPrompt || SYSTEM_PROMPT;
+    const prompt = this.renderPrompt(req.systemPrompt || SYSTEM_PROMPT);
     const messages: LLMMessage[] = [{ role: "system", content: prompt }, ...req.messages];
     let totalToolCalls = 0;
 
@@ -1259,6 +1326,55 @@ export class Bridge {
     }
 
     return { content: "Max iterations reached. Please simplify your request.", messages: this.trim(messages), toolCalls: totalToolCalls };
+  }
+
+  // Plan mode chat loop: read-only meta-tools, then parse the final JSON plan. Steps whose
+  // tool name doesn't exist in the registry are flagged unknown:true (the panel warns and
+  // skips them) instead of failing at apply time.
+  async processPlan(req: ChatRequest, client: LLMClient): Promise<ChatResponse & { plan: any[] | null; summary: string | null }> {
+    const messages: LLMMessage[] = [{ role: "system", content: this.renderPrompt(PLAN_SYSTEM_PROMPT) }, ...req.messages];
+    const readTools = META_TOOLS.filter((t) => t.name !== "run_tool");
+    let totalToolCalls = 0;
+    let content = "";
+    for (let i = 0; i < MAX_ITERATIONS; i++) {
+      const response = await client.chat(messages, readTools);
+      if (response.toolCalls.length === 0) { content = response.content; messages.push({ role: "assistant", content }); break; }
+      totalToolCalls += response.toolCalls.length;
+      messages.push({
+        role: "assistant",
+        content: response.content,
+        tool_calls: response.toolCalls.map((tc) => ({ id: tc.id, type: "function" as const, function: { name: tc.name, arguments: JSON.stringify(tc.arguments) } })),
+      });
+      for (const tc of response.toolCalls) {
+        const result = tc.name === "run_tool"
+          ? { success: false, error: "Plan mode is read-only: describe this call as a plan step instead of executing it." }
+          : await this.runMeta(tc.name, tc.arguments);
+        messages.push({ role: "tool", content: JSON.stringify(result), tool_call_id: tc.id });
+      }
+      if (i === MAX_ITERATIONS - 1) content = "Max iterations reached before a plan was produced.";
+    }
+    const { plan, summary } = this.parsePlan(content);
+    return { content, messages: this.trim(messages), toolCalls: totalToolCalls, plan, summary };
+  }
+
+  private parsePlan(content: string): { plan: any[] | null; summary: string | null } {
+    const known = new Set(this.registry.getDefinitionsJson().map((d: any) => d.name));
+    const candidates: string[] = [];
+    const fenced = [...String(content || "").matchAll(/```(?:json)?\s*([\s\S]*?)```/g)].map((m) => m[1]);
+    candidates.push(...fenced.reverse()); // last fenced block first — the prompt asks for it at the end
+    const bare = String(content || "").match(/\{[\s\S]*"plan"[\s\S]*\}/);
+    if (bare) candidates.push(bare[0]);
+    for (const c of candidates) {
+      try {
+        const obj = JSON.parse(c);
+        if (!Array.isArray(obj.plan)) continue;
+        const plan = obj.plan
+          .filter((s: any) => s && typeof s.tool === "string")
+          .map((s: any) => ({ tool: s.tool, args: s.args && typeof s.args === "object" ? s.args : {}, why: typeof s.why === "string" ? s.why : "", unknown: !known.has(s.tool) || undefined }));
+        if (plan.length) return { plan, summary: typeof obj.summary === "string" ? obj.summary : null };
+      } catch { /* try next candidate */ }
+    }
+    return { plan: null, summary: null };
   }
 
   private trim(messages: LLMMessage[]): LLMMessage[] {

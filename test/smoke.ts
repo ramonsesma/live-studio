@@ -59,10 +59,12 @@ const post = async (p: string, b: any) => (await fetch(base + p, { method: "POST
 console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
+// EXPECTED_MODULES lo incrementa automáticamente scripts/new-module.ts al generar un módulo.
+const EXPECTED_MODULES = 132;
 const mods = await get("/api/modules");
-check("GET /api/modules devuelve 132 módulos", (mods.modules || []).length === 132, JSON.stringify(mods.modules?.map((m: any) => m.id)));
+check(`GET /api/modules devuelve ${EXPECTED_MODULES} módulos`, (mods.modules || []).length === EXPECTED_MODULES, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions visible con su propio panel (launcher)", mods.modules.find((m: any) => m.id === "quickactions") && !mods.modules.find((m: any) => m.id === "quickactions")?.hidden);
-check("132 módulos visibles (sin hidden)", mods.modules.filter((m: any) => !m.hidden).length === 132);
+check(`${EXPECTED_MODULES} módulos visibles (sin hidden)`, mods.modules.filter((m: any) => !m.hidden).length === EXPECTED_MODULES);
 
 // 2. tools list + namespacing
 const allTools = (await get("/api/tools")).tools;
@@ -169,7 +171,7 @@ for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
 }
-check("sirve los 115 paneles ricos", panelsOk);
+check(`sirve los ${allPanels.length} paneles ricos`, panelsOk);
 
 // 5g. lote 6: mezcla / análisis / MIDI / arreglo
 const cmp = await post("/api/execute", { name: "compressor__apply_compression_preset", args: { track_index: 0, preset: "drum_bus" } });
@@ -888,6 +890,44 @@ const cg = await reg.execute("chords__generate_chords", { key: "C", scale: "majo
 await new Promise((r) => setTimeout(r, 0)); // deja que el setter diferido haga commit
 check("chords escribe el acorde completo, no una sola nota", cg.success && rClip.notes.length === 12);
 check("chords genera acordes distintos (no la tónica repetida)", new Set(rClip.notes.map((n: any) => n.pitch)).size > 3);
+
+// 10. dashboard + prefs + live updates (SSE) + plan mode
+const ov = await get("/api/overview");
+check("GET /api/overview devuelve el resumen del set", ov.success && ov.data.tempo === song.tempo && ov.data.tracks.total === song.tracks.length);
+check("overview: trackList con nombre/tipo/estado por pista", Array.isArray(ov.data.trackList) && ov.data.trackList.length === song.tracks.length && ov.data.trackList.every((t: any) => typeof t.name === "string" && ["midi", "audio"].includes(t.kind)));
+check("overview: escenas y cue points reales", ov.data.scenes === song.scenes.length && ov.data.cuePoints === song.cuePoints.length);
+
+const prefsIn = { favorites: ["eq", "mixconsole"], recents: ["drums"], profile: "mixing" };
+await post("/api/prefs", prefsIn);
+const prefsOut = (await get("/api/prefs")).prefs;
+check("prefs: roundtrip POST→GET persiste favoritos/recientes/perfil", JSON.stringify(prefsOut) === JSON.stringify(prefsIn));
+
+// SSE: el primer evento es "hello"; tras cambiar el tempo, el poller (diff de fingerprint)
+// debe emitir "song". El baseline se toma en el primer tick (~1.5s), así que la mutación
+// espera a que exista antes de disparar el cambio.
+const sseAbort = new AbortController();
+const sseRes = await fetch(base + "/api/events", { signal: sseAbort.signal });
+check("SSE: content-type text/event-stream", (sseRes.headers.get("content-type") || "").includes("text/event-stream"));
+const sseReader = (sseRes.body as any).getReader();
+const firstChunk = new TextDecoder().decode((await sseReader.read()).value);
+check("SSE: evento hello inicial", firstChunk.includes("event: hello"));
+await new Promise((r) => setTimeout(r, 1700)); // deja que el primer tick fije el baseline
+const tempoBefore = song.tempo;
+song.tempo = 123.45;
+const gotSongEvent = await Promise.race([
+  (async () => { for (;;) { const { value, done } = await sseReader.read(); if (done) return false; if (new TextDecoder().decode(value).includes("event: song")) return true; } })(),
+  new Promise<boolean>((r) => setTimeout(() => r(false), 4500)),
+]);
+check("SSE: emite 'song' cuando el set cambia de verdad (diff del poller)", gotSongEvent === true);
+sseAbort.abort();
+song.tempo = tempoBefore;
+
+// Plan mode: cliente LLM falso que devuelve un plan con una tool real y una inexistente.
+const fakePlanJson = JSON.stringify({ summary: "demo plan", plan: [{ tool: "resonance__mask_matrix", args: { demo: true }, why: "check masking" }, { tool: "nope__missing", args: {} }] });
+const fakeClient: any = { chat: async () => ({ content: "Aquí está el plan:\n```json\n" + fakePlanJson + "\n```", toolCalls: [] }) };
+const planRes = await bridge.processPlan({ messages: [{ role: "user", content: "revisa el masking" }] }, fakeClient);
+check("plan mode: parsea el bloque JSON del plan", Array.isArray(planRes.plan) && planRes.plan!.length === 2 && planRes.summary === "demo plan");
+check("plan mode: marca unknown la tool inexistente y no la real", planRes.plan![1].unknown === true && !planRes.plan![0].unknown);
 
 console.log(`\n=== Resultado: ${pass} OK, ${fail} fallos ===`);
 await server.close();

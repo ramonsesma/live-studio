@@ -61,5 +61,6 @@ window.LiveStudioPanels.health = function (panel, helpers) {
     });
   }
   panel.querySelector("#h-run").onclick = run;
+  if (helpers.onSongChanged) helpers.onSongChanged(() => run()); // re-check live as the Set changes
   run();
 };

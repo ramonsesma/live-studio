@@ -79,6 +79,9 @@ window.LiveStudioPanels.trackmanager = function (panel, helpers) {
   }
 
   panel.querySelector("#tg-refresh").onclick = refresh;
+  // Live refresh via SSE — but refresh() clears the checkbox selection, so only auto-refresh
+  // while nothing is selected (a selection in progress must never be yanked away).
+  if (helpers.onSongChanged) helpers.onSongChanged(() => { if (!selected.size) refresh(); });
   panel.querySelector("#tg-apply-scheme").onclick = async () => {
     const r = await call("trackcolor__apply_color_scheme", { scheme: panel.querySelector("#tg-scheme").value });
     if (r.success && r.data.colors) { tracks.forEach((t, i) => { t.color = r.data.colors[i] || t.color; }); render(); }

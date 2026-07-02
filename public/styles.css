@@ -242,3 +242,48 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .tk-name { font-size: 13px; font-weight: 500; }
 .tk-clip { height: 22px; border-radius: 5px; border: 1px solid var(--line); }
 .hm-compat-row.warn { box-shadow: inset 3px 0 0 var(--accent); }
+
+/* Favorites star (sidebar) */
+.nav-item .fav-btn { font-size: 13px; color: var(--muted); opacity: 0; flex-shrink: 0; padding: 0 2px; transition: opacity .12s; }
+.nav-item:hover .fav-btn { opacity: 1; }
+.nav-item .fav-btn.on { opacity: 1; color: var(--accent); }
+.nav-item .fav-btn:hover { color: var(--accent); transform: scale(1.15); }
+#app.collapsed .nav-item .fav-btn { display: none; }
+
+/* Work-profile selector */
+.nav-profile { padding: 2px 4px 8px; }
+.nav-profile select { width: 100%; background: var(--bg3); color: var(--txt); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; font-size: 12px; cursor: pointer; }
+#app.collapsed .nav-profile { display: none; }
+
+/* Live-update pulse on the status dot */
+.dot { transition: transform .25s ease, box-shadow .25s ease; }
+.dot.pulse { transform: scale(1.5); box-shadow: 0 0 8px 2px rgba(90, 209, 122, .45); }
+
+/* Dashboard */
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 6px; }
+.dash-card { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.dash-card .num { font-size: 23px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-card .cap { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+.dash-section { margin: 18px 0; }
+.dash-section h3 { font-size: 11px; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+.dash-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg2); border: 1px solid var(--line); border-radius: 16px; padding: 4px 12px; font-size: 12.5px; cursor: pointer; transition: background .12s; }
+.chip:hover { background: var(--bg3); }
+.chip .ico svg { width: 15px; height: 15px; display: block; }
+.dash-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.dash-table th { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+.dash-table td, .dash-table th { padding: 6px 9px; border-bottom: 1px solid var(--line); text-align: left; }
+.dash-table td.dim { color: var(--muted); }
+
+/* Copilot plan mode */
+.plan-toggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); margin: 12px 0 4px; cursor: pointer; user-select: none; }
+.plan-toggle input { accent-color: var(--accent); width: auto; flex: 0 0 auto; margin: 0; }
+.plan-card { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 8px 0; }
+.plan-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.plan-step { display: flex; gap: 9px; padding: 7px 0; border-top: 1px solid var(--line); align-items: baseline; }
+.plan-status { width: 18px; flex-shrink: 0; text-align: center; }
+.plan-body { min-width: 0; flex: 1; }
+.plan-body code { font-size: 12px; background: var(--bg3); border-radius: 5px; padding: 1px 6px; }
+.plan-args { font-size: 11px; color: var(--muted); word-break: break-all; }
+.plan-why { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.plan-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
