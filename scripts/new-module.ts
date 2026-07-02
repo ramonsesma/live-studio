@@ -22,7 +22,6 @@ if (!/^[a-z][a-z0-9]{1,30}$/.test(id)) die(`Invalid id "${id}" — lowercase let
 const modDir = join(root, "src/modules", id);
 const panelFile = join(root, "public/panels", `${id}.js`);
 const registryFile = join(root, "src/registry/index.ts");
-const indexHtml = join(root, "public/index.html");
 const smokeFile = join(root, "test/smoke.ts");
 
 if (existsSync(modDir)) die(`src/modules/${id} already exists.`);
@@ -105,13 +104,8 @@ if (!newRegistry.includes(returnAnchor)) die("Couldn't find `return m;` in creat
 const addLine = `\n  m.addModule({ id:"${id}", label:"${labelEsc}", icon:"${icon}", description:"${descEsc}", registry: ${alias}() });\n`;
 newRegistry = newRegistry.replace(returnAnchor, addLine + returnAnchor);
 
-// ---- 4. panel <script> tag in public/index.html ----
-const htmlSrc = readFileSync(indexHtml, "utf8");
-const iconsTag = '  <script src="/icons.js"></script>';
-if (!htmlSrc.includes(iconsTag)) die("Couldn't find the icons.js script tag in public/index.html.");
-const newHtml = htmlSrc.replace(iconsTag, `  <script src="/panels/${id}.js"></script>\n${iconsTag}`);
-
-// ---- 5. test/smoke.ts: allPanels + EXPECTED_MODULES ----
+// ---- 4. test/smoke.ts: allPanels + EXPECTED_MODULES ----
+// (public/index.html needs no change — panels load lazily, fetched by module id on first visit.)
 const smokeSrc = readFileSync(smokeFile, "utf8");
 const panelsMatch = smokeSrc.match(/const allPanels = \[[^\]]*\];/);
 if (!panelsMatch) die("Couldn't find allPanels in test/smoke.ts.");
@@ -125,14 +119,12 @@ mkdirSync(modDir, { recursive: true });
 writeFileSync(join(modDir, "tools.ts"), toolsTs);
 writeFileSync(panelFile, panelJs);
 writeFileSync(registryFile, newRegistry);
-writeFileSync(indexHtml, newHtml);
 writeFileSync(smokeFile, newSmoke);
 
 console.log(`[new:module] Created module "${id}" (${label}):
   + src/modules/${id}/tools.ts          (1 example tool: ${id}__get_status)
-  + public/panels/${id}.js              (rich panel with live refresh)
+  + public/panels/${id}.js              (rich panel with live refresh — loads lazily, no index.html change needed)
   ~ src/registry/index.ts               (import + addModule)
-  ~ public/index.html                   (panel script tag)
   ~ test/smoke.ts                       (allPanels + EXPECTED_MODULES → ${Number(modulesMatch[1]) + 1})
 
 Next steps:

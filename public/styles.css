@@ -287,3 +287,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .plan-args { font-size: 11px; color: var(--muted); word-break: break-all; }
 .plan-why { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .plan-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+
+/* Language toggle (sidebar footer) */
+.lang-toggle { margin-left: auto; font-size: 10.5px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); background: var(--bg3); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; cursor: pointer; flex-shrink: 0; }
+.lang-toggle:hover { color: var(--txt); border-color: var(--accent); }
+#app.collapsed .lang-toggle { display: none; }

@@ -2,6 +2,7 @@
 import { createMasterRegistry } from "../src/registry/index.js";
 import { Bridge } from "../src/bridge.js";
 import { startServer } from "../src/server.js";
+import { resolveProviderConfig } from "../src/core/llm.js";
 import { toMusicXML, fromMusicXML } from "../src/core/musicxml.js";
 import { existsSync } from "node:fs";
 
@@ -871,6 +872,11 @@ const html = await (await fetch(base + "/")).text();
 check("sirve index.html (shell)", html.includes("Live Studio") && html.includes("shell.js"));
 const js = await fetch(base + "/shell.js");
 check("sirve shell.js con mime correcto", (js.headers.get("content-type") || "").includes("javascript"));
+// Regresión: los 115 paneles se cargan perezosos (fetch bajo demanda desde shell.js), no como
+// <script> estático — index.html no debe listar ninguno o el arranque volvería a cargar ~672KB de golpe.
+check("index.html NO precarga los paneles (carga perezosa)", !html.includes('/panels/'));
+const missingPanel = await fetch(base + "/panels/no_existe_este_modulo.js");
+check("panel inexistente responde 404 (fallback a autoform)", missingPanel.status === 404);
 
 // 9. regresión: los generadores deben escribir TODAS las notas en un único `clip.notes`.
 // El MidiClip real reemplaza la lista y su setter no se refleja en un getter inmediato;
@@ -928,6 +934,16 @@ const fakeClient: any = { chat: async () => ({ content: "Aquí está el plan:\n`
 const planRes = await bridge.processPlan({ messages: [{ role: "user", content: "revisa el masking" }] }, fakeClient);
 check("plan mode: parsea el bloque JSON del plan", Array.isArray(planRes.plan) && planRes.plan!.length === 2 && planRes.summary === "demo plan");
 check("plan mode: marca unknown la tool inexistente y no la real", planRes.plan![1].unknown === true && !planRes.plan![0].unknown);
+
+// 11. LLM providers: verify each provider resolves to its real, documented endpoint
+// (Gemini/NVIDIA base URLs confirmed via Context7 docs — see src/core/llm.ts comment).
+const openrouterCfg = resolveProviderConfig("openrouter");
+check("provider openrouter → openrouter.ai endpoint", openrouterCfg.baseUrl === "https://openrouter.ai/api/v1");
+const geminiCfg = resolveProviderConfig("gemini");
+check("provider gemini → OpenAI-compat endpoint (generativelanguage.googleapis.com)", geminiCfg.baseUrl === "https://generativelanguage.googleapis.com/v1beta/openai" && !!geminiCfg.defaultModel);
+const nvidiaCfg = resolveProviderConfig("nvidia");
+check("provider nvidia → NIM hosted endpoint (integrate.api.nvidia.com)", nvidiaCfg.baseUrl === "https://integrate.api.nvidia.com/v1" && !!nvidiaCfg.defaultModel);
+check("gemini/nvidia base URLs have no double-slash bug when /chat/completions is appended", !geminiCfg.baseUrl.endsWith("/") && !nvidiaCfg.baseUrl.endsWith("/"));
 
 console.log(`\n=== Resultado: ${pass} OK, ${fail} fallos ===`);
 await server.close();

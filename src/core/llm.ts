@@ -1,5 +1,10 @@
-// Cliente LLM compatible OpenAI (OpenRouter / OpenAI / OpenCode Zen).
+// Cliente LLM compatible OpenAI (OpenRouter / OpenAI / Gemini / NVIDIA NIM / OpenCode Zen).
 // Portado de ableton-live-ai sin cambios de comportamiento.
+//
+// Gemini and NVIDIA both expose an OpenAI-compatible /chat/completions endpoint (verified via
+// Context7 docs, not assumed), so they need no separate client class — just a base URL:
+//   Gemini:  https://generativelanguage.googleapis.com/v1beta/openai  (Bearer <GEMINI_API_KEY>)
+//   NVIDIA:  https://integrate.api.nvidia.com/v1                     (Bearer <NVIDIA_API_KEY>, hosted NIM models)
 
 import * as nodeHttp from "node:http";
 import * as nodeHttps from "node:https";
@@ -143,18 +148,31 @@ function safeParse(s: string): Record<string, unknown> {
   try { return JSON.parse(s); } catch { return {}; }
 }
 
-export function createLLMClient(provider: string, apiKey: string, model: string): LLMClient {
+// Pure provider→(baseUrl, defaultModel) resolution, split out from createLLMClient so the
+// smoke tests can verify every provider's real endpoint without making a network call.
+export function resolveProviderConfig(provider: string): { baseUrl: string; defaultModel: string } {
   const baseUrl = provider === "openai"
     ? "https://api.openai.com/v1"
     : provider === "openrouter"
       ? "https://openrouter.ai/api/v1"
-      : provider === "opencode-zen"
-        ? ((typeof process !== "undefined" ? process.env?.OPENCODE_ZEN_URL : undefined) || "http://localhost:8080/v1")
-        : provider;
+      : provider === "gemini"
+        ? "https://generativelanguage.googleapis.com/v1beta/openai"
+        : provider === "nvidia"
+          ? "https://integrate.api.nvidia.com/v1"
+          : provider === "opencode-zen"
+            ? ((typeof process !== "undefined" ? process.env?.OPENCODE_ZEN_URL : undefined) || "http://localhost:8080/v1")
+            : provider;
 
   const defaultModel = provider === "openai" ? "gpt-4o"
     : provider === "openrouter" ? "anthropic/claude-3.5-sonnet"
+    : provider === "gemini" ? "gemini-2.5-flash"
+    : provider === "nvidia" ? "meta/llama-3.1-70b-instruct"
     : provider === "opencode-zen" ? "zen" : "gpt-4o";
 
+  return { baseUrl, defaultModel };
+}
+
+export function createLLMClient(provider: string, apiKey: string, model: string): LLMClient {
+  const { baseUrl, defaultModel } = resolveProviderConfig(provider);
   return new OpenAICompatibleClient({ baseUrl, apiKey, model: model || defaultModel });
 }

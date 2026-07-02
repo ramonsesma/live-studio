@@ -42,7 +42,7 @@ of each concept into one place.
 - **132 modules** (all visible) with **382 real tools** across categories: music
   generation, drums, mixing/mastering, EQ/analysis, synthesis, sampling, arrangement,
   performance/live, MIDI, hardware/control, project management, audio↔MIDI conversion and more.
-- **AI copilot** (OpenRouter / OpenAI / OpenCode Zen) with a *tool-calling* loop: it discovers and
+- **AI copilot** (OpenRouter / OpenAI / Gemini / NVIDIA NIM / OpenCode Zen) with a *tool-calling* loop: it discovers and
   runs **any of the 382 tools** through a meta-toolkit (`find_tools` searches the whole suite,
   `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
 - **Quick command palette** (`⌘K`): indexes the **382 tools** + **83 quick actions**
@@ -62,6 +62,10 @@ of each concept into one place.
 - **Self-documenting**: `npm run gen:catalog` regenerates a static, searchable catalog of all
   modules/tools (docs/) straight from the registry; `npm run new:module` scaffolds a complete
   module (tools + panel + registration + tests) in one command.
+- **Bilingual UI (EN/ES)**: the shell auto-detects the system language (with a manual toggle) —
+  one shared codebase, no duplicated files, via a single string dictionary (`public/i18n.js`).
+- **Lazy panel loading**: rich panels (~670 KB total) load on first visit to their module instead
+  of all 115 upfront, so the UI shows up instantly.
 - **Auto-generated UI** for everything else: any new module shows up with its form without
   writing HTML, reading its tool definitions.
 - **Lightweight**: ~840 KB bundle, no frontend frameworks.
@@ -153,7 +157,7 @@ Requirements: **Node ≥ 22.11** and the **Ableton Extensions SDK** (beta).
 
 ## 🤖 AI Copilot
 
-In the **AI Copilot** tab pick a provider (OpenRouter / OpenAI / OpenCode Zen), paste your API
+In the **AI Copilot** tab pick a provider (OpenRouter / OpenAI / Gemini / NVIDIA NIM / OpenCode Zen), paste your API
 key and optionally a model. Example instructions:
 
 > "create a MIDI track named Bass, generate a pop progression in C minor, then a techno beat at 124 BPM"
@@ -203,18 +207,27 @@ public/
 3. `npm run build`. It shows up in the UI and is available to the copilot. **No HTML needed.**
 
 ### Rich panels
-Create `public/panels/<id>.js` that registers `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`
-and add it to `index.html`. `shell.js` uses it instead of the autoform. There are 115 already, including:
+Create `public/panels/<id>.js` that registers `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`.
+No `index.html` edit needed — panels load lazily: `shell.js` fetches `/panels/<id>.js` the first
+time a module is opened (a 404 just falls back to the autoform), so nothing is downloaded until
+it's actually used. There are 115 already, including:
 `organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (graph), `notation` (piano-roll), `takes`, `eq` (EQ curve), `midilfo` (LFO designer), `midigate` (trance gate), `synth` (patchbay), `genarranger` (arrangement timeline), `trackmanager` (track grid), `health` (session health), `mastering` (gain staging), `rackbuilder` (rack), `performance` (performance pad), `clipversions` (versions & snapshots), `resonance` (mix radar + masking matrix), `autogain` (auto gain-staging), `keyscale` (key detection), `genrhythm` (generative rhythm), `texturemap` (audio→MIDI), `spectrumcompare` (spectrum match), `projectsnapshot` (git for Live Sets), `scoreeditor` (notation + MusicXML), `clipvariations` (variation engine), `stemalign` (stem aligner), `samplebrain` (sample library brain), `macromorph` (macro snapshot morph), `loopdetect` (loop BPM), `warpcompare` (warp A/B), `paramdiff` (outlier QA), `phrasefinder` (MIDI phrase search), `saferandom` (safe randomizer), `groovetemplate` (groove extractor), `probabilitylab` (probability lab), `devremote` (remote-control any device, incl. Max for Live), `stemexport` (batch stem export), `mixcoach` (prioritized mix next-steps), `history` (undo/redo timeline), `templates` (genre starter kits), `mixscene` (mixer A/B recall), `tempotap` (tap tempo), `notes` (sticky notes), `sandbox` (live-coding REPL), `delaycalc` (delay time table), `setlist` (reorderable setlist), `fxpresets` (saved FX chains), `groove` (groove extractor/humanizer), `colorizer` (clip coloring by metric), `vocal` (vocal chain builder).
 
 ## 🛠️ Development
 
 ```bash
-npm run build       # compile (esbuild)
-npm run typecheck   # tsc --noEmit
-npm run test        # 280 smoke tests (server + modules, simulated song)
-npm run package     # build + package .ablx with the UI
+npm run build         # compile (esbuild)
+npm run typecheck     # tsc --noEmit
+npm run test          # 286 smoke tests (server + modules, simulated song)
+npm run package       # build + package .ablx with the UI
+npm run new:module     # scaffold a module: tools.ts + rich panel + registry + smoke-test entries, one command
+npm run gen:catalog    # regenerate docs/index.html — a static, searchable catalog of every module/tool
 ```
+
+For developers, `npm run new:module -- <id> "<Label>" [icon] ["description"]` creates
+`src/modules/<id>/tools.ts` (one example tool, real `song` state), `public/panels/<id>.js` (a
+rich panel with live refresh wired in), registers the module in `src/registry/index.ts`, and
+extends `test/smoke.ts` so the suite immediately covers it — no manual edits, no forgetting a step.
 
 > **Packaging notes — avoiding `No manifest.json found` at install time.**
 > Live's installer unzips the `.ablx` and then validates `manifest.json`; if either the

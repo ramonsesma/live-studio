@@ -1,4 +1,5 @@
 // Live Studio — shell: tab router + generic autoform + copilot.
+const t = window.LiveStudioI18n.t;
 const api = {
   async get(p) { const r = await fetch(p); return r.json(); },
   async post(p, body) { const r = await fetch(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); return r.json(); },
@@ -6,10 +7,22 @@ const api = {
 
 const state = { modules: [], active: null, toolCache: {}, chat: [], prefs: { favorites: [], recents: [], profile: "all" }, planMode: false };
 
+function initLang() {
+  const btn = document.getElementById("lang-toggle");
+  if (!btn) return;
+  btn.textContent = window.LiveStudioI18n.getLang().toUpperCase();
+  btn.onclick = () => {
+    window.LiveStudioI18n.setLang(window.LiveStudioI18n.getLang() === "es" ? "en" : "es");
+    location.reload(); // simplest correct re-render: every panel/chat state resets cleanly
+  };
+}
+initLang();
+
 async function boot() {
+  document.getElementById("status-text").textContent = t("status_connecting");
   // health
-  try { await api.get("/health"); setStatus(true, "connected"); }
-  catch { setStatus(false, "offline"); }
+  try { await api.get("/health"); setStatus(true, t("status_connected")); }
+  catch { setStatus(false, t("status_offline")); }
 
   // UI prefs (favorites / recents / profile) persist server-side in storageDirectory,
   // so they survive webview reloads — the webview's own localStorage may not.
@@ -45,14 +58,14 @@ function initEvents() {
   if (typeof EventSource === "undefined") return; // panels still work, just without live refresh
   try {
     const es = new EventSource("/api/events");
-    es.addEventListener("hello", () => setStatus(true, "connected · live"));
+    es.addEventListener("hello", () => setStatus(true, t("status_connected_live")));
     es.addEventListener("song", (e) => {
       let detail = {};
       try { detail = JSON.parse(e.data); } catch { /* keep {} */ }
       pulseStatus();
       if (songChangedHandler) { try { songChangedHandler(detail); } catch { /* panel hook must not kill the stream */ } }
     });
-    es.onerror = () => setStatus(true, "connected"); // EventSource reconnects on its own
+    es.onerror = () => setStatus(true, t("status_connected")); // EventSource reconnects on its own
   } catch { /* no live refresh */ }
 }
 
@@ -80,7 +93,7 @@ const PROFILES = {
   sounddesign: ["synth", "sfx", "drumsynth", "slicelab", "mosaic", "riser", "sub808", "padengine", "pluckengine", "acid303", "chordstab", "fmbell", "impact", "subbass", "organ", "vocalchop", "instrumentrender", "brass", "wobble", "choir", "subdrop", "pluckbass", "sawlead", "reese", "marimba", "glitch", "tapehiss", "trumpet", "epiano", "musicbox", "harp", "whistle", "subwobble", "vocoder", "noisefx", "cymbal", "guitar", "sitar", "steeldrum", "accordion", "theremin", "hihat808", "stabhit", "glassbell", "subkick", "reversesweep", "timestretch", "texturemap", "samplebrain", "saferandom", "macromorph", "rackbuilder", "midilfo", "midigate", "audio2midi", "drumreplace"],
   performance: ["performance", "setlist", "tempotap", "quickactions", "launchquant", "sessionbridge", "clips", "chordpads", "temposync", "delaycalc", "notes", "console", "sandbox", "drummap", "stepseq", "mixscene", "history"],
 };
-const PROFILE_LABELS = { all: "All modules", mixing: "Mixing", sounddesign: "Sound design", performance: "Performance" };
+const PROFILE_LABEL_KEYS = { all: "profile_all", mixing: "profile_mixing", sounddesign: "profile_sounddesign", performance: "profile_performance" };
 
 const HOME_ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></svg>';
 
@@ -88,7 +101,7 @@ function navItem(m) {
   const el = document.createElement("div");
   el.className = "nav-item"; el.dataset.id = m.id; el.title = m.label;
   const fav = state.prefs.favorites.includes(m.id);
-  el.innerHTML = `<span class="ico" style="color:${TINT(m.id)}">${ICO(m.id)}</span><span class="lbl">${m.label}</span><span class="fav-btn${fav ? " on" : ""}" title="${fav ? "Unpin favorite" : "Pin as favorite"}">${fav ? "★" : "☆"}</span><span class="count">${m.toolCount}</span>`;
+  el.innerHTML = `<span class="ico" style="color:${TINT(m.id)}">${ICO(m.id)}</span><span class="lbl">${m.label}</span><span class="fav-btn${fav ? " on" : ""}" title="${fav ? t("unpin_favorite") : t("pin_favorite")}">${fav ? "★" : "☆"}</span><span class="count">${m.toolCount}</span>`;
   el.onclick = () => selectModule(m.id);
   el.querySelector(".fav-btn").onclick = (e) => { e.stopPropagation(); toggleFavorite(m.id); };
   return el;
@@ -115,15 +128,15 @@ function renderNav() {
 
   // Dashboard (home)
   const home = document.createElement("div");
-  home.className = "nav-item"; home.dataset.id = "__home"; home.title = "Dashboard";
-  home.innerHTML = `<span class="ico">${HOME_ICO}</span><span class="lbl">Dashboard</span>`;
+  home.className = "nav-item"; home.dataset.id = "__home"; home.title = t("dashboard");
+  home.innerHTML = `<span class="ico">${HOME_ICO}</span><span class="lbl">${t("dashboard")}</span>`;
   home.onclick = () => selectHome();
   nav.appendChild(home);
 
   // Quick command palette launcher (Cmd/Ctrl+K)
   const pal = document.createElement("div");
-  pal.className = "nav-item nav-palette"; pal.title = "Quick commands  (⌘K)";
-  pal.innerHTML = `<span class="ico">${ICO("palette")}</span><span class="lbl">Quick commands</span><span class="kbd">⌘K</span>`;
+  pal.className = "nav-item nav-palette"; pal.title = `${t("quick_commands")}  (⌘K)`;
+  pal.innerHTML = `<span class="ico">${ICO("palette")}</span><span class="lbl">${t("quick_commands")}</span><span class="kbd">⌘K</span>`;
   pal.onclick = () => openPalette();
   nav.appendChild(pal);
 
@@ -133,22 +146,22 @@ function renderNav() {
   // Favorites (pinned, always visible regardless of profile)
   const favs = state.prefs.favorites.map((id) => byId[id]).filter((m) => m && !m.hidden);
   if (favs.length) {
-    const sep = document.createElement("div"); sep.className = "nav-sep"; sep.innerHTML = "<span>Favorites</span>"; nav.appendChild(sep);
+    const sep = document.createElement("div"); sep.className = "nav-sep"; sep.innerHTML = `<span>${t("favorites")}</span>`; nav.appendChild(sep);
     for (const m of favs) nav.appendChild(navItem(m));
   }
 
   // Recents (last used, minus the ones already pinned)
   const recents = state.prefs.recents.filter((id) => !state.prefs.favorites.includes(id)).map((id) => byId[id]).filter((m) => m && !m.hidden).slice(0, 5);
   if (recents.length) {
-    const sep = document.createElement("div"); sep.className = "nav-sep"; sep.innerHTML = "<span>Recent</span>"; nav.appendChild(sep);
+    const sep = document.createElement("div"); sep.className = "nav-sep"; sep.innerHTML = `<span>${t("recent")}</span>`; nav.appendChild(sep);
     for (const m of recents) nav.appendChild(navItem(m));
   }
 
   // Work profile selector + filtered module list
-  const sep1 = document.createElement("div"); sep1.className = "nav-sep"; sep1.innerHTML = "<span>Modules</span>"; nav.appendChild(sep1);
+  const sep1 = document.createElement("div"); sep1.className = "nav-sep"; sep1.innerHTML = `<span>${t("modules")}</span>`; nav.appendChild(sep1);
   const profWrap = document.createElement("div");
   profWrap.className = "nav-profile";
-  profWrap.innerHTML = `<select id="profile-sel" title="Work profile — filters the module list">${Object.keys(PROFILE_LABELS).map((k) => `<option value="${k}"${state.prefs.profile === k ? " selected" : ""}>${PROFILE_LABELS[k]}</option>`).join("")}</select>`;
+  profWrap.innerHTML = `<select id="profile-sel" title="${t("profile_select_title")}">${Object.keys(PROFILE_LABEL_KEYS).map((k) => `<option value="${k}"${state.prefs.profile === k ? " selected" : ""}>${t(PROFILE_LABEL_KEYS[k])}</option>`).join("")}</select>`;
   profWrap.querySelector("select").onchange = (e) => { state.prefs.profile = e.target.value; savePrefs(); rerenderNav(); };
   nav.appendChild(profWrap);
 
@@ -159,10 +172,10 @@ function renderNav() {
     nav.appendChild(navItem(m));
   }
 
-  const sep2 = document.createElement("div"); sep2.className = "nav-sep"; sep2.innerHTML = "<span>Assistant</span>"; nav.appendChild(sep2);
+  const sep2 = document.createElement("div"); sep2.className = "nav-sep"; sep2.innerHTML = `<span>${t("assistant")}</span>`; nav.appendChild(sep2);
   const cop = document.createElement("div");
-  cop.className = "nav-item"; cop.dataset.id = "__copilot"; cop.title = "AI Copilot";
-  cop.innerHTML = `<span class="ico" style="color:${TINT("copilot")}">${ICO("copilot")}</span><span class="lbl">AI Copilot</span>`;
+  cop.className = "nav-item"; cop.dataset.id = "__copilot"; cop.title = t("ai_copilot");
+  cop.innerHTML = `<span class="ico" style="color:${TINT("copilot")}">${ICO("copilot")}</span><span class="lbl">${t("ai_copilot")}</span>`;
   cop.onclick = () => selectCopilot();
   nav.appendChild(cop);
 
@@ -196,26 +209,47 @@ function recordRecent(id) {
   rerenderNav();
 }
 
+// Lazy panel loading: index.html no longer lists all 115 panel scripts up front (that was
+// ~672 KB fetched and parsed before the UI could even show the first module). Instead each
+// panel's <script> is injected on first visit to its module and cached in panelLoadState —
+// a 404 (module has no rich panel) resolves false via onerror, so the autoform kicks in with
+// no separate manifest needed to know which modules have one.
+const panelLoadState = {};
+function loadPanelScript(id) {
+  if (panelLoadState[id]) return panelLoadState[id];
+  const p = new Promise((resolve) => {
+    const s = document.createElement("script");
+    s.src = "/panels/" + id + ".js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+  panelLoadState[id] = p;
+  return p;
+}
+
 async function selectModule(id) {
   markActive(id);
   songChangedHandler = null; // the outgoing panel's live-refresh hook dies with it
   recordRecent(id);
   const mod = state.modules.find((m) => m.id === id);
   const panel = document.getElementById("panel");
+  panel.innerHTML = `<div class="panel-empty">${t("loading")}</div>`;
 
   // Is there a rich panel registered for this module? → use it instead of the autoform.
-  const rich = window.LiveStudioPanels && window.LiveStudioPanels[id];
+  const hasPanelFile = await loadPanelScript(id);
+  const rich = hasPanelFile && window.LiveStudioPanels && window.LiveStudioPanels[id];
   if (rich) {
-    panel.innerHTML = `<div class="panel-empty">Loading panel…</div>`;
+    panel.innerHTML = `<div class="panel-empty">${t("loading_panel")}</div>`;
     const execute = (toolName, args) => api.post("/api/execute", { name: id + "__" + toolName, args: args || {} });
     const onSongChanged = (fn) => { songChangedHandler = typeof fn === "function" ? fn : null; };
     try { await rich(panel, { execute, api, onSongChanged }); }
-    catch (e) { panel.innerHTML = `<div class="panel-empty">Panel error: ${e}</div>`; }
+    catch (e) { panel.innerHTML = `<div class="panel-empty">${t("panel_error", { error: e })}</div>`; }
     await injectQuickActions(panel, id);
     return;
   }
 
-  panel.innerHTML = `<div class="panel-head"><h1><span class="head-ico" style="color:${TINT(mod.id)}">${ICO(mod.id)}</span> ${mod.label}</h1><p>${mod.description || ""}</p></div><div class="panel-empty">Loading tools…</div>`;
+  panel.innerHTML = `<div class="panel-head"><h1><span class="head-ico" style="color:${TINT(mod.id)}">${ICO(mod.id)}</span> ${mod.label}</h1><p>${mod.description || ""}</p></div><div class="panel-empty">${t("loading_tools")}</div>`;
 
   if (!state.toolCache[id]) {
     const res = await api.get("/api/tools?module=" + encodeURIComponent(id));
@@ -237,7 +271,7 @@ async function injectQuickActions(panel, id) {
     if (!acts.length) return;
     const strip = document.createElement("div");
     strip.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 14px;padding:8px 11px;background:var(--bg2);border:1px solid var(--line);border-radius:8px";
-    strip.innerHTML = '<span style="font-size:11px;color:var(--muted);margin-right:2px"><i class="ti ti-bolt" aria-hidden="true"></i> Quick actions</span>';
+    strip.innerHTML = `<span style="font-size:11px;color:var(--muted);margin-right:2px"><i class="ti ti-bolt" aria-hidden="true"></i> ${t("quick_actions")}</span>`;
     for (const a of acts) {
       const b = document.createElement("button");
       b.textContent = a.name;
@@ -254,7 +288,7 @@ function renderTool(tool) {
   const card = document.createElement("div");
   card.className = "tool";
   const title = tool.originalName || tool.name;
-  const demoBadge = tool.demo ? ` <span class="badge-demo" title="Returns simulated data — not yet wired to the live Set">demo</span>` : "";
+  const demoBadge = tool.demo ? ` <span class="badge-demo" title="${t("demo_badge_title")}">${t("demo_label")}</span>` : "";
   card.innerHTML = `<h3>${title}${demoBadge}</h3><p class="desc">${tool.description || ""}</p>`;
   const params = tool.parameters || {};
   const inputs = {};
@@ -281,7 +315,7 @@ function renderTool(tool) {
     inputs[name] = input;
     card.appendChild(field);
   }
-  const btn = document.createElement("button"); btn.className = "btn"; btn.textContent = "Execute";
+  const btn = document.createElement("button"); btn.className = "btn"; btn.textContent = t("execute");
   const out = document.createElement("div"); out.className = "result"; out.style.display = "none";
   btn.onclick = async () => {
     const args = {};
@@ -291,7 +325,7 @@ function renderTool(tool) {
       const pt = input.dataset.ptype;
       args[name] = pt === "number" ? Number(raw) : pt === "boolean" ? raw === "true" : raw;
     }
-    btn.disabled = true; btn.textContent = "Running…";
+    btn.disabled = true; btn.textContent = t("running");
     try {
       const result = await api.post("/api/execute", { name: tool.name, args });
       out.style.display = "block";
@@ -299,7 +333,7 @@ function renderTool(tool) {
       out.textContent = JSON.stringify(result, null, 2);
     } catch (e) {
       out.style.display = "block"; out.className = "result err"; out.textContent = String(e);
-    } finally { btn.disabled = false; btn.textContent = "Execute"; }
+    } finally { btn.disabled = false; btn.textContent = t("execute"); }
   };
   card.appendChild(btn);
   card.appendChild(out);
@@ -313,11 +347,11 @@ async function selectHome() {
   markActive("__home");
   songChangedHandler = null;
   const panel = document.getElementById("panel");
-  panel.innerHTML = `<div class="panel-head"><h1><span class="head-ico">${HOME_ICO}</span> Dashboard</h1><p>Your project at a glance — refreshes live as the Set changes.</p></div><div class="panel-empty">Loading overview…</div>`;
+  panel.innerHTML = `<div class="panel-head"><h1><span class="head-ico">${HOME_ICO}</span> ${t("dashboard")}</h1><p>${t("dashboard_subtitle")}</p></div><div class="panel-empty">${t("loading")}</div>`;
 
   const render = async () => {
     const r = await api.get("/api/overview");
-    if (!r.success) { panel.innerHTML = `<div class="panel-empty">Overview error</div>`; return; }
+    if (!r.success) { panel.innerHTML = `<div class="panel-empty">${t("overview_error")}</div>`; return; }
     const d = r.data;
     const key = d.rootNote != null && d.scaleName ? `${NOTE_NAMES[((d.rootNote % 12) + 12) % 12]} ${d.scaleName}` : "—";
 
@@ -329,12 +363,12 @@ async function selectHome() {
     } catch { /* module unavailable */ }
 
     const cards = [
-      { num: d.tempo != null ? Number(d.tempo).toFixed(1) : "—", cap: "BPM" },
-      { num: key, cap: "Key" },
-      { num: `${d.tracks.total}`, cap: `Tracks (${d.tracks.midi} MIDI · ${d.tracks.audio} audio)` },
-      { num: `${d.clips.session + d.clips.arrangement}`, cap: `Clips (${d.clips.session} session · ${d.clips.arrangement} arr.)` },
-      { num: `${d.scenes}`, cap: "Scenes" },
-      { num: `${d.cuePoints}`, cap: "Cue points" },
+      { num: d.tempo != null ? Number(d.tempo).toFixed(1) : "—", cap: t("bpm") },
+      { num: key, cap: t("key_label") },
+      { num: `${d.tracks.total}`, cap: t("tracks_caption", { midi: d.tracks.midi, audio: d.tracks.audio }) },
+      { num: `${d.clips.session + d.clips.arrangement}`, cap: t("clips_caption", { session: d.clips.session, arrangement: d.clips.arrangement }) },
+      { num: `${d.scenes}`, cap: t("scenes") },
+      { num: `${d.cuePoints}`, cap: t("cue_points") },
     ];
 
     const chips = (ids) => ids.map((id) => {
@@ -352,18 +386,18 @@ async function selectHome() {
       </tr>`).join("");
 
     panel.innerHTML = `
-      <div class="panel-head"><h1><span class="head-ico">${HOME_ICO}</span> Dashboard</h1><p>Your project at a glance — refreshes live as the Set changes.</p></div>
+      <div class="panel-head"><h1><span class="head-ico">${HOME_ICO}</span> ${t("dashboard")}</h1><p>${t("dashboard_subtitle")}</p></div>
       <div class="dash-grid">${cards.map((c) => `<div class="dash-card"><div class="num">${esc(String(c.num))}</div><div class="cap">${esc(c.cap)}</div></div>`).join("")}</div>
-      ${favIds.length ? `<div class="dash-section"><h3>Favorites</h3><div class="dash-chips">${chips(favIds)}</div></div>` : ""}
-      ${recIds.length ? `<div class="dash-section"><h3>Recent</h3><div class="dash-chips">${chips(recIds)}</div></div>` : ""}
-      ${suggested.length ? `<div class="dash-section"><h3>Start here</h3><div class="dash-chips">${chips(suggested)}</div></div>` : ""}
-      <div class="dash-section"><h3>Tracks</h3>
-        ${rows ? `<table class="dash-table"><thead><tr><th>#</th><th>Name</th><th>Type</th><th>State</th><th>Session</th></tr></thead><tbody>${rows}</tbody></table>` : `<span class="hint">No tracks yet.</span>`}
+      ${favIds.length ? `<div class="dash-section"><h3>${t("favorites")}</h3><div class="dash-chips">${chips(favIds)}</div></div>` : ""}
+      ${recIds.length ? `<div class="dash-section"><h3>${t("recent")}</h3><div class="dash-chips">${chips(recIds)}</div></div>` : ""}
+      ${suggested.length ? `<div class="dash-section"><h3>${t("start_here")}</h3><div class="dash-chips">${chips(suggested)}</div></div>` : ""}
+      <div class="dash-section"><h3>${t("tracks_section")}</h3>
+        ${rows ? `<table class="dash-table"><thead><tr><th>${t("col_index")}</th><th>${t("col_name")}</th><th>${t("col_type")}</th><th>${t("col_state")}</th><th>${t("col_session")}</th></tr></thead><tbody>${rows}</tbody></table>` : `<span class="hint">${t("no_tracks_yet")}</span>`}
       </div>
-      <div class="dash-section"><h3>Last snapshots</h3>
+      <div class="dash-section"><h3>${t("last_snapshots")}</h3>
         ${snaps.length
-          ? `<div class="dash-chips">${snaps.map((s) => `<span class="chip" data-mod="projectsnapshot" title="Open Project Snapshot">📸 ${esc(s.label || s.id)}</span>`).join("")}</div>`
-          : `<span class="hint">No snapshots yet — <a href="#" id="dash-snap-link">open Project Snapshot</a> to save your first checkpoint.</span>`}
+          ? `<div class="dash-chips">${snaps.map((s) => `<span class="chip" data-mod="projectsnapshot" title="${t("open_project_snapshot")}">📸 ${esc(s.label || s.id)}</span>`).join("")}</div>`
+          : `<span class="hint">${t("no_snapshots_yet", { link: `<a href="#" id="dash-snap-link">${t("open_project_snapshot")}</a>` })}</span>`}
       </div>`;
 
     panel.querySelectorAll(".chip[data-mod]").forEach((c) => { c.onclick = () => selectModule(c.dataset.mod); });
@@ -382,32 +416,34 @@ async function selectCopilot() {
   const cfg = (await api.get("/api/config")).config || {};
   const panel = document.getElementById("panel");
   panel.innerHTML = `
-    <div class="panel-head"><h1><span class="head-ico" style="color:${TINT("copilot")}">${ICO("copilot")}</span> AI Copilot</h1><p>Control any module via natural language. Use your tools as functions.</p></div>
+    <div class="panel-head"><h1><span class="head-ico" style="color:${TINT("copilot")}">${ICO("copilot")}</span> ${t("ai_copilot")}</h1><p>${t("copilot_subtitle")}</p></div>
     <div class="config-grid">
-      <div><label class="hint">Provider</label>
+      <div><label class="hint">${t("provider_label")}</label>
         <select id="cfg-provider">
           <option value="openrouter">OpenRouter</option>
           <option value="openai">OpenAI</option>
+          <option value="gemini">Gemini</option>
+          <option value="nvidia">NVIDIA NIM</option>
           <option value="opencode-zen">OpenCode Zen</option>
         </select></div>
-      <div><label class="hint">API key</label><input id="cfg-key" type="password" placeholder="sk-…" /></div>
-      <div><label class="hint">Model (optional)</label><input id="cfg-model" placeholder="auto" /></div>
+      <div><label class="hint">${t("api_key_label")}</label><input id="cfg-key" type="password" placeholder="sk-…" /></div>
+      <div><label class="hint">${t("model_optional")}</label><input id="cfg-model" placeholder="auto" /></div>
     </div>
-    <button class="btn ghost" id="cfg-save">Save config</button>
+    <button class="btn ghost" id="cfg-save">${t("save_config")}</button>
     <span class="hint" id="cfg-status" style="margin-left:10px"></span>
-    <label class="plan-toggle" title="The copilot proposes a step-by-step plan; nothing runs until you apply it">
-      <input type="checkbox" id="plan-mode" ${state.planMode ? "checked" : ""}/> Plan first — review every step before anything touches the Set
+    <label class="plan-toggle" title="${t("plan_toggle_title")}">
+      <input type="checkbox" id="plan-mode" ${state.planMode ? "checked" : ""}/> ${t("plan_toggle_label")}
     </label>
     <div class="chat">
       <div class="chat-log" id="chat-log"></div>
       <div class="chat-input">
-        <textarea id="chat-text" placeholder="e.g. create a MIDI track named Bass and generate a pop progression in C minor"></textarea>
-        <button class="btn" id="chat-send">Send</button>
+        <textarea id="chat-text" placeholder="${t("chat_placeholder")}"></textarea>
+        <button class="btn" id="chat-send">${t("send")}</button>
       </div>
     </div>`;
   document.getElementById("cfg-provider").value = cfg.provider || "openrouter";
   document.getElementById("cfg-model").value = cfg.model || "";
-  document.getElementById("cfg-status").textContent = cfg.hasKey ? "key configured ✓" : "no key";
+  document.getElementById("cfg-status").textContent = cfg.hasKey ? t("key_configured") : t("no_key");
   document.getElementById("cfg-save").onclick = saveConfig;
   document.getElementById("plan-mode").onchange = (e) => { state.planMode = e.target.checked; };
   document.getElementById("chat-send").onclick = sendChat;
@@ -422,7 +458,7 @@ async function saveConfig() {
     model: document.getElementById("cfg-model").value,
   };
   const r = await api.post("/api/config", body);
-  document.getElementById("cfg-status").textContent = r.config && r.config.hasKey ? "key configured ✓" : "saved";
+  document.getElementById("cfg-status").textContent = r.config && r.config.hasKey ? t("key_configured") : t("saved");
 }
 
 function renderChat() {
@@ -454,16 +490,16 @@ async function sendChat() {
     if (res.success && state.planMode) {
       state.chat.push({ role: "assistant", content: stripPlanJson(res.content) || "(plan below)" });
       if (res.plan && res.plan.length) pendingPlan = { plan: res.plan, summary: res.summary };
-      else state.chat.push({ role: "assistant", content: "⚠️ No structured plan came back — try rephrasing, or turn plan mode off." });
+      else state.chat.push({ role: "assistant", content: t("no_plan_returned") });
     } else if (res.success) {
-      state.chat.push({ role: "assistant", content: res.content + (res.toolCalls ? `\n\n(${res.toolCalls} acciones ejecutadas)` : "") });
+      state.chat.push({ role: "assistant", content: res.content + (res.toolCalls ? t("actions_executed", { n: res.toolCalls }) : "") });
     } else {
-      state.chat.push({ role: "assistant", content: "⚠️ " + (res.error || "error") });
+      state.chat.push({ role: "assistant", content: "⚠️ " + (res.error || t("generic_error")) });
     }
   } catch (e) {
     state.chat.push({ role: "assistant", content: "⚠️ " + String(e) });
   } finally {
-    sendBtn.disabled = false; sendBtn.textContent = "Send"; renderChat();
+    sendBtn.disabled = false; sendBtn.textContent = t("send"); renderChat();
     if (pendingPlan) renderPlanCard(pendingPlan.plan, pendingPlan.summary);
   }
 }
@@ -478,21 +514,22 @@ function renderPlanCard(plan, summary) {
   if (!log) return;
   const card = document.createElement("div");
   card.className = "plan-card";
+  const summaryPart = summary ? t("plan_summary_part", { summary: esc(summary) }) : "";
   card.innerHTML = `
-    <div class="plan-title">Plan${summary ? ` — ${esc(summary)}` : ""} · ${plan.length} step${plan.length === 1 ? "" : "s"}</div>
+    <div class="plan-title">${t("plan_title", { summaryPart, n: plan.length })}</div>
     ${plan.map((s, i) => `
       <div class="plan-step">
         <span class="plan-status" data-step="${i}">${s.unknown ? "⚠️" : "•"}</span>
         <div class="plan-body">
           <code>${esc(s.tool)}</code>${Object.keys(s.args || {}).length ? ` <span class="plan-args">${esc(JSON.stringify(s.args))}</span>` : ""}
           ${s.why ? `<div class="plan-why">${esc(s.why)}</div>` : ""}
-          ${s.unknown ? `<div class="plan-why">Unknown tool — this step will be skipped.</div>` : ""}
+          ${s.unknown ? `<div class="plan-why">${t("unknown_tool_skip")}</div>` : ""}
         </div>
       </div>`).join("")}
     <div class="plan-actions">
-      <button class="btn" data-act="apply">Apply plan</button>
-      <button class="btn ghost" data-act="discard">Discard</button>
-      <span class="hint">Each applied step is undoable via Edit History.</span>
+      <button class="btn" data-act="apply">${t("apply_plan")}</button>
+      <button class="btn ghost" data-act="discard">${t("discard")}</button>
+      <span class="hint">${t("undoable_hint")}</span>
     </div>`;
   log.appendChild(card);
   log.scrollTop = log.scrollHeight;
@@ -501,7 +538,7 @@ function renderPlanCard(plan, summary) {
   const discardBtn = card.querySelector('[data-act="discard"]');
   discardBtn.onclick = () => card.remove();
   applyBtn.onclick = async () => {
-    applyBtn.disabled = true; discardBtn.disabled = true; applyBtn.textContent = "Applying…";
+    applyBtn.disabled = true; discardBtn.disabled = true; applyBtn.textContent = t("applying");
     let ok = 0, fail = 0, skipped = 0;
     for (let i = 0; i < plan.length; i++) {
       const st = card.querySelector(`[data-step="${i}"]`);
@@ -511,11 +548,13 @@ function renderPlanCard(plan, summary) {
       try {
         const r = await api.post("/api/execute", { name: s.tool, args: s.args || {} });
         st.textContent = r.success ? "✓" : "✕";
-        if (r.success) ok++; else { fail++; st.title = r.error || "error"; }
+        if (r.success) ok++; else { fail++; st.title = r.error || t("generic_error"); }
       } catch (e) { st.textContent = "✕"; st.title = String(e); fail++; }
     }
-    applyBtn.textContent = "Applied";
-    state.chat.push({ role: "tool", content: `Plan applied: ${ok} ok${fail ? `, ${fail} failed` : ""}${skipped ? `, ${skipped} skipped` : ""}. Undo per-step via Edit History.` });
+    applyBtn.textContent = t("applied");
+    const failPart = fail ? t("fail_part", { n: fail }) : "";
+    const skippedPart = skipped ? t("skipped_part", { n: skipped }) : "";
+    state.chat.push({ role: "tool", content: t("plan_applied_summary", { ok, failPart, skippedPart }) });
     renderChat();
   };
 }
@@ -530,7 +569,7 @@ function buildPalette() {
   ov.style.display = "none";
   ov.innerHTML = `
     <div id="palette">
-      <input id="palette-input" placeholder="Search a tool or quick action…  (Esc to close)" autocomplete="off" />
+      <input id="palette-input" placeholder="${t("palette_placeholder")}" autocomplete="off" />
       <div id="palette-meta"></div>
       <div id="palette-list"></div>
     </div>`;
@@ -567,7 +606,7 @@ async function openPalette() {
   ov.style.display = "flex";
   const input = ov.querySelector("#palette-input");
   input.value = ""; input.focus();
-  document.getElementById("palette-meta").textContent = "Loading…";
+  document.getElementById("palette-meta").textContent = t("loading");
   await ensurePaletteData();
   filterPalette("");
 }
@@ -581,8 +620,9 @@ function filterPalette(q) {
   palette.filtered = items.slice(0, 80);
   palette.sel = 0;
   const tools = palette.items.filter((i) => i.kind === "tool").length;
-  document.getElementById("palette-meta").textContent =
-    `${palette.items.length} comandos · ${tools} tools reales · ${palette.items.length - tools} micro-acciones — mostrando ${palette.filtered.length}`;
+  document.getElementById("palette-meta").textContent = t("palette_meta", {
+    total: palette.items.length, tools, other: palette.items.length - tools, shown: palette.filtered.length,
+  });
   renderPaletteList();
 }
 
@@ -592,8 +632,8 @@ function renderPaletteList() {
   palette.filtered.forEach((it, i) => {
     const row = document.createElement("div");
     row.className = "palette-row" + (i === palette.sel ? " sel" : "");
-    const tag = it.kind === "tool" ? "tool" : "acción";
-    const demoBadge = it.demo ? ` <span class="badge-demo" title="Returns simulated data">demo</span>` : "";
+    const tag = it.kind === "tool" ? t("tag_tool") : t("tag_action");
+    const demoBadge = it.demo ? ` <span class="badge-demo" title="${t("demo_badge_title")}">${t("demo_label")}</span>` : "";
     row.innerHTML = `<span class="palette-tag ${it.kind}">${tag}</span>
       <span class="palette-title">${it.title}${demoBadge}</span>
       <span class="palette-sub">${it.subtitle || ""}</span>
