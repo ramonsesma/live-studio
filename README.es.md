@@ -15,7 +15,7 @@
   <img alt="tools" src="https://img.shields.io/badge/tools-382-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-83-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-115-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-280%20%E2%9C%93-2ea043" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-292%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-840%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.md"><img alt="readme in English" src="https://img.shields.io/badge/README-English-yellow" /></a>
@@ -63,12 +63,15 @@ Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo me
   completo (tools + panel + registro + tests) en un comando.
 - **UI bilingüe (EN/ES)**: el shell detecta el idioma del sistema (con toggle manual) — un solo
   código compartido, sin archivos duplicados, vía un único diccionario (`public/i18n.js`).
+  Las descripciones de las 382 tools también están traducidas (`public/desc-i18n.js`), visibles
+  en el autoformulario, la paleta de comandos y las cabeceras de panel — el texto en inglés que
+  lee el copiloto IA queda intacto.
 - **Carga perezosa de paneles**: los paneles ricos (~670 KB en total) se cargan al abrir cada
   módulo por primera vez en vez de los 115 de golpe, así la UI aparece al instante.
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
 - **Ligero**: bundle de ~840 KB, sin frameworks de frontend.
-- **Probado**: 280 pruebas de humo end-to-end del servidor + módulos.
+- **Probado**: 292 pruebas de humo end-to-end del servidor + módulos.
 
 ## 📸 Vistas
 
@@ -192,10 +195,10 @@ descarga hasta que de verdad se usa. Ya hay 115, entre ellos:
 ```bash
 npm run build         # compila (esbuild)
 npm run typecheck     # tsc --noEmit
-npm run test          # 286 pruebas de humo (servidor + módulos, song simulado)
+npm run test          # 292 pruebas de humo (servidor + módulos, song simulado)
 npm run package       # build + empaqueta .ablx con la UI
 npm run new:module     # genera un módulo: tools.ts + panel rico + registro + entradas de test, en un comando
-npm run gen:catalog    # regenera docs/index.html — catálogo estático y buscable de todos los módulos/tools
+npm run gen:catalog    # regenera docs/catalog.html — catálogo estático y buscable de todos los módulos/tools
 ```
 
 Para desarrolladores, `npm run new:module -- <id> "<Label>" [icon] ["descripción"]` crea

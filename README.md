@@ -15,7 +15,7 @@
   <img alt="tools" src="https://img.shields.io/badge/tools-382-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-83-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-115-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-280%20%E2%9C%93-2ea043" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-292%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-840%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.es.md"><img alt="readme in Spanish" src="https://img.shields.io/badge/README-Espa%C3%B1ol-yellow" /></a>
@@ -64,12 +64,14 @@ of each concept into one place.
   module (tools + panel + registration + tests) in one command.
 - **Bilingual UI (EN/ES)**: the shell auto-detects the system language (with a manual toggle) —
   one shared codebase, no duplicated files, via a single string dictionary (`public/i18n.js`).
+  All 382 tool descriptions are translated too (`public/desc-i18n.js`), shown in the autoform,
+  the command palette and panel headers — the English text the AI copilot reads stays untouched.
 - **Lazy panel loading**: rich panels (~670 KB total) load on first visit to their module instead
   of all 115 upfront, so the UI shows up instantly.
 - **Auto-generated UI** for everything else: any new module shows up with its form without
   writing HTML, reading its tool definitions.
 - **Lightweight**: ~840 KB bundle, no frontend frameworks.
-- **Tested**: 280 end-to-end smoke tests of the server + modules.
+- **Tested**: 292 end-to-end smoke tests of the server + modules.
 
 ## 📸 Screenshots
 
@@ -218,10 +220,10 @@ it's actually used. There are 115 already, including:
 ```bash
 npm run build         # compile (esbuild)
 npm run typecheck     # tsc --noEmit
-npm run test          # 286 smoke tests (server + modules, simulated song)
+npm run test          # 292 smoke tests (server + modules, simulated song)
 npm run package       # build + package .ablx with the UI
 npm run new:module     # scaffold a module: tools.ts + rich panel + registry + smoke-test entries, one command
-npm run gen:catalog    # regenerate docs/index.html — a static, searchable catalog of every module/tool
+npm run gen:catalog    # regenerate docs/catalog.html — a static, searchable catalog of every module/tool
 ```
 
 For developers, `npm run new:module -- <id> "<Label>" [icon] ["description"]` creates

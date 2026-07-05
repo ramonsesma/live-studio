@@ -878,6 +878,22 @@ check("index.html NO precarga los paneles (carga perezosa)", !html.includes('/pa
 const missingPanel = await fetch(base + "/panels/no_existe_este_modulo.js");
 check("panel inexistente responde 404 (fallback a autoform)", missingPanel.status === 404);
 
+// 8b. i18n de descripciones (public/desc-i18n.js): cobertura exacta de módulos y tools reales —
+// ni una clave menos (rompería la UI en español) ni de más (typo silencioso que nunca se usa).
+check("index.html carga desc-i18n.js", html.includes("/desc-i18n.js"));
+const descJs = await fetch(base + "/desc-i18n.js");
+check("sirve desc-i18n.js con mime correcto", (descJs.headers.get("content-type") || "").includes("javascript"));
+const descSrc = await descJs.text();
+const descSandbox: any = { window: {} };
+new Function("window", descSrc)(descSandbox.window);
+const descDict = descSandbox.window.LiveStudioDescI18n;
+const realModuleIds = mods.modules.map((m: any) => m.id);
+const realToolNames = allTools.map((tl: any) => tl.name);
+check("desc-i18n cubre TODOS los módulos reales (sin faltar ninguno)", realModuleIds.every((id: string) => id in descDict.MODULES));
+check("desc-i18n cubre TODOS los tools reales (sin faltar ninguno)", realToolNames.every((n: string) => n in descDict.TOOLS));
+check("desc-i18n no tiene claves de módulo huérfanas (typo que nunca se usaría)", Object.keys(descDict.MODULES).every((k) => realModuleIds.includes(k)));
+check("desc-i18n no tiene claves de tool huérfanas (typo que nunca se usaría)", Object.keys(descDict.TOOLS).every((k) => realToolNames.includes(k)));
+
 // 9. regresión: los generadores deben escribir TODAS las notas en un único `clip.notes`.
 // El MidiClip real reemplaza la lista y su setter no se refleja en un getter inmediato;
 // escribir nota a nota dejaba solo la última (el bug "una sola nota" del tester). Este

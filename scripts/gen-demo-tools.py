@@ -13,13 +13,16 @@ import glob
 import os
 import re
 
-# Markers that a handler does real SDK work (-> NOT a demo, regardless of random).
+# Markers that a handler does real SDK work OR real disk persistence (-> NOT a demo,
+# regardless of random — e.g. `Math.random()` used only to mint a unique id suffix
+# alongside a genuine saveJson() call is real work, not simulated output).
 REAL_OPS = re.compile(
     r"""\.(createMidiTrack|createAudioTrack|createScene|insertDevice|"""
     r"""createMidiClip|createAudioClip|createTakeLane|createCuePoint|setValue|getValue|"""
     r"""deleteDevice|duplicateDevice|deleteTrack|deleteScene|deleteClip)\("""
     r"""|\.notes\s*[=)]|\bclip\.notes\b|\.(mute|solo|arm|name|color|tempo)\s*=|"""
-    r"""\bclipSlots\b|\bcuePoints\b|\.mixer\b|\bgroupTrack\b"""
+    r"""\bclipSlots\b|\bcuePoints\b|\.mixer\b|\bgroupTrack\b|"""
+    r"""\b(saveJson|loadJson|listJson|deleteJson)\("""
 )
 RANDOM = re.compile(r"Math\.random\(")
 

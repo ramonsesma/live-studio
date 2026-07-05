@@ -1,5 +1,13 @@
 // Live Studio — shell: tab router + generic autoform + copilot.
 const t = window.LiveStudioI18n.t;
+// Module/tool descriptions come from the registry in English (that's what the AI copilot's
+// LLM prompt reads via find_tools/run_tool — kept untouched on purpose). td() swaps in the
+// Spanish translation from desc-i18n.js ONLY for on-screen display, and only when the UI
+// language is actually Spanish — English stays exactly what the registry sent.
+function td(kind, key, fallback) {
+  if (window.LiveStudioI18n.getLang() !== "es" || !window.LiveStudioDescI18n) return fallback;
+  return window.LiveStudioDescI18n.td(kind, key, fallback);
+}
 const api = {
   async get(p) { const r = await fetch(p); return r.json(); },
   async post(p, body) { const r = await fetch(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); return r.json(); },
@@ -249,7 +257,7 @@ async function selectModule(id) {
     return;
   }
 
-  panel.innerHTML = `<div class="panel-head"><h1><span class="head-ico" style="color:${TINT(mod.id)}">${ICO(mod.id)}</span> ${mod.label}</h1><p>${mod.description || ""}</p></div><div class="panel-empty">${t("loading_tools")}</div>`;
+  panel.innerHTML = `<div class="panel-head"><h1><span class="head-ico" style="color:${TINT(mod.id)}">${ICO(mod.id)}</span> ${mod.label}</h1><p>${td("module", mod.id, mod.description || "")}</p></div><div class="panel-empty">${t("loading_tools")}</div>`;
 
   if (!state.toolCache[id]) {
     const res = await api.get("/api/tools?module=" + encodeURIComponent(id));
@@ -289,7 +297,7 @@ function renderTool(tool) {
   card.className = "tool";
   const title = tool.originalName || tool.name;
   const demoBadge = tool.demo ? ` <span class="badge-demo" title="${t("demo_badge_title")}">${t("demo_label")}</span>` : "";
-  card.innerHTML = `<h3>${title}${demoBadge}</h3><p class="desc">${tool.description || ""}</p>`;
+  card.innerHTML = `<h3>${title}${demoBadge}</h3><p class="desc">${td("tool", tool.name, tool.description || "")}</p>`;
   const params = tool.parameters || {};
   const inputs = {};
   for (const [name, p] of Object.entries(params)) {
@@ -585,10 +593,10 @@ async function ensurePaletteData() {
   if (palette.loaded) return;
   // 1) tools reales (todos los módulos)
   const tools = (await api.get("/api/tools")).tools || [];
-  const toolItems = tools.map((t) => ({
-    kind: "tool", id: t.name, module: t.module, demo: !!t.demo,
-    title: (t.originalName || t.name), subtitle: t.description || "",
-    badge: t.module, required: Object.entries(t.parameters || {}).filter(([, v]) => v.required).map(([k]) => k),
+  const toolItems = tools.map((tt) => ({
+    kind: "tool", id: tt.name, module: tt.module, demo: !!tt.demo,
+    title: (tt.originalName || tt.name), subtitle: td("tool", tt.name, tt.description || ""),
+    badge: tt.module, required: Object.entries(tt.parameters || {}).filter(([, v]) => v.required).map(([k]) => k),
   }));
   // 2) quick actions — each routes to a real tool with preset args
   const qa = await api.post("/api/execute", { name: "quickactions__list_quick_actions", args: {} });

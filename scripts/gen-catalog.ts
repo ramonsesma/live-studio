@@ -1,6 +1,7 @@
-// Generates docs/index.html — a static, searchable catalog of every module and tool,
+// Generates docs/catalog.html — a static, searchable catalog of every module and tool,
 // built from the SAME registry the extension runs, so it can never drift from reality.
-// Publish it with GitHub Pages (Settings → Pages → main /docs). Regenerate any time with:
+// docs/index.html is the hand-crafted landing page; this catalog is linked from it.
+// Publish both with GitHub Pages (Settings → Pages → main /docs). Regenerate any time with:
 //   npm run gen:catalog
 import { createMasterRegistry } from "../src/registry/index.js";
 import { Bridge } from "../src/bridge.js";
@@ -99,6 +100,7 @@ mark { background:var(--accent); color:#1a1a1d; border-radius:3px; padding:0 2px
 </head>
 <body>
 <header>
+  <p style="margin:0 0 10px"><a href="./" style="color:var(--muted);text-decoration:none;font-size:13px">← Live Studio</a></p>
   <h1>Live Studio<span class="v">v${stats.version} · catalog</span></h1>
   <p class="sub">Every module and tool in the extension — generated from the real registry, never hand-written.</p>
   <div class="stats">
@@ -110,6 +112,7 @@ mark { background:var(--accent); color:#1a1a1d; border-radius:3px; padding:0 2px
     <input type="search" id="q" placeholder="Search modules and tools… (name, description, parameter)" autocomplete="off" />
     <label class="flt"><input type="checkbox" id="f-panel" /> rich panel only</label>
     <label class="flt"><input type="checkbox" id="f-real" /> hide demo/advisory</label>
+    <button class="flt" id="toggle-all" type="button" style="cursor:pointer">Collapse all</button>
   </div>
 </header>
 <main id="list"></main>
@@ -120,6 +123,11 @@ const list = document.getElementById("list");
 const q = document.getElementById("q");
 const fPanel = document.getElementById("f-panel");
 const fReal = document.getElementById("f-real");
+const toggleAll = document.getElementById("toggle-all");
+// Every module renders expanded by default — this page's whole purpose is "browse the
+// tools", so landing on a wall of collapsed accordions with no tool visible defeats that.
+// allOpen persists across re-renders (search/filter) until the user explicitly collapses.
+let allOpen = true;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 function hl(s, term) { if (!term) return esc(s); const i = s.toLowerCase().indexOf(term); if (i < 0) return esc(s); return esc(s.slice(0, i)) + "<mark>" + esc(s.slice(i, i + term.length)) + "</mark>" + esc(s.slice(i + term.length)); }
 function render() {
@@ -139,7 +147,7 @@ function render() {
     if (!tools.length && fReal.checked) continue;
     shown++;
     const el = document.createElement("div");
-    el.className = "mod" + (term ? " open" : "");
+    el.className = "mod" + (allOpen || term ? " open" : "");
     el.innerHTML = \`
       <div class="mod-head">
         <h2>\${esc(m.icon)} \${hl(m.label, term)}</h2>
@@ -160,6 +168,7 @@ function render() {
   if (!shown) list.innerHTML = '<div class="empty">No modules match.</div>';
 }
 q.oninput = render; fPanel.onchange = render; fReal.onchange = render;
+toggleAll.onclick = () => { allOpen = !allOpen; toggleAll.textContent = allOpen ? "Collapse all" : "Expand all"; render(); };
 render();
 </script>
 </body>
@@ -168,5 +177,5 @@ render();
 
 const outDir = join(root, "docs");
 if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "index.html"), html);
-console.log(`[gen-catalog] docs/index.html — ${stats.modules} modules, ${stats.tools} tools, ${stats.panels} rich panels (v${stats.version})`);
+writeFileSync(join(outDir, "catalog.html"), html);
+console.log(`[gen-catalog] docs/catalog.html — ${stats.modules} modules, ${stats.tools} tools, ${stats.panels} rich panels (v${stats.version})`);
