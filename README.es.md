@@ -34,8 +34,6 @@ peleando por el mismo puerto— Live Studio las **ensambla** bajo:
 - un **copiloto IA** que controla cualquier módulo por lenguaje natural,
 - y una **paleta de comandos rápidos** (`⌘K` / `Ctrl+K`) que busca y ejecuta sobre todo.
 
-Nació de auditar **921 extensiones** propias (≈74.700 LOC) y consolidar lo mejor de cada concepto.
-
 ## ✨ Características
 
 - **132 módulos** (todos visibles) con **382 tools reales** repartidos por categorías:

@@ -34,9 +34,6 @@ fighting for the same port — Live Studio **assembles** them under:
 - an **AI copilot** that drives any module via natural language,
 - and a **quick command palette** (`⌘K` / `Ctrl+K`) that searches and executes everything.
 
-It was born after auditing **921 in-house extensions** (≈74,700 LOC) and consolidating the best
-of each concept into one place.
-
 ## ✨ Features
 
 - **132 modules** (all visible) with **382 real tools** across categories: music

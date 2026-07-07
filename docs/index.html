@@ -86,14 +86,10 @@ section.alt .card { background: var(--bg3); }
 .card h3 { margin: 0 0 8px; font-size: 17px; }
 .card p { margin: 0; color: var(--muted); font-size: 14px; }
 
-/* Screenshots */
-.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
-.shot { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.shot img { width: 100%; display: block; }
-.shot figcaption { padding: 12px 16px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
-.featured-gif { max-width: 860px; margin: 40px auto 0; background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.featured-gif img { width: 100%; display: block; }
-.featured-gif figcaption { padding: 14px 18px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--line); }
+/* Demo video */
+.demo-video { max-width: 960px; margin: 0 auto; background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: 0 24px 70px -18px rgba(0,0,0,.55), 0 0 70px -12px rgba(139,142,242,.10); }
+.demo-video video { width: 100%; display: block; }
+.demo-video figcaption { padding: 14px 18px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--line); }
 
 /* Copilot */
 .providers { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 26px 0 0; }
@@ -132,7 +128,7 @@ footer { border-top: 1px solid var(--line); padding: 38px 0; }
     </a>
     <div class="nav-links">
       <a href="#features" data-i18n="nav_features">Features</a>
-      <a href="#screenshots" data-i18n="nav_screens">Screenshots</a>
+      <a href="#demo" data-i18n="nav_screens">Demo</a>
       <a href="#copilot" data-i18n="nav_copilot">AI Copilot</a>
       <a href="#start" data-i18n="nav_start">Get started</a>
       <a href="#developers" data-i18n="nav_dev">Developers</a>
@@ -207,22 +203,14 @@ footer { border-top: 1px solid var(--line); padding: 38px 0; }
   </div>
 </section>
 
-<section class="alt" id="screenshots">
+<section class="alt" id="demo">
   <div class="wrap">
-    <p class="sec-kicker" data-i18n="shots_kicker">A look inside</p>
-    <h2 class="sec-title" data-i18n="shots_title">Built like an instrument</h2>
-    <p class="sec-sub" data-i18n="shots_sub">A single dark, focused surface — sidebar of modules, rich panels, and a command palette that reaches everything.</p>
-    <div class="shots">
-      <figure class="shot"><img src="assets/01-modules.svg" alt="Modules view" loading="lazy" /><figcaption data-i18n="shot1">Modules — sidebar with namespaced tools and auto-generated forms.</figcaption></figure>
-      <figure class="shot"><img src="assets/02-copilot.svg" alt="AI Copilot" loading="lazy" /><figcaption data-i18n="shot2">AI Copilot — chains create track → generate chords → drum pattern from one instruction.</figcaption></figure>
-      <figure class="shot"><img src="assets/03-palette.svg" alt="Command palette" loading="lazy" /><figcaption data-i18n="shot3">⌘K palette — 382 tools + 83 quick actions, from the keyboard.</figcaption></figure>
-      <figure class="shot"><img src="assets/04-mixconsole.svg" alt="Mix console" loading="lazy" /><figcaption data-i18n="shot4">Mix Console — dB faders, pan, sends, mute/solo. Live-refreshing.</figcaption></figure>
-      <figure class="shot"><img src="assets/05-stepseq.svg" alt="Step sequencer" loading="lazy" /><figcaption data-i18n="shot5">Step Sequencer — pattern grid editing real clip notes.</figcaption></figure>
-      <figure class="shot"><img src="assets/06-pianoroll.svg" alt="Notation" loading="lazy" /><figcaption data-i18n="shot6">Notation — clips as score, transposition, MusicXML export.</figcaption></figure>
-    </div>
-    <figure class="featured-gif">
-      <img src="https://raw.githubusercontent.com/ramonsesma/live-studio/main/assets/demo-mix-radar.gif" alt="Resonance Mix Radar demo" loading="lazy" />
-      <figcaption data-i18n="gif_cap">Resonance · Mix Radar — renders your stems, FFT-analyzes them in-host and maps frequency masking across the whole set, with concrete EQ moves.</figcaption>
+    <p class="sec-kicker" data-i18n="demo_kicker">See it working</p>
+    <h2 class="sec-title" data-i18n="demo_title">A 30-second tour</h2>
+    <p class="sec-sub" data-i18n="demo_sub">Recorded against the real server — no mockups: the live dashboard updating its BPM on its own, a fader dragged in the Mix Console, the ⌘K palette, drum generation, a project snapshot and the AI copilot.</p>
+    <figure class="demo-video">
+      <video src="assets/demo.mp4" poster="assets/demo-poster.jpg" autoplay muted loop playsinline controls></video>
+      <figcaption data-i18n="demo_cap">Dashboard → live tempo update (SSE) → Mix Console → ⌘K palette → Drums & Patterns → Project Snapshot → AI Copilot.</figcaption>
     </figure>
   </div>
 </section>
@@ -303,7 +291,7 @@ footer { border-top: 1px solid var(--line); padding: 38px 0; }
 // Same one-dictionary i18n pattern as the extension itself: EN strings live in the HTML,
 // ES lives here; toggling swaps text via data-i18n keys. No duplicated pages.
 const ES = {
-  nav_features: "Características", nav_screens: "Capturas", nav_copilot: "Copiloto IA",
+  nav_features: "Características", nav_screens: "Demo", nav_copilot: "Copiloto IA",
   nav_start: "Empezar", nav_dev: "Desarrolladores", nav_catalog: "Catálogo",
   badge: "Libre y open source · GPL-3.0 · Ableton Live 12 (SDK de Extensiones beta)",
   title_plain: "Live Studio — Super-Extensión Modular para Ableton Live",
@@ -327,15 +315,9 @@ const ES = {
   f7_h: "Snapshots de proyecto — git para Live Sets", f7_p: "Serializa el Set completo a disco, compara dos checkpoints estilo GitHub, y restaura — cada cambio restaurado es a su vez deshacible.",
   f8_h: "Favoritos, recientes y perfiles", f8_p: "Fija tus módulos, vuelve a los recientes, filtra el sidebar por Mezcla / Diseño de sonido / Directo. Persistido en el servidor entre sesiones.",
   f9_h: "Bilingüe EN/ES", f9_p: "Toda la UI — incluidas las descripciones de las 382 tools — detecta el idioma de tu sistema, con toggle manual. Un código, un diccionario, cero archivos duplicados.",
-  shots_kicker: "Un vistazo dentro", shots_title: "Construido como un instrumento",
-  shots_sub: "Una única superficie oscura y enfocada — sidebar de módulos, paneles ricos, y una paleta de comandos que llega a todo.",
-  shot1: "Módulos — sidebar con tools namespaced y formularios auto-generados.",
-  shot2: "Copiloto IA — encadena crear pista → generar acordes → patrón de batería desde una instrucción.",
-  shot3: "Paleta ⌘K — 382 tools + 83 acciones rápidas, desde el teclado.",
-  shot4: "Mix Console — faders en dB, pan, sends, mute/solo. Se refresca en vivo.",
-  shot5: "Step Sequencer — rejilla de patrones editando notas reales del clip.",
-  shot6: "Notación — clips como partitura, transposición, exportación MusicXML.",
-  gif_cap: "Resonance · Mix Radar — renderiza tus stems, los analiza con FFT en el host y mapea el masking de frecuencias en todo el set, con movimientos de EQ concretos.",
+  demo_kicker: "Míralo funcionando", demo_title: "Un tour de 30 segundos",
+  demo_sub: "Grabado contra el servidor real — sin maquetas: el dashboard en vivo actualizando su BPM solo, un fader arrastrado en el Mix Console, la paleta ⌘K, generación de batería, un snapshot de proyecto y el copiloto IA.",
+  demo_cap: "Dashboard → tempo en vivo (SSE) → Mix Console → paleta ⌘K → Drums & Patterns → Project Snapshot → Copiloto IA.",
   cop_kicker: "Lenguaje natural, acciones reales", cop_title: "Un copiloto IA que pregunta antes de actuar",
   cop_sub: "\"Crea una pista MIDI llamada Bass, genera una progresión pop en Do menor, y luego un beat techno a 124 BPM\" — el copiloto descubre las tools correctas y las ejecuta. Tu API key nunca sale de la memoria del servidor local.",
   cop1_h: "Descubrimiento por meta-toolkit", cop1_p: "El modelo no ve 382 esquemas de tools a la vez — busca con find_tools, navega con list_modules y ejecuta con run_tool. Alcance total, payloads mínimos.",
