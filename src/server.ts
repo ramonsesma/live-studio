@@ -388,7 +388,7 @@ export async function startServer(bridge: Bridge): Promise<AppServer> {
     server.listen(0, "127.0.0.1", () => {
       const addr = server.address();
       const port = addr && typeof addr === "object" ? addr.port : 0;
-      console.error(`[LiveStudio] Server on http://127.0.0.1:${port}`);
+      console.log(`[LiveStudio] Server on http://127.0.0.1:${port}`);
       resolve({ url: `http://127.0.0.1:${port}`, port, close: () => new Promise((r) => {
         // SSE connections are long-lived by design; end them explicitly or server.close() never fires.
         if (poller) { clearInterval(poller); poller = null; }

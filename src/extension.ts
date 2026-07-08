@@ -36,8 +36,9 @@ export function activate(context: ActivationContext) {
   for (const scope of MENU_SCOPES) {
     ctx.ui
       .registerContextMenuAction(scope as never, "Live Studio", "livestudio.open")
-      .then(() => console.error(`[LiveStudio] context action registered: ${scope}`))
+      .then(() => console.log(`[LiveStudio] context action registered: ${scope}`))
+      // A genuine failure — console.error is correct here, unlike the success line above.
       .catch((e: unknown) => console.error(`[LiveStudio] context action FAILED (${scope}):`, e));
   }
-  console.error("[LiveStudio] Ready — right-click a track, clip slot, clip or scene → “Live Studio”.");
+  console.log("[LiveStudio] Ready — right-click a track, clip slot, clip or scene → “Live Studio”.");
 }
