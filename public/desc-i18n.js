@@ -141,6 +141,18 @@ window.LiveStudioDescI18n = (function () {
     stemexport: "Renderiza en lote cada pista de audio a un WAV real en disco con nombrado automático — las pistas MIDI se omiten, no se simulan.",
     mixcoach: "Combina análisis real de salud/masking/gain-staging en una única lista priorizada de próximos pasos concretos, cada uno con la tool exacta para ejecutarlo.",
     quickactions: "83 presets curados de un clic que enrutan a tools reales — navega por grupo, o búscalas en la paleta Cmd-K.",
+    stripsilence: "Mapea el silencio real de un clip desde su envolvente RMS medida, y recorta inicio/cola o divide por región de sonido en archivos nuevos importados.",
+    transients: "Detección real de transientes expuesta como tools: lista los transientes de un clip, trocea por golpe, o cuantiza el audio a la rejilla sin el motor Warp de Live.",
+    clipeditor: "Ediciones de región a nivel de sample sobre el audio real de un clip (recorte/silencio/ganancia/fades) renderizadas a un archivo nuevo — el original queda intacto.",
+    audioconvert: "Conversión real dentro de Live: resamplea el audio de un clip, aplica ganancia, o normaliza por RMS a una sonoridad objetivo con techo seguro de picos.",
+    extremestretch: "Estiramiento granular extremo 2-200x sin cambio de pitch — nuestro propio motor de granos con semilla convierte cualquier cosa en pads evolutivos.",
+    reverseverb: "Construye el clásico swell de reverb invertida desde el audio REAL de un clip (invertir → reverb → voltear de vuelta), desembocando en el original.",
+    iterate: "Pasa un clip por una cadena de degradación N veces (lofi/saturación/smear/oscurecer) — decaimiento estilo generaciones de cinta con archivos intermedios opcionales.",
+    retime: "Reescala el timing de las notas de un clip entre interpretaciones de BPM — half-time, double-time o cualquier factor — con undo.",
+    linkedclips: "Grupos de clips maestro/esclavo: vincula clips de Session y propaga las notas de un miembro a todos los demás en una llamada — persistido, deshacible.",
+    drumextract: "Divide los pads ACTIVOS de un Drum Rack (notas que realmente suenan en el clip) en pistas MIDI nuevas separadas, una por pad.",
+    cuesheet: "Convierte los cue points reales del Set en un cue sheet de mixtape (.cue/.txt) escrito en almacenamiento — tiempos desde beats al tempo actual.",
+    imagemidi: "Convierte la rejilla de luminancia de una imagen en notas reales mapeadas a escala — el panel decodifica cualquier imagen, la tool escribe el clip.",
   };
 
   const TOOLS = {
@@ -199,6 +211,8 @@ window.LiveStudioDescI18n = (function () {
 
     clips__get_clips: "Obtén todos los clips de la sesión",
     clips__create_launch_group: "Crea un grupo de disparo de clips (advisory — el SDK no tiene el concepto de launch-group / crossfade-group)",
+    clips__reset_clip: "Restablece un clip a su estado importado: loop al span completo, des-mutear, y (cuando el SDK los expone) pitch/ganancia a neutro — sondea qué es realmente ajustable y lo reporta (deshacible)",
+    clips__batch_rename: "Renombra en lote los clips REALES de una pista con un patrón — tokens {track} {n} {name} {len}; sufijo de versión 'v1' opcional (deshacible como una entrada)",
     clips__auto_tag_clips: "Analiza los clips reales de una pista y deriva etiquetas de sus notas/nombre — opcionalmente escribe las #etiquetas en el nombre de cada clip (escritura real de clip.name; Live no tiene campo de etiquetas)",
     clips__launch_scene: "Dispara una escena con todos sus clips (advisory — el SDK no tiene API de transporte/disparo de clip; esto solo confirma que la escena existe)",
 
@@ -248,6 +262,7 @@ window.LiveStudioDescI18n = (function () {
     organizer__create_session_template: "Crea una plantilla de sesión REAL y reutilizable basada en el género — persiste en disco y se puede aplicar de verdad vía templates__apply_template",
     organizer__export_session_info: "Exporta información de la sesión en varios formatos",
 
+    fxchain__add_device_to_all: "Inserta un device en CADA pista de una vez (llama de verdad a insertDevice por pista) — opcionalmente solo pistas MIDI o solo audio, al inicio o final de la cadena",
     fxchain__get_effects_chains: "Obtén todas las cadenas de efectos disponibles",
     fxchain__apply_effects_chain: "Aplica una cadena de efectos prediseñadas a pistas",
     fxchain__get_preset_chains: "Obtén cadenas de efectos preset para géneros específicos",
@@ -416,6 +431,7 @@ window.LiveStudioDescI18n = (function () {
     rackbuilder__configure_macro: "Especificación de macro para un rack (advisory — las macros de rack son DeviceParameters; mapéalas con el Macro Mapper / Safe Randomizer)",
     rackbuilder__get_rack_structure: "Obtén la estructura completa de un rack",
 
+    miditransform__transpose_indexed: "Transpone solo las notas impares/pares/cada-N de un clip (por orden temporal) N semitonos — escritura real de notas, deshacible",
     miditransform__transpose: "Transpón notas MIDI en semitonos",
     miditransform__quantize: "Cuantiza notas MIDI a la rejilla",
     miditransform__humanize: "Añade variación aleatoria a las notas MIDI",
@@ -504,6 +520,8 @@ window.LiveStudioDescI18n = (function () {
     phrasefinder__find_phrase: "Busca en los clips MIDI del Set un patrón melódico (intervalos como '0,7,12,7' o nombres de nota como 'C2,G2,C3')",
     phrasefinder__highlight_match: "Colorea un clip para resaltar una frase encontrada (Live no puede navegar hasta ella, pero sí recolorearla)",
 
+    saferandom__list_synth_sections: "Lee los parámetros REALES de un device y los agrupa en secciones semánticas (osc/filtro/env/lfo/fx/mix) — conoce los synths nativos de Ableton, con fallback genérico para lo demás",
+    saferandom__randomize_sections: "Aleatoriza SOLO las secciones semánticas elegidas de un device (osc/filtro/env/lfo/fx/mix), cada parámetro empujado ±cantidad%% de su rango desde su valor ACTUAL — con semilla (reproducible), parámetros cuantizados omitidos, cada cambio deshacible",
     saferandom__how_safe_random_works: "Cómo el Safe Randomizer explora los parámetros de un device sin romper el sonido",
 
     groovetemplate__extract_template: "Extrae una plantilla de groove de micro-timing a partir del timing de notas de un clip",
@@ -539,6 +557,7 @@ window.LiveStudioDescI18n = (function () {
     bassengine__generate: "Genera una línea de bajo (saltos de octava, ghost hits, sub-hold) en una pista nueva o existente",
     bassengine__mutate: "Muta un clip de bajo existente (inversiones de octava, toggles de ghost, desplazamientos de accent) manteniendo su contorno — deshacible vía Historial de Ediciones",
 
+    sessionbridge__flatten_scene: "Copia los clips de Session de UNA escena al Arrangement en el beat elegido (por defecto: después del último clip del arreglo) — notas MIDI + audio desde archivo",
     sessionbridge__preview: "Previsualiza el layout Session→Arrangement: conteo de clips por escena y dónde caería cada una",
     sessionbridge__flatten: "Copia cada clip de Session a la timeline de Arrangement, escena por escena (MIDI + audio)",
 
@@ -646,6 +665,7 @@ window.LiveStudioDescI18n = (function () {
     devremote__compare_snapshots: "Compara dos snapshots de device guardados parámetro a parámetro",
     devremote__sweep_param: "Barre un parámetro de device de un valor a otro a lo largo de tiempo real (deshacible — restaura el valor previo al barrido). Útil para barridos de filtro/risers/builds sin la UI de automatización de Live.",
 
+    stemexport__export_sections: "Renderiza pistas en lote por SECCIÓN del arreglo (cue point → siguiente cue point) a WAVs reales con metadata INFO embebida (nombre de sección, tempo)",
     stemexport__list_export_candidates: "Lista qué pistas exportarían de verdad (pistas de audio — las pistas MIDI necesitan resamplearse a audio primero)",
     stemexport__how_it_works: "Cómo Stem Export renderiza y nombra los archivos",
     stemexport__export: "Renderiza en lote cada pista de audio (o un subconjunto) a un archivo WAV real en disco con nombrado automático. Las pistas MIDI se omiten (resampléalas a audio primero).",
@@ -653,6 +673,32 @@ window.LiveStudioDescI18n = (function () {
     mixcoach__how_it_works: "Cómo Mix Coach prioriza los próximos pasos",
     mixcoach__analyze: "Ejecuta el análisis de salud/masking/gain-staging en conjunto y devuelve una única lista priorizada de próximos pasos, cada uno con la tool+args exactos para actuar.",
 
+    stripsilence__how_it_works: "Cómo Strip Silence mapea y recorta el silencio real de un clip",
+    stripsilence__analyze_silence: "Mapea las regiones de silencio reales de un clip (inicio/cola/huecos) desde su envolvente RMS medida",
+    stripsilence__trim_silence: "Recorta el silencio real de inicio/cola de un clip (o divídelo en segmentos por sonido) en archivo(s) nuevos, importados al proyecto",
+    transients__how_it_works: "Cómo funcionan el detector de transientes, el troceador y el cuantizador de audio sin Warp",
+    transients__detect_transients: "Detecta los transientes reales de un clip (tiempos de ataque + fuerzas) desde su audio",
+    transients__slice_at_transients: "Trocea el audio de un clip en sus transientes reales en archivos por golpe, importados al proyecto",
+    transients__quantize_audio: "Cuantización de audio sin Warp: corta en los transientes reales y desplaza cada segmento a la rejilla del tempo, reconstruido en un archivo nuevo con crossfades",
+    clipeditor__how_it_works: "Cómo funciona el editor de regiones de clip a nivel de sample",
+    clipeditor__edit_region: "Edición a nivel de sample de una región del audio real de un clip — recorta a ella, silénciala, dale ganancia o hazle fade — escrita a un archivo nuevo e importada",
+    audioconvert__how_it_works: "Cómo funcionan la conversión de audio y la normalización RMS dentro de Live",
+    audioconvert__convert_clip: "Convierte el audio real de un clip (sample rate vía resampleo real, ganancia) a un WAV nuevo de 16 bits, importado al proyecto",
+    audioconvert__normalize_rms: "Normaliza por RMS el audio real de un clip a una sonoridad objetivo con techo seguro de picos, escrito a un archivo nuevo e importado",
+    extremestretch__how_it_works: "Cómo funciona el freeze-stretch granular extremo",
+    extremestretch__stretch: "Estiramiento granular extremo (2-200x, sin cambio de pitch) del audio real de un clip — nuestro propio motor de granos — escrito a un archivo nuevo e importado",
+    reverseverb__how_it_works: "Cómo se construye el swell de reverb invertida desde tu clip",
+    reverseverb__apply: "Swell clásico de reverb invertida desde el audio real de un clip: reverbera el clip invertido, vuélvelo a voltear, y llévalo hacia el original — archivo nuevo, importado",
+    iterate__how_it_works: "Cómo la iteración desintegrativa degrada un sonido pasada a pasada",
+    iterate__disintegrate: "Pasa el audio real de un clip por una cadena de degradación N veces (lofi / saturación / smear / oscurecer) — cada pasada alimenta la siguiente; archivos final (y de hito opcionales) importados",
+    retime__rescale_clip: "Reescala el timing de las notas de un clip MIDI entre interpretaciones de tempo — half-time, double-time, o from_bpm→to_bpm — reescribiendo de verdad startTime/duration (deshacible)",
+    linkedclips__link_clips: "Crea un grupo persistente de clips vinculados (refs como \"t0_c1,t2_c0\") — sync_group luego propaga las notas de un miembro al resto",
+    linkedclips__sync_group: "Propaga las notas REALES del miembro origen a cada otro clip MIDI del grupo (deshacible por clip); los miembros de audio se reportan como no sincronizables",
+    linkedclips__list_groups: "Lista los grupos de clips vinculados guardados",
+    linkedclips__unlink_group: "Borra un grupo de vínculos (los clips en sí quedan intactos)",
+    drumextract__extract_active_pads: "Divide los pads ACTIVOS de un Drum Rack (notas que realmente ocurren en el clip) en pistas MIDI nuevas separadas — una pista + clip por pad",
+    cuesheet__generate_cue_sheet: "Genera un cue sheet de mixtape (.cue y/o .txt) desde los cue points REALES del Set — tiempos calculados desde beats al tempo actual, archivos escritos en almacenamiento",
+    imagemidi__grid_to_notes: "Escribe una rejilla de luminancia (filas de niveles 0-9 separadas por '/' — el panel Image→MIDI la construye desde cualquier imagen) como notas REALES en una pista MIDI nueva: filas = pitches (mapeados a escala), columnas = pasos de tiempo, nivel = velocity",
     quickactions__list_quick_actions: "Lista las acciones rápidas (cada una enruta a una tool real)",
     quickactions__run_quick_action: "Resuelve una acción rápida a la tool + args reales para ejecutar",
   };

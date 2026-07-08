@@ -4,7 +4,10 @@ import { Bridge } from "../src/bridge.js";
 import { startServer } from "../src/server.js";
 import { resolveProviderConfig } from "../src/core/llm.js";
 import { toMusicXML, fromMusicXML } from "../src/core/musicxml.js";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync as writeFileSyncP, readFileSync as readFileSyncP, mkdirSync as mkdirSyncP } from "node:fs";
+import { synthPcm, encodeWav16, decodeWav } from "../src/core/dsp.js";
+import { tmpdir as tmpdirP } from "node:os";
+import { join as joinP } from "node:path";
 
 // ---- Mock del Song SDK ----
 // Refleja la forma REAL del SDK (clip.notes: NoteDescription[], mixer.volume.getValue/
@@ -61,7 +64,7 @@ console.log("\n=== Live Studio smoke test @ " + base + " ===");
 
 // 1. modules
 // EXPECTED_MODULES lo incrementa automáticamente scripts/new-module.ts al generar un módulo.
-const EXPECTED_MODULES = 132;
+const EXPECTED_MODULES = 144;
 const mods = await get("/api/modules");
 check(`GET /api/modules devuelve ${EXPECTED_MODULES} módulos`, (mods.modules || []).length === EXPECTED_MODULES, JSON.stringify(mods.modules?.map((m: any) => m.id)));
 check("quickactions visible con su propio panel (launcher)", mods.modules.find((m: any) => m.id === "quickactions") && !mods.modules.find((m: any) => m.id === "quickactions")?.hidden);
@@ -167,7 +170,7 @@ const fxc = await post("/api/execute", { name: "fxchain__get_effects_chains", ar
 check("fxchain__get_effects_chains (5 géneros)", fxc.success && fxc.data.chains.length === 5);
 const fxAudio = await post("/api/execute", { name: "session__create_audio_track", args: { name: "FX Audio" } });
 let panelsOk = true;
-const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer", "arrangement", "timestretch", "drumsynth", "slicelab", "mosaic", "riser", "sub808", "padengine", "pluckengine", "acid303", "chordstab", "fmbell", "impact", "console", "subbass", "organ", "vocalchop", "instrumentrender", "brass", "wobble", "choir", "subdrop", "pluckbass", "sawlead", "reese", "marimba", "glitch", "tapehiss", "trumpet", "epiano", "musicbox", "harp", "whistle", "subwobble", "vocoder", "noisefx", "cymbal", "guitar", "sitar", "steeldrum", "accordion", "theremin", "hihat808", "stabhit", "glassbell", "subkick", "reversesweep", "devremote", "stemexport", "mixcoach", "templates", "mixscene", "tempotap", "notes", "sandbox", "delaycalc", "setlist", "fxpresets", "groove", "colorizer", "vocal"];
+const allPanels = ["organizer", "fxchain", "mixconsole", "stepseq", "chordpads", "drums", "drummap", "clipgraph", "notation", "takes", "eq", "midilfo", "midigate", "synth", "genarranger", "trackmanager", "health", "mastering", "rackbuilder", "performance", "clipversions", "resonance", "autogain", "keyscale", "genrhythm", "texturemap", "spectrumcompare", "projectsnapshot", "scoreeditor", "clipvariations", "stemalign", "samplebrain", "macromorph", "loopdetect", "warpcompare", "paramdiff", "phrasefinder", "saferandom", "groovetemplate", "probabilitylab", "velocompress", "transposer", "colortheory", "takeorganizer", "audio2midi", "history", "bassengine", "sessionbridge", "patternlang", "harmonizer", "quickactions", "miditransform", "quantizer", "randomizer", "arrangement", "timestretch", "drumsynth", "slicelab", "mosaic", "riser", "sub808", "padengine", "pluckengine", "acid303", "chordstab", "fmbell", "impact", "console", "subbass", "organ", "vocalchop", "instrumentrender", "brass", "wobble", "choir", "subdrop", "pluckbass", "sawlead", "reese", "marimba", "glitch", "tapehiss", "trumpet", "epiano", "musicbox", "harp", "whistle", "subwobble", "vocoder", "noisefx", "cymbal", "guitar", "sitar", "steeldrum", "accordion", "theremin", "hihat808", "stabhit", "glassbell", "subkick", "reversesweep", "devremote", "stemexport", "mixcoach", "templates", "mixscene", "tempotap", "notes", "sandbox", "delaycalc", "setlist", "fxpresets", "groove", "colorizer", "vocal", "imagemidi"];
 for (const p of allPanels) {
   const res = await fetch(base + "/panels/" + p + ".js");
   if (!res.ok || !(res.headers.get("content-type") || "").includes("javascript")) panelsOk = false;
@@ -674,7 +677,7 @@ check("patternlang compila la mini-notación a notas", pl2.success && pl2.data.n
 
 // 7t. Quick Actions: catálogo curado + resolución de ruta a un tool real.
 const qaList = await post("/api/execute", { name: "quickactions__list_quick_actions", args: {} });
-check("quickactions lista los 83 presets", qaList.success && qaList.data.total === 83 && qaList.data.actions.every((a: any) => typeof a.tool === "string" && a.tool.includes("__")));
+check("quickactions lista los 90 presets", qaList.success && qaList.data.total === 90 && qaList.data.actions.every((a: any) => typeof a.tool === "string" && a.tool.includes("__")));
 const qaRun = await post("/api/execute", { name: "quickactions__run_quick_action", args: { group: "Tempo", action: "128 BPM" } });
 check("quickactions resuelve una ruta a su tool real", qaRun.success && qaRun.data.route.name === "temposync__set_tempo" && qaRun.data.route.args.bpm === 128);
 
@@ -967,6 +970,131 @@ const fakeClient: any = { chat: async () => ({ content: "Aquí está el plan:\n`
 const planRes = await bridge.processPlan({ messages: [{ role: "user", content: "revisa el masking" }] }, fakeClient);
 check("plan mode: parsea el bloque JSON del plan", Array.isArray(planRes.plan) && planRes.plan!.length === 2 && planRes.summary === "demo plan");
 check("plan mode: marca unknown la tool inexistente y no la real", planRes.plan![1].unknown === true && !planRes.plan![0].unknown);
+
+// 10b. lote catálogo-externo (v1.2.0): cada tool nueva probada END-TO-END, las DSP con un
+// WAV fixture real en disco (clip.filePath) — sin Live, pero con audio y archivos de verdad.
+const fixDir = joinP(tmpdirP(), "live-studio-test");
+mkdirSyncP(fixDir, { recursive: true });
+const silPart = new Float32Array(Math.floor(44100 * 0.3));
+const tonePart = synthPcm(44100, 0.5, [{ hz: 220, amp: 0.6 }]);
+const fixSamples = new Float32Array(silPart.length * 2 + tonePart.length);
+fixSamples.set(silPart, 0); fixSamples.set(tonePart, silPart.length); fixSamples.set(silPart, silPart.length + tonePart.length);
+const fixPath = joinP(fixDir, "fixture_tone.wav");
+writeFileSyncP(fixPath, encodeWav16(fixSamples, 44100));
+
+function regFor(s: any) { const r = createMasterRegistry(); new Bridge(r, s); return r; }
+function audioSong(): any {
+  const clip: any = { name: "Fixture", filePath: fixPath, duration: 4, looping: false, loopStart: 0, loopEnd: 4, muted: true, startTime: 0 };
+  const t: any = { name: "AudioT", clipSlots: [{ clip }], arrangementClips: [], devices: [], constructor: { name: "AudioTrack" },
+    async createAudioClip() { return clip; }, mixer: {} };
+  return { tempo: 120, cuePoints: [], tracks: [t], scenes: [], async createMidiTrack() { const c: any = { name: "", notes: [] }; const nt: any = { name: "", clipSlots: [], async createMidiClip() { return c; }, _clip: c }; this.tracks.push(nt); return nt; } };
+}
+
+const ssSong = audioSong();
+const ssA = await regFor(ssSong).execute("stripsilence__analyze_silence", { track_index: 0 }, ssSong);
+check("stripsilence__analyze_silence mide el silencio real (lead≈0.3s)", ssA.success && Math.abs((ssA.data as any).leadSilenceSec - 0.3) < 0.06 && Math.abs((ssA.data as any).tailSilenceSec - 0.3) < 0.06);
+const ssT = await regFor(ssSong).execute("stripsilence__trim_silence", { track_index: 0 }, ssSong);
+check("stripsilence__trim_silence escribe un archivo recortado de verdad", ssT.success && existsSync((ssT.data as any).file) && (ssT.data as any).durSec < 0.65 && (ssT.data as any).durSec > 0.4);
+
+const trDetSong = audioSong();
+const trDet = await regFor(trDetSong).execute("transients__detect_transients", { track_index: 0 }, trDetSong);
+check("transients__detect_transients encuentra el ataque real (~0.3s)", trDet.success && (trDet.data as any).count >= 1 && Math.abs((trDet.data as any).transients[0].sec - 0.3) < 0.08);
+const trSlcSong = audioSong();
+const trSlc = await regFor(trSlcSong).execute("transients__slice_at_transients", { track_index: 0 }, trSlcSong);
+check("transients__slice_at_transients escribe archivos por golpe", trSlc.success && (trSlc.data as any).slices >= 1 && existsSync((trSlc.data as any).files[0].file));
+const trQSong = audioSong();
+const trQ = await regFor(trQSong).execute("transients__quantize_audio", { track_index: 0, grid: "1/4" }, trQSong);
+check("transients__quantize_audio reconstruye un archivo cuantizado", trQ.success && existsSync((trQ.data as any).file));
+
+const ceSong = audioSong();
+const ceR = await regFor(ceSong).execute("clipeditor__edit_region", { track_index: 0, op: "trim_to", start_ms: 300, end_ms: 800 }, ceSong);
+check("clipeditor__edit_region trim_to recorta la región exacta", ceR.success && Math.abs((ceR.data as any).durSec - 0.5) < 0.03 && existsSync((ceR.data as any).file));
+
+const acCSong = audioSong();
+const acC = await regFor(acCSong).execute("audioconvert__convert_clip", { track_index: 0, sample_rate: 22050 }, acCSong);
+check("audioconvert__convert_clip resamplea de verdad (44100→22050)", acC.success && (acC.data as any).toSampleRate === 22050 && decodeWav(readFileSyncP((acC.data as any).file)).sampleRate === 22050);
+const acNSong = audioSong();
+const acN = await regFor(acNSong).execute("audioconvert__normalize_rms", { track_index: 0, target_db: -12 }, acNSong);
+check("audioconvert__normalize_rms acerca el RMS al objetivo", acN.success && Math.abs((acN.data as any).afterRmsDb - -12) < 3);
+
+const xs1Song = audioSong();
+const xs1 = await regFor(xs1Song).execute("extremestretch__stretch", { track_index: 0, factor: 8, seed: 42 }, xs1Song);
+check("extremestretch__stretch alarga ~8x de verdad", xs1.success && (xs1.data as any).durSec > (xs1.data as any).fromSec * 5);
+const xs2Song = audioSong();
+const xs2 = await regFor(xs2Song).execute("extremestretch__stretch", { track_index: 0, factor: 8, seed: 42 }, xs2Song);
+check("extremestretch es determinista (misma semilla, mismo tamaño)", xs2.success && (xs2.data as any).durSec === (xs1.data as any).durSec);
+
+const rvSong = audioSong();
+const rv = await regFor(rvSong).execute("reverseverb__apply", { track_index: 0 }, rvSong);
+check("reverseverb__apply produce swell + original (más largo que la fuente)", rv.success && (rv.data as any).durSec > 1.2 && existsSync((rv.data as any).file));
+const itSong = audioSong();
+const it = await regFor(itSong).execute("iterate__disintegrate", { track_index: 0, iterations: 4, keep_every: 2 }, itSong);
+check("iterate__disintegrate escribe final + hito intermedio", it.success && existsSync((it.data as any).file) && (it.data as any).milestones.length === 1);
+
+const es = await reg.execute("stemexport__export_sections", { demo: true }, { tempo: 120, cuePoints: [], tracks: [] });
+check("stemexport__export_sections escribe WAVs con metadata INFO", es.success && (es.data as any).files.length >= 2 && readFileSyncP((es.data as any).files[0].file).includes("LIST"));
+
+const rtSong: any = { tracks: [{ name: "T", clipSlots: [{ clip: { name: "c", duration: 4, loopStart: 0, loopEnd: 4, notes: [{ pitch: 60, startTime: 1, duration: 0.5, velocity: 100 }] } }], arrangementClips: [] }] };
+const rt = await reg.execute("retime__rescale_clip", { track_index: 0, mode: "half_time" }, rtSong);
+check("retime half_time duplica startTime/duration de verdad", rt.success && rtSong.tracks[0].clipSlots[0].clip.notes[0].startTime === 2 && rtSong.tracks[0].clipSlots[0].clip.notes[0].duration === 1);
+
+const lcSong: any = { tracks: [
+  { name: "A", clipSlots: [{ clip: { name: "src", notes: [{ pitch: 64, startTime: 0, duration: 1, velocity: 90 }] } }], arrangementClips: [] },
+  { name: "B", clipSlots: [{ clip: { name: "dst", notes: [] } }], arrangementClips: [] },
+] };
+const lk = await reg.execute("linkedclips__link_clips", { clips: "t0_c0,t1_c0", name: "TestGrp" }, lcSong);
+check("linkedclips__link_clips crea el grupo", lk.success && (lk.data as any).members.length === 2);
+const sy = await reg.execute("linkedclips__sync_group", { group_id: (lk.data as any).groupId, source: "t0_c0" }, lcSong);
+check("linkedclips__sync_group copia las notas reales al esclavo", sy.success && lcSong.tracks[1].clipSlots[0].clip.notes.length === 1 && lcSong.tracks[1].clipSlots[0].clip.notes[0].pitch === 64);
+await reg.execute("linkedclips__unlink_group", { group_id: (lk.data as any).groupId }, lcSong);
+
+const deSong: any = { tracks: [{ name: "Drums", devices: [{ name: "Drum Rack", chains: [{ receivingNote: 36 }, { receivingNote: 38 }, { receivingNote: 42 }] }], clipSlots: [{ clip: { name: "beat", notes: [{ pitch: 36, startTime: 0, duration: 0.5, velocity: 100 }, { pitch: 38, startTime: 1, duration: 0.5, velocity: 90 }, { pitch: 60, startTime: 2, duration: 0.5, velocity: 80 }] } }], arrangementClips: [] }],
+  async createMidiTrack() { const c: any = { name: "", notes: [] }; const nt: any = { name: "", clipSlots: [], async createMidiClip() { return c; }, _clip: c }; this.tracks.push(nt); return nt; } };
+const de = await reg.execute("drumextract__extract_active_pads", { track_index: 0 }, deSong);
+check("drumextract separa SOLO pads del rack con golpes (2 pads, 1 inactivo omitido)", de.success && (de.data as any).padsExtracted === 2 && (de.data as any).inactivePadsSkipped === 1 && deSong.tracks[1]._clip.notes.length === 1);
+
+const csSong: any = { tempo: 120, name: "Mix", cuePoints: [{ time: 0, name: "Opener" }, { time: 240, name: "Peak" }], tracks: [] };
+const cs = await reg.execute("cuesheet__generate_cue_sheet", { performer: "Tester", format: "cue" }, csSong);
+const cueTxt = readFileSyncP((cs.data as any).files[0].path, "utf8");
+check("cuesheet genera .cue con tiempos correctos (beat 240 @120bpm = 02:00)", cs.success && cueTxt.includes("INDEX 01 02:00:00") && cueTxt.includes('TITLE "Peak"'));
+
+const imSong: any = { tracks: [], async createMidiTrack() { const c: any = { name: "", notes: [] }; const nt: any = { name: "", clipSlots: [], async createMidiClip() { return c; }, _clip: c }; this.tracks.push(nt); return nt; } };
+const im = await reg.execute("imagemidi__grid_to_notes", { grid: "9900/0090", scale: "major", low_note: 48 }, imSong);
+check("imagemidi escribe notas reales desde la rejilla (2 notas: una fusionada de 2 celdas)", im.success && (im.data as any).noteCount === 2 && imSong.tracks[0]._clip.notes[0].duration > 0.4);
+
+const rcSong: any = { tracks: [{ name: "T", clipSlots: [{ clip: { name: "c1", duration: 4, looping: false, loopStart: 1, loopEnd: 2, muted: true } }, { clip: { name: "c2", duration: 4, looping: true, loopStart: 0, loopEnd: 4, muted: false, notes: [] } }], arrangementClips: [] }] };
+const rc = await reg.execute("clips__reset_clip", { track_index: 0, clip_index: 0 }, rcSong);
+check("clips__reset_clip restaura loop/mute de verdad", rc.success && rcSong.tracks[0].clipSlots[0].clip.looping === true && rcSong.tracks[0].clipSlots[0].clip.muted === false && rcSong.tracks[0].clipSlots[0].clip.loopStart === 0);
+const br = await reg.execute("clips__batch_rename", { track_index: 0, pattern: "{track} {n}", start_number: 5 }, rcSong);
+check("clips__batch_rename renombra secuencialmente de verdad", br.success && rcSong.tracks[0].clipSlots[0].clip.name === "T 5" && rcSong.tracks[0].clipSlots[1].clip.name === "T 6");
+
+const mkParam2 = (name: string, v = 0.5) => { let x = v; return { name, min: 0, max: 1, isQuantized: false, async getValue() { return x; }, async setValue(n: number) { x = n; } }; };
+const srSong2: any = { tracks: [{ name: "S", devices: [{ name: "Drift", parameters: [mkParam2("Osc 1 Shape"), mkParam2("Filter Freq"), mkParam2("Env Attack"), mkParam2("LFO Rate"), mkParam2("Volume")] }], clipSlots: [], arrangementClips: [] }] };
+const ls = await reg.execute("saferandom__list_synth_sections", { track_index: 0 }, srSong2);
+check("saferandom__list_synth_sections clasifica params reales por sección", ls.success && (ls.data as any).recognizedSynth === true && (ls.data as any).sections.some((s: any) => s.section === "filter"));
+const rs1 = await reg.execute("saferandom__randomize_sections", { track_index: 0, sections: "osc,filter", amount: 30, seed: 99 }, srSong2);
+const oscVal = await srSong2.tracks[0].devices[0].parameters[0].getValue();
+const volVal = await srSong2.tracks[0].devices[0].parameters[4].getValue();
+check("saferandom__randomize_sections mueve osc/filter y respeta mix (Volume intacto)", rs1.success && (rs1.data as any).paramsChanged === 2 && oscVal !== 0.5 && volVal === 0.5);
+
+const tiSong: any = { tracks: [{ name: "T", clipSlots: [{ clip: { name: "c", duration: 4, notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 100 }, { pitch: 60, startTime: 1, duration: 1, velocity: 100 }, { pitch: 60, startTime: 2, duration: 1, velocity: 100 }] } }], arrangementClips: [] }] };
+const ti2 = await reg.execute("miditransform__transpose_indexed", { track_index: 0, clip_index: 0, target: "odd", semitones: 12 }, tiSong);
+const tiNotes = [...tiSong.tracks[0].clipSlots[0].clip.notes].sort((a: any, b: any) => a.startTime - b.startTime);
+check("transpose_indexed sube SOLO las impares (1ª y 3ª +12, 2ª intacta)", ti2.success && tiNotes[0].pitch === 72 && tiNotes[1].pitch === 60 && tiNotes[2].pitch === 72);
+
+const fsSong: any = { tracks: [
+  { name: "A", clipSlots: [{ clip: { name: "s0", notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 90 }], duration: 4 } }, { clip: { name: "s1", notes: [{ pitch: 62, startTime: 0, duration: 1, velocity: 90 }], duration: 4 } }], arrangementClips: [] as any[],
+    async createMidiClip(st: number, du: number) { const c: any = { name: "", notes: [], startTime: st, duration: du }; this.arrangementClips.push(c); return c; } },
+] };
+const fs2 = await reg.execute("sessionbridge__flatten_scene", { scene_index: 1, at_beat: 32 }, fsSong);
+check("flatten_scene copia SOLO la escena 2 en el beat 32", fs2.success && fsSong.tracks[0].arrangementClips.length === 1 && fsSong.tracks[0].arrangementClips[0].startTime === 32 && fsSong.tracks[0].arrangementClips[0].notes[0].pitch === 62);
+
+const adSong: any = { tracks: [
+  { name: "M", devices: [] as any[], clipSlots: [], arrangementClips: [], async insertDevice(n: string, i: number) { const d = { name: n }; this.devices.splice(i, 0, d); return d; } },
+  { name: "A2", devices: [{ name: "EQ" }] as any[], clipSlots: [], arrangementClips: [], createAudioClip: async () => ({}), async insertDevice(n: string, i: number) { const d = { name: n }; this.devices.splice(i, 0, d); return d; } },
+] };
+const ad = await reg.execute("fxchain__add_device_to_all", { device_name: "Compressor", position: "end" }, adSong);
+check("add_device_to_all inserta el device en TODAS las pistas de verdad", ad.success && (ad.data as any).insertedOn === 2 && adSong.tracks[0].devices[0].name === "Compressor" && adSong.tracks[1].devices[1].name === "Compressor");
 
 // 11. LLM providers: verify each provider resolves to its real, documented endpoint
 // (Gemini/NVIDIA base URLs confirmed via Context7 docs — see src/core/llm.ts comment).

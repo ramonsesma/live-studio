@@ -75,5 +75,38 @@ export function createToolRegistry() {
     }
   );
 
+
+  reg.register({ name:"flatten_scene", description:"Copy ONE scene's Session clips onto the Arrangement at a chosen beat (default: after the last arrangement clip) — MIDI notes + audio from file", category:"arrangement", parameters:{ scene_index:{type:"number",description:"Scene row to copy",required:true}, at_beat:{type:"number",description:"Arrangement position in beats (omit = append after existing clips)",required:false} } },
+    async (args: any, song: any) => {
+      const tracks = song?.tracks || [];
+      const s = args.scene_index;
+      const inScene: { track: any; clip: any }[] = [];
+      let sceneLen = 0;
+      for (const t of tracks) { const c = t.clipSlots?.[s]?.clip; if (c) { inScene.push({ track: t, clip: c }); sceneLen = Math.max(sceneLen, clipLen(c)); } }
+      if (!inScene.length) return { success:false, error:"That scene has no clips." };
+      let cursor = args.at_beat;
+      if (typeof cursor !== "number") {
+        cursor = 0;
+        for (const t of tracks) for (const c of (t.arrangementClips || [])) cursor = Math.max(cursor, (c.startTime || 0) + clipLen(c));
+      }
+      let clipsCopied = 0, skipped = 0;
+      for (const { track, clip } of inScene) {
+        try {
+          if (kind(clip) === "midi" && typeof track.createMidiClip === "function") {
+            const ac = await track.createMidiClip(cursor, clipLen(clip));
+            ac.notes = (clip.notes || []).map((n: any) => ({ ...n }));
+            if (clip.name) ac.name = clip.name;
+            clipsCopied++;
+          } else if (kind(clip) === "audio" && typeof track.createAudioClip === "function") {
+            await track.createAudioClip({ filePath: clip.filePath, startTime: cursor, duration: clipLen(clip), isWarped: !!clip.warping });
+            clipsCopied++;
+          } else skipped++;
+        } catch { skipped++; }
+      }
+      if (!clipsCopied) return { success:false, error:"Nothing copied (no compatible clips in that scene)." };
+      return { success:true, data:{ scene:s, atBeat:cursor, sceneLength:sceneLen, clipsCopied, skipped } };
+    }
+  );
+
   return reg;
 }

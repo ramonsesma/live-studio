@@ -6,13 +6,13 @@
 
 <p align="center">
   <b>Una super-extensión modular para Ableton Live.</b><br/>
-  132 módulos · 380 tools · 83 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
+  144 módulos · 414 tools · 90 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-132-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-380-6cc6ff" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-414-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-83-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-115-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-292%20%E2%9C%93-2ea043" />
@@ -36,15 +36,15 @@ peleando por el mismo puerto— Live Studio las **ensambla** bajo:
 
 ## ✨ Características
 
-- **132 módulos** (todos visibles) con **380 tools reales** repartidos por categorías:
+- **144 módulos** (todos visibles) con **414 tools reales** repartidos por categorías:
   generación musical, drums, mezcla/mastering, EQ/análisis, síntesis, sampling, arreglo,
   performance/live, MIDI, hardware/control, gestión de proyectos, conversión audio↔MIDI y más.
 - **Copiloto IA** (OpenRouter / OpenAI / Gemini / NVIDIA NIM / OpenCode Zen) con loop de *tool-calling*: descubre y
-  ejecuta **cualquiera de los 380 tools** mediante un kit de meta-tools (`find_tools` busca en
+  ejecuta **cualquiera de los 414 tools** mediante un kit de meta-tools (`find_tools` busca en
   toda la suite, `list_modules` navega, `run_tool` ejecuta) — alcanza todo sin saturar al modelo.
-- **Paleta de comandos rápidos** (`⌘K`): indexa los **380 tools** + **83 quick actions**
+- **Paleta de comandos rápidos** (`⌘K`): indexa los **414 tools** + **90 quick actions**
   (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
-- **115 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
+- **116 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
   grafo de clips, mixer con faders/pan/sends, rejillas de pasos y pads, mapa de drums, comping, curva EQ,
   diseñador de LFO, trance gate, synth patchbay, timeline de arreglo, rejilla de pistas, gain
   staging, rack builder, salud de sesión, pad de directo, diff de versiones…
@@ -61,7 +61,7 @@ peleando por el mismo puerto— Live Studio las **ensambla** bajo:
   completo (tools + panel + registro + tests) en un comando.
 - **UI bilingüe (EN/ES)**: el shell detecta el idioma del sistema (con toggle manual) — un solo
   código compartido, sin archivos duplicados, vía un único diccionario (`public/i18n.js`).
-  Las descripciones de las 380 tools también están traducidas (`public/desc-i18n.js`), visibles
+  Las descripciones de las 414 tools también están traducidas (`public/desc-i18n.js`), visibles
   en el autoformulario, la paleta de comandos y las cabeceras de panel — el texto en inglés que
   lee el copiloto IA queda intacto.
 - **Carga perezosa de paneles**: los paneles ricos (~670 KB en total) se cargan al abrir cada
@@ -170,7 +170,7 @@ src/
 └── modules/<id>/tools.ts # cada módulo = su toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + paleta
-└── panels/<id>.js                        # 115 paneles ricos
+└── panels/<id>.js                        # 116 paneles ricos
 ```
 
 ### Añadir un módulo (3 pasos)
@@ -208,7 +208,7 @@ olvidar ningún paso.
 ## 📚 Catálogo de módulos
 
 <details>
-<summary><b>Ver los 132 módulos por categoría</b> (todos visibles — ninguno oculto)</summary>
+<summary><b>Ver los 144 módulos por categoría</b> (todos visibles — ninguno oculto)</summary>
 
 - **Sesión & proyecto:** Sesión & Pistas · Clips & Escenas · Bulk Track Manager · Track Color Coordinator · Plantillas de Proyecto · Notas de Proyecto · Project Health · Organizador de Sesión · **Project Snapshot · Git** · Sample Library Brain · Param Diff & Outlier · MIDI Phrase Finder · Stem Export
 - **MIDI & composición:** Acordes · Generador de Melodías · Letra → Melodía · MIDI Harmonizer · MIDI Randomizer · MIDI Transformer · MIDI Gate · MIDI LFO · Chord Pads · Step Sequencer · Quantize & Swing · Groove & Humanize · Notation Viewer · Generative Rhythm · Score Editor · Clip Variation Engine · Groove Template Extractor · Probability Lab

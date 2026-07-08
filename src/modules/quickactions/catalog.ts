@@ -85,4 +85,11 @@ export const QUICK_ACTIONS: QuickAction[] = [
   { group:"Analyze", name:"Launch quantization", tool:"launchquant__get_global_quant", args:{} },
   { group:"Analyze", name:"Session info", tool:"session__get_session_info", args:{} },
   { group:"Analyze", name:"All tracks", tool:"session__get_all_tracks", args:{} },
+  { group:"Audio", name:"Trim silence (trk 1 clip 1)", tool:"stripsilence__trim_silence", args:{"track_index": 0} },
+  { group:"Audio", name:"Detect transients (trk 1)", tool:"transients__detect_transients", args:{"track_index": 0} },
+  { group:"Audio", name:"Normalize -18 dB (trk 1)", tool:"audioconvert__normalize_rms", args:{"track_index": 0, "target_db": -18} },
+  { group:"Clips", name:"Reset clip (trk 1 clip 1)", tool:"clips__reset_clip", args:{"track_index": 0} },
+  { group:"MIDI", name:"Half-time clip (trk 1)", tool:"retime__rescale_clip", args:{"track_index": 0, "mode": "half_time"} },
+  { group:"MIDI", name:"Double-time clip (trk 1)", tool:"retime__rescale_clip", args:{"track_index": 0, "mode": "double_time"} },
+  { group:"Export", name:"Cue sheet (.cue + .txt)", tool:"cuesheet__generate_cue_sheet", args:{} },
 ];

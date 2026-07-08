@@ -364,5 +364,33 @@ export function createToolRegistry(): ToolRegistry {
   );
 
   
+
+  reg.register({ name:"add_device_to_all", description:"Insert one device on EVERY track at once (really calls insertDevice per track) — optionally only MIDI or only audio tracks, at the chain start or end", category:"effects", parameters:{ device_name:{type:"string",description:"Device to insert (e.g. Compressor, EQ Eight, Reverb)",required:true}, track_kind:{type:"string",description:"Which tracks",required:false,enum:["all","midi","audio"]}, position:{type:"string",description:"Where in each chain",required:false,enum:["start","end"]} } },
+    async (args: any, song: any) => {
+      const tracks = song?.tracks || [];
+      if (!tracks.length) return { success:false, error:"No tracks." };
+      const kindWant = args.track_kind || "all";
+      const results: any[] = [];
+      let inserted = 0;
+      for (let i = 0; i < tracks.length; i++) {
+        const t = tracks[i];
+        const isAudio = "createAudioClip" in t;
+        if (kindWant === "midi" && isAudio) continue;
+        if (kindWant === "audio" && !isAudio) continue;
+        if (typeof t.insertDevice !== "function") { results.push({ trackIndex:i, name:t.name, inserted:false, reason:"insertDevice unavailable" }); continue; }
+        const idx = args.position === "start" ? 0 : (t.devices || []).length;
+        try {
+          await t.insertDevice(args.device_name, idx);
+          inserted++;
+          results.push({ trackIndex:i, name:t.name, inserted:true, at:idx });
+        } catch (e: any) {
+          results.push({ trackIndex:i, name:t.name, inserted:false, reason:e?.message || "insert failed" });
+        }
+      }
+      if (!inserted) return { success:false, error:"Couldn't insert on any track — check the device name.", ...( results.length ? { data:{ results } } : {} ) } as any;
+      return { success:true, data:{ device:args.device_name, insertedOn:inserted, of:results.length, position:args.position || "end", results } };
+    }
+  );
+
   return reg;
 }

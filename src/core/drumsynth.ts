@@ -57,7 +57,7 @@ function clap(p: any, sr: number): Float32Array {
     const n = rnd(); hpY = hpA * (hpY + n - hpPrev); hpPrev = n; lpY += lpA * (hpY - lpY);
     let env = 0;
     for (let k = 0; k < bursts; k++) { const dt = t - k * spacing; if (dt >= 0) env += Math.exp(-dt / 0.008); }
-    const td = t - (bursts - 1) * spacing; if (td >= 0) env += Math.exp(-td / 0.12) * 0.7;
+    const tailDec = Math.max(0.03, Math.min(0.6, p.tail ?? 0.12)); const td = t - (bursts - 1) * spacing; if (td >= 0) env += Math.exp(-td / tailDec) * 0.7;
     out[i] = lpY * Math.min(1.6, env);
   }
   return norm(out);

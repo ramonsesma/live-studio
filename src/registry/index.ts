@@ -132,6 +132,18 @@ import { createToolRegistry as sandboxTools } from "../modules/sandbox/tools.js"
 import { createToolRegistry as clipGraphTools } from "../modules/clipgraph/tools.js";
 import { createToolRegistry as tempoTapTools } from "../modules/tempotap/tools.js";
 import { createToolRegistry as fxChainTools } from "../modules/fxchain/tools.js";
+import { createToolRegistry as stripSilenceTools } from "../modules/stripsilence/tools.js";
+import { createToolRegistry as transientsTools } from "../modules/transients/tools.js";
+import { createToolRegistry as clipEditorTools } from "../modules/clipeditor/tools.js";
+import { createToolRegistry as audioConvertTools } from "../modules/audioconvert/tools.js";
+import { createToolRegistry as extremeStretchTools } from "../modules/extremestretch/tools.js";
+import { createToolRegistry as reverseVerbTools } from "../modules/reverseverb/tools.js";
+import { createToolRegistry as iterateTools } from "../modules/iterate/tools.js";
+import { createToolRegistry as retimeTools } from "../modules/retime/tools.js";
+import { createToolRegistry as linkedClipsTools } from "../modules/linkedclips/tools.js";
+import { createToolRegistry as drumExtractTools } from "../modules/drumextract/tools.js";
+import { createToolRegistry as cueSheetTools } from "../modules/cuesheet/tools.js";
+import { createToolRegistry as imageMidiTools } from "../modules/imagemidi/tools.js";
 
 export function createMasterRegistry(): MasterRegistry {
   const m = new MasterRegistry();
@@ -294,6 +306,20 @@ export function createMasterRegistry(): MasterRegistry {
 
   // --- Backend for the quick command palette (its UX is Cmd/Ctrl+K, plus its own launcher panel) ---
   m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"83 curated one-click presets that route to real tools — browse by group, or search them in the Cmd-K palette.", registry: quickActionsTools() });
+
+  // --- Catalog-gap batch (v1.2.0): concepts validated by the external extensions catalog ---
+  m.addModule({ id:"stripsilence", label:"Strip Silence", icon:"✂️", description:"Maps a clip's real silence from its measured RMS envelope, then trims lead/tail or splits per sound region into fresh imported files.", registry: stripSilenceTools() });
+  m.addModule({ id:"transients", label:"Transient Tools", icon:"⚡", description:"Real onset detection exposed as tools: list a clip's transients, slice per hit, or grid-quantize the audio without Live's Warp engine.", registry: transientsTools() });
+  m.addModule({ id:"clipeditor", label:"Clip Audio Editor", icon:"🔬", description:"Sample-level region edits of a clip's real audio (trim/silence/gain/fades) rendered to a new file — the original stays untouched.", registry: clipEditorTools() });
+  m.addModule({ id:"audioconvert", label:"Audio Convert", icon:"🔄", description:"Real in-Live conversion: resample a clip's audio, apply gain, or RMS-normalize to a target loudness with a peak-safe ceiling.", registry: audioConvertTools() });
+  m.addModule({ id:"extremestretch", label:"Extreme Stretch", icon:"🕳️", description:"2-200x granular freeze-stretch with zero pitch shift — our own seeded grain engine turns anything into evolving pads.", registry: extremeStretchTools() });
+  m.addModule({ id:"reverseverb", label:"Reverse Verb", icon:"🌊", description:"Builds the classic reverse-reverb swell from a clip's REAL audio (reverse → reverb → flip back), leading into the original.", registry: reverseVerbTools() });
+  m.addModule({ id:"iterate", label:"Disintegrate", icon:"🧬", description:"Feeds a clip through a degrade chain N times (lofi/saturate/smear/darken) — tape-generation decay with optional milestone files.", registry: iterateTools() });
+  m.addModule({ id:"retime", label:"MIDI Retime", icon:"⏳", description:"Rescales a clip's note timing between BPM interpretations — half-time, double-time or any factor — with undo.", registry: retimeTools() });
+  m.addModule({ id:"linkedclips", label:"Linked Clips", icon:"🔗", description:"Master/slave clip groups: link Session clips and propagate one member's notes to all others in one call — persisted, undoable.", registry: linkedClipsTools() });
+  m.addModule({ id:"drumextract", label:"Drum Extract", icon:"🥁", description:"Splits a Drum Rack's ACTIVE pads (notes that really occur in the clip) onto separate new MIDI tracks, one per pad.", registry: drumExtractTools() });
+  m.addModule({ id:"cuesheet", label:"Cue Sheet", icon:"💿", description:"Turns the Set's real cue points into a mixtape cue sheet (.cue/.txt) written to storage — times from beats at the current tempo.", registry: cueSheetTools() });
+  m.addModule({ id:"imagemidi", label:"Image → MIDI", icon:"🖼️", description:"Converts an image's luminance grid into real scale-mapped notes — the panel decodes any image, the tool writes the clip.", registry: imageMidiTools() });
 
   return m;
 }

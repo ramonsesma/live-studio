@@ -152,5 +152,30 @@ export function createToolRegistry() {
     }
   );
 
+
+  reg.register({ name:"transpose_indexed", description:"Transpose only the odd/even/every-Nth notes of a clip (by time order) by N semitones — real note write, undoable", category:"transformer", parameters:{ track_index:{type:"number",description:"Track",required:true}, clip_index:{type:"number",description:"Clip (default 0)",required:false}, target:{type:"string",description:"Which notes",required:true,enum:["odd","even","every_n"]}, n:{type:"number",description:"For every_n: the step (e.g. 3 = every 3rd note)",required:false}, offset:{type:"number",description:"For every_n: start offset 0-based (default 0)",required:false}, semitones:{type:"number",description:"Transpose amount (default 12)",required:false} } },
+    async (args: any, song: any) => {
+      const clip = getClip(song, args.track_index, args.clip_index ?? 0);
+      if (!clip) return { success:false, error:"MIDI clip not found" };
+      const src2 = (clip.notes || []).map((x: any) => ({ ...x }));
+      if (!src2.length) return { success:false, error:"Clip has no notes" };
+      const semis = args.semitones ?? 12;
+      const nStep = Math.max(2, Math.min(16, args.n ?? 2));
+      const off = Math.max(0, args.offset ?? 0);
+      const order = src2.map((note: any, i: number) => i).sort((a: number, b: number) => src2[a].startTime - src2[b].startTime || src2[a].pitch - src2[b].pitch);
+      const hit = new Set<number>();
+      order.forEach((noteIdx: number, pos: number) => {
+        const oneBased = pos + 1;
+        if (args.target === "odd" && oneBased % 2 === 1) hit.add(noteIdx);
+        else if (args.target === "even" && oneBased % 2 === 0) hit.add(noteIdx);
+        else if (args.target === "every_n" && pos >= off && (pos - off) % nStep === 0) hit.add(noteIdx);
+      });
+      if (!hit.size) return { success:false, error:"No notes matched that index pattern." };
+      recordNotes(clip, args.track_index, args.clip_index ?? 0, "miditransform.transpose_indexed");
+      clip.notes = src2.map((note: any, i: number) => hit.has(i) ? { ...note, pitch: Math.max(0, Math.min(127, note.pitch + semis)) } : note);
+      return { success:true, data:{ transposed:hit.size, of:src2.length, target:args.target, semitones:semis, undoable:true } };
+    }
+  );
+
   return reg;
 }

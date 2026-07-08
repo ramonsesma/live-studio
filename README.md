@@ -6,15 +6,15 @@
 
 <p align="center">
   <b>A modular super-extension for Ableton Live.</b><br/>
-  132 modules · 380 tools · 83 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
+  144 modules · 414 tools · 90 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
-  <img alt="modules" src="https://img.shields.io/badge/modules-132-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-380-6cc6ff" />
+  <img alt="modules" src="https://img.shields.io/badge/modules-144-ffb347" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-414-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-83-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-115-9370db" />
+  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-116-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-292%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-840%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
@@ -36,15 +36,15 @@ fighting for the same port — Live Studio **assembles** them under:
 
 ## ✨ Features
 
-- **132 modules** (all visible) with **380 real tools** across categories: music
+- **144 modules** (all visible) with **414 real tools** across categories: music
   generation, drums, mixing/mastering, EQ/analysis, synthesis, sampling, arrangement,
   performance/live, MIDI, hardware/control, project management, audio↔MIDI conversion and more.
 - **AI copilot** (OpenRouter / OpenAI / Gemini / NVIDIA NIM / OpenCode Zen) with a *tool-calling* loop: it discovers and
-  runs **any of the 380 tools** through a meta-toolkit (`find_tools` searches the whole suite,
+  runs **any of the 414 tools** through a meta-toolkit (`find_tools` searches the whole suite,
   `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
-- **Quick command palette** (`⌘K`): indexes the **380 tools** + **83 quick actions**
+- **Quick command palette** (`⌘K`): indexes the **414 tools** + **90 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
-- **115 curated rich panels** where the auto-generated form falls short: piano-roll, clip
+- **116 curated rich panels** where the auto-generated form falls short: piano-roll, clip
   graph, mixer with faders/pan/sends, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
   trance gate, synth patchbay, arrangement timeline, track grid, gain staging, rack builder,
   session health, performance pad, version diff…
@@ -61,7 +61,7 @@ fighting for the same port — Live Studio **assembles** them under:
   module (tools + panel + registration + tests) in one command.
 - **Bilingual UI (EN/ES)**: the shell auto-detects the system language (with a manual toggle) —
   one shared codebase, no duplicated files, via a single string dictionary (`public/i18n.js`).
-  All 380 tool descriptions are translated too (`public/desc-i18n.js`), shown in the autoform,
+  All 414 tool descriptions are translated too (`public/desc-i18n.js`), shown in the autoform,
   the command palette and panel headers — the English text the AI copilot reads stays untouched.
 - **Lazy panel loading**: rich panels (~670 KB total) load on first visit to their module instead
   of all 115 upfront, so the UI shows up instantly.
@@ -86,7 +86,7 @@ fighting for the same port — Live Studio **assembles** them under:
   <tr>
     <td align="center">
       <img src="assets/screenshots/03-palette.svg" alt="Command palette" width="100%" /><br/>
-      <sub><b>⌘K command palette</b> — mixes 380 real tools and 83 quick actions in one search.</sub>
+      <sub><b>⌘K command palette</b> — mixes 414 real tools and 90 quick actions in one search.</sub>
     </td>
     <td align="center">
       <img src="assets/screenshots/04-mixconsole.svg" alt="Mix Console" width="100%" /><br/>
@@ -194,7 +194,7 @@ src/
 └── modules/<id>/tools.ts # each module = its own toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + palette
-└── panels/<id>.js                        # 115 rich panels
+└── panels/<id>.js                        # 116 rich panels
 ```
 
 ### Adding a module (3 steps)
@@ -250,7 +250,7 @@ extends `test/smoke.ts` so the suite immediately covers it — no manual edits, 
 ## 📚 Module catalog
 
 <details>
-<summary><b>Show the 132 modules by category</b> (all visible — none are hidden)</summary>
+<summary><b>Show the 144 modules by category</b> (all visible — none are hidden)</summary>
 
 - **Session & project:** Session & Tracks · Clips & Scenes · Bulk Track Manager · Track Color Coordinator · Project Templates · Project Notes · Project Health · Session Organizer · **Project Snapshot · Git** · Sample Library Brain · Param Diff & Outlier · MIDI Phrase Finder · Stem Export
 - **MIDI & composition:** Chords & Progressions · Melody Generator · Lyric → Melody · MIDI Harmonizer · MIDI Randomizer · MIDI Transformer · MIDI Gate · MIDI LFO · Chord Pads · Step Sequencer · Quantize & Swing · Groove & Humanize · Notation Viewer · Generative Rhythm · Score Editor · Clip Variation Engine · Groove Template Extractor · Probability Lab

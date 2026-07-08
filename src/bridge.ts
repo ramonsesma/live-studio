@@ -48,6 +48,7 @@ import { synthGlassBell } from "./core/glassbell.js";
 import { synthSubKick } from "./core/subkick.js";
 import { synthReverseSweep } from "./core/reversesweep.js";
 import { recordNotes } from "./core/history.js";
+import { silenceRegions, sliceSeconds, fadeEdges, resampleLinear, applyGainDb, normalizeRms, rmsDb, schroederReverb, granularExtreme, saturate, lofi, onePoleLp, smear, writeWavWithInfo } from "./core/audiotools.js";
 import { buildSnapshot, diffSnapshots, applySnapshot, diffAgainstCurrent, summarize, type Snapshot } from "./core/snapshot.js";
 import { extractFeatures, cosine, tagsFromName, estimateBpm } from "./core/samplebrain.js";
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, unlinkSync, copyFileSync } from "node:fs";
@@ -173,6 +174,39 @@ export class Bridge {
       (args) => this.suggestSidechain({ triggerTrack: args.trigger_track as number, targetTrack: args.target_track as number, demo: !!args.demo }));
     this.registry.addTool("mixassistant", { name: "suggest_eq", description: "Get EQ suggestions from the track's REAL rendered spectrum (falls back to generic starting points if it can't be rendered)", category: "mixing", parameters: { track_index: { type: "number", description: "Track index", required: true }, demo: { type: "boolean", description: "Use a synthetic demo stem instead of rendering", required: false } } },
       (args) => this.suggestEq({ trackIndex: args.track_index as number, demo: !!args.demo }));
+
+    // ---- Catalog-gap batch (strip silence, transients, clip editor, convert, stretch, verb, iterate, sections) ----
+    this.registry.addTool("stripsilence", { name: "analyze_silence", description: "Map a clip's real silence regions (lead/tail/gaps) from its measured RMS envelope", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, threshold_db: { type: "number", description: "Silence threshold in dBFS (default -48)", required: false }, min_silence_ms: { type: "number", description: "Ignore silences shorter than this (default 120ms)", required: false } } },
+      (args) => this.stripSilence({ trackIndex: args.track_index as number, clipIndex: args.clip_index as number, thresholdDb: args.threshold_db as number, minSilenceMs: args.min_silence_ms as number, analyzeOnly: true }));
+    this.registry.addTool("stripsilence", { name: "trim_silence", description: "Trim a clip's real lead/tail silence (or split it into per-sound segments) into new audio file(s), imported into the project", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, threshold_db: { type: "number", description: "Silence threshold in dBFS (default -48)", required: false }, min_silence_ms: { type: "number", description: "Ignore silences shorter than this (default 120ms)", required: false }, mode: { type: "string", description: "lead_tail trims the ends; split writes one file per sound region", required: false, enum: ["lead_tail", "split"] }, fade_ms: { type: "number", description: "Edge fade to avoid clicks (default 5ms)", required: false } } },
+      (args) => this.stripSilence({ trackIndex: args.track_index as number, clipIndex: args.clip_index as number, thresholdDb: args.threshold_db as number, minSilenceMs: args.min_silence_ms as number, mode: (args.mode as any) || "lead_tail", fadeMs: args.fade_ms as number }));
+
+    this.registry.addTool("transients", { name: "detect_transients", description: "Detect a clip's real transients (onset times + strengths) from its audio", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, sensitivity: { type: "number", description: "0.05 (many) … 0.5 (few) — default 0.18", required: false } } },
+      (args) => this.transientTool({ action: "detect", trackIndex: args.track_index as number, clipIndex: args.clip_index as number, sensitivity: args.sensitivity as number }));
+    this.registry.addTool("transients", { name: "slice_at_transients", description: "Slice a clip's audio at its real transients into per-hit files, imported into the project", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, sensitivity: { type: "number", description: "0.05 (many) … 0.5 (few) — default 0.18", required: false }, max_slices: { type: "number", description: "Cap on slices to write (default 16)", required: false } } },
+      (args) => this.transientTool({ action: "slice", trackIndex: args.track_index as number, clipIndex: args.clip_index as number, sensitivity: args.sensitivity as number, maxSlices: args.max_slices as number }));
+    this.registry.addTool("transients", { name: "quantize_audio", description: "Non-warp audio quantize: cut at real transients and shift each segment onto the tempo grid, rebuilt into one new file with crossfades", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, grid: { type: "string", description: "Snap grid (default 1/16)", required: false, enum: ["1/4", "1/8", "1/16", "1/32"] }, strength: { type: "number", description: "0-100% toward the grid (default 100)", required: false }, sensitivity: { type: "number", description: "Transient sensitivity (default 0.18)", required: false } } },
+      (args) => this.transientTool({ action: "quantize", trackIndex: args.track_index as number, clipIndex: args.clip_index as number, grid: args.grid as string, strength: args.strength as number, sensitivity: args.sensitivity as number }));
+
+    this.registry.addTool("clipeditor", { name: "edit_region", description: "Sample-level edit of a region of a clip's real audio — trim to it, silence it, gain it, or fade it — written to a new file and imported", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, op: { type: "string", description: "Operation", required: true, enum: ["trim_to", "silence", "gain", "fade_in", "fade_out"] }, start_ms: { type: "number", description: "Region start in ms", required: true }, end_ms: { type: "number", description: "Region end in ms", required: true }, gain_db: { type: "number", description: "Gain for op=gain (default -6)", required: false } } },
+      (args) => this.clipEdit({ trackIndex: args.track_index as number, clipIndex: args.clip_index as number, op: args.op as any, startMs: args.start_ms as number, endMs: args.end_ms as number, gainDb: args.gain_db as number }));
+
+    this.registry.addTool("audioconvert", { name: "convert_clip", description: "Convert a clip's real audio in-place-style (sample rate via real resampling, gain) to a new 16-bit WAV, imported into the project", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, sample_rate: { type: "number", description: "Target sample rate (e.g. 44100, 48000)", required: false }, gain_db: { type: "number", description: "Gain to apply (dB)", required: false } } },
+      (args) => this.audioConvert({ trackIndex: args.track_index as number, clipIndex: args.clip_index as number, sampleRate: args.sample_rate as number, gainDb: args.gain_db as number }));
+    this.registry.addTool("audioconvert", { name: "normalize_rms", description: "RMS-normalize a clip's real audio to a target loudness with a true-peak-safe ceiling, written to a new file and imported", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, target_db: { type: "number", description: "Target RMS in dBFS (default -18)", required: false }, ceiling_db: { type: "number", description: "Peak ceiling in dBFS (default -0.3)", required: false } } },
+      (args) => this.audioConvert({ trackIndex: args.track_index as number, clipIndex: args.clip_index as number, normalizeDb: (args.target_db as number) ?? -18, ceilingDb: args.ceiling_db as number }));
+
+    this.registry.addTool("extremestretch", { name: "stretch", description: "Extreme granular freeze-stretch (2-200x, zero pitch shift) of a clip's real audio — our own grain engine — written to a new file and imported", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, factor: { type: "number", description: "Stretch factor 2-200 (default 8)", required: false }, grain_ms: { type: "number", description: "Grain size in ms (default 220)", required: false }, seed: { type: "number", description: "Jitter seed (same seed = same result)", required: false } } },
+      (args) => this.extremeStretch({ trackIndex: args.track_index as number, clipIndex: args.clip_index as number, factor: args.factor as number, grainMs: args.grain_ms as number, seed: args.seed as number }));
+
+    this.registry.addTool("reverseverb", { name: "apply", description: "Classic reverse-reverb swell from a clip's real audio: reverb the reversed clip, flip it back, and lead it into the original — new file, imported", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, decay_sec: { type: "number", description: "Reverb decay (default 2.2s)", required: false }, include_original: { type: "boolean", description: "Append the dry clip after the swell (default true)", required: false } } },
+      (args) => this.reverseVerb({ trackIndex: args.track_index as number, clipIndex: args.clip_index as number, decaySec: args.decay_sec as number, includeOriginal: args.include_original !== false }));
+
+    this.registry.addTool("iterate", { name: "disintegrate", description: "Feed a clip's real audio through a degrade chain N times (lofi / saturate / smear / darken) — each pass feeds the next; final (and optional milestone) files imported", category: "audio-utility", parameters: { track_index: { type: "number", description: "Track", required: true }, clip_index: { type: "number", description: "Clip slot (default 0)", required: false }, iterations: { type: "number", description: "Passes 1-50 (default 8)", required: false }, process: { type: "string", description: "Degrade chain", required: false, enum: ["lofi", "saturate", "smear", "darken", "all"] }, amount: { type: "number", description: "Per-pass intensity 0-100 (default 35)", required: false }, keep_every: { type: "number", description: "Also write every Nth intermediate pass (0 = final only)", required: false } } },
+      (args) => this.disintegrate({ trackIndex: args.track_index as number, clipIndex: args.clip_index as number, iterations: args.iterations as number, process: args.process as string, amount: args.amount as number, keepEvery: args.keep_every as number }));
+
+    this.registry.addTool("stemexport", { name: "export_sections", description: "Batch-render tracks per arrangement SECTION (cue point → next cue point) to real WAVs with embedded INFO metadata (section name, tempo)", category: "stem-export", parameters: { track_indices: { type: "string", description: "Comma-separated track indices (default: all audio tracks)", required: false }, sections: { type: "string", description: "Comma-separated section names to include (default: all)", required: false }, name_pattern: { type: "string", description: "Pattern with {section}/{index}/{name} (default \"{section} - {name}\")", required: false }, normalize_rms_db: { type: "number", description: "Optionally RMS-normalize each file to this dBFS", required: false }, demo: { type: "boolean", description: "Write synthetic demo stems instead of rendering", required: false } } },
+      (args) => this.exportSections({ trackIndices: (typeof args.track_indices === "string" && args.track_indices.length ? String(args.track_indices).split(",").map((v) => parseInt(v.trim(), 10)).filter((n) => !isNaN(n)) : undefined), sections: args.sections as string, namePattern: args.name_pattern as string, normalizeRmsDb: args.normalize_rms_db as number, demo: !!args.demo }));
   }
 
   getTools() { return this.registry.getDefinitionsJson(); }
@@ -410,6 +444,273 @@ export class Bridge {
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
+  }
+
+  // Shared finalizer for the audio-utility pipeline: write the processed samples as a served
+  // WAV and best-effort import it into the project (real import only inside Live).
+  private async finishAudio(samples: Float32Array, sr: number, prefix: string) {
+    const served = this.writeServed(samples, sr, prefix);
+    let importedPath: string | null = null;
+    if (this.resources?.importIntoProject) { try { importedPath = await this.resources.importIntoProject(served.file); } catch { importedPath = null; } }
+    return { file: served.file, audio: served.url, importedPath, durSec: Number((samples.length / sr).toFixed(3)) };
+  }
+
+  // Strip Silence — the most-duplicated concept across the external extension catalog (5
+  // independent extensions). Real RMS-envelope silence map; trim or split, never fabricate.
+  async stripSilence(req: { trackIndex: number; clipIndex?: number; thresholdDb?: number; minSilenceMs?: number; mode?: "lead_tail" | "split"; fadeMs?: number; analyzeOnly?: boolean }): Promise<any> {
+    try {
+      const a = await this.readClipAudio(req.trackIndex, req.clipIndex ?? 0);
+      if (!a) return { success: false, error: "Select an audio clip (needs a sample file or renderable track)." };
+      const th = req.thresholdDb ?? -48, minMs = req.minSilenceMs ?? 120;
+      const map = silenceRegions(a.samples, a.sampleRate, th, minMs);
+      const sounds = map.regions.filter((r) => r.type === "sound");
+      const summary = {
+        source: a.name, durSec: Number((a.samples.length / a.sampleRate).toFixed(3)),
+        thresholdDb: th, leadSilenceSec: Number(map.leadSec.toFixed(3)), tailSilenceSec: Number(map.tailSec.toFixed(3)),
+        soundRegions: sounds.map((r) => ({ start: Number(r.startSec.toFixed(3)), end: Number(r.endSec.toFixed(3)) })),
+      };
+      if (req.analyzeOnly) return { success: true, data: summary };
+      if (!sounds.length) return { success: false, error: "The clip is entirely below the silence threshold." };
+      const fade = req.fadeMs ?? 5;
+      if ((req.mode || "lead_tail") === "split") {
+        const files = [];
+        for (const r of sounds.slice(0, 16)) {
+          const seg = fadeEdges(sliceSeconds(a.samples, a.sampleRate, r.startSec, r.endSec), a.sampleRate, fade, fade);
+          files.push({ start: Number(r.startSec.toFixed(3)), ...(await this.finishAudio(seg, a.sampleRate, "strip_split")) });
+        }
+        return { success: true, data: { ...summary, mode: "split", segments: files.length, files } };
+      }
+      const start = map.leadSec, end = a.samples.length / a.sampleRate - map.tailSec;
+      const out = fadeEdges(sliceSeconds(a.samples, a.sampleRate, start, end), a.sampleRate, fade, fade);
+      const fin = await this.finishAudio(out, a.sampleRate, "strip_trim");
+      return { success: true, data: { ...summary, mode: "lead_tail", trimmedSec: Number((map.leadSec + map.tailSec).toFixed(3)), ...fin } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Transient tools — exposes the detectOnsets engine (until now internal to loopdetect) as
+  // detection / per-hit slicing / non-warp grid quantize.
+  async transientTool(req: { action: "detect" | "slice" | "quantize"; trackIndex: number; clipIndex?: number; sensitivity?: number; maxSlices?: number; grid?: string; strength?: number }): Promise<any> {
+    try {
+      const a = await this.readClipAudio(req.trackIndex, req.clipIndex ?? 0);
+      if (!a) return { success: false, error: "Select an audio clip (needs a sample file or renderable track)." };
+      const sens = Math.max(0.02, Math.min(0.8, req.sensitivity ?? 0.18));
+      const onsets = detectOnsets(a.samples, a.sampleRate, sens);
+      const tempo = this.song?.tempo || 120;
+      const secPerBeat = 60 / tempo;
+      if (req.action === "detect") {
+        return { success: true, data: { source: a.name, tempo, count: onsets.length, transients: onsets.slice(0, 128).map((o) => ({ sec: Number(o.timeSec.toFixed(4)), beat: Number((o.timeSec / secPerBeat).toFixed(3)), strength: Number(o.strength.toFixed(3)) })) } };
+      }
+      if (!onsets.length) return { success: false, error: "No transients detected — lower the sensitivity." };
+      const bounds = onsets.map((o) => o.timeSec);
+      if (bounds[0] > 0.03) bounds.unshift(0);
+      bounds.push(a.samples.length / a.sampleRate);
+      if (req.action === "slice") {
+        const cap = Math.max(1, Math.min(32, req.maxSlices ?? 16));
+        const files = [];
+        for (let i = 0; i < bounds.length - 1 && files.length < cap; i++) {
+          const seg = fadeEdges(sliceSeconds(a.samples, a.sampleRate, bounds[i], bounds[i + 1]), a.sampleRate, 3, 3);
+          if (seg.length < a.sampleRate * 0.02) continue;
+          files.push({ slice: files.length + 1, start: Number(bounds[i].toFixed(3)), ...(await this.finishAudio(seg, a.sampleRate, "transient_slice")) });
+        }
+        return { success: true, data: { source: a.name, transients: onsets.length, slices: files.length, files } };
+      }
+      // quantize: shift each inter-onset segment so its onset lands on the grid.
+      const GRID: Record<string, number> = { "1/4": 1, "1/8": 0.5, "1/16": 0.25, "1/32": 0.125 };
+      const stepBeats = GRID[req.grid || "1/16"] ?? 0.25;
+      const strength = Math.max(0, Math.min(100, req.strength ?? 100)) / 100;
+      const out = new Float32Array(a.samples.length + a.sampleRate); // headroom for shifts
+      const fadeN = Math.floor(a.sampleRate * 0.008);
+      let moved = 0, totalShiftMs = 0;
+      let maxEnd = 0;
+      for (let i = 0; i < bounds.length - 1; i++) {
+        const segStart = bounds[i], segEnd = bounds[i + 1];
+        const beat = segStart / secPerBeat;
+        const snapped = Math.round(beat / stepBeats) * stepBeats;
+        const targetSec = segStart + (snapped - beat) * secPerBeat * strength;
+        const shiftMs = (targetSec - segStart) * 1000;
+        if (Math.abs(shiftMs) > 1) { moved++; totalShiftMs += Math.abs(shiftMs); }
+        const seg = sliceSeconds(a.samples, a.sampleRate, segStart, segEnd);
+        const dst = Math.max(0, Math.round(targetSec * a.sampleRate));
+        for (let j = 0; j < seg.length && dst + j < out.length; j++) {
+          const w = j < fadeN ? j / fadeN : 1; // crossfade into whatever's already there
+          out[dst + j] = out[dst + j] * (1 - w) + seg[j] * w;
+        }
+        maxEnd = Math.max(maxEnd, dst + seg.length);
+      }
+      const fin = await this.finishAudio(out.slice(0, Math.max(1, maxEnd)), a.sampleRate, "audio_quant");
+      return { success: true, data: { source: a.name, grid: req.grid || "1/16", strengthPct: Math.round(strength * 100), segments: bounds.length - 1, segmentsMoved: moved, avgShiftMs: moved ? Number((totalShiftMs / moved).toFixed(1)) : 0, ...fin } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Clip Editor — destructive-style region ops rendered to a fresh file (the original is untouched).
+  async clipEdit(req: { trackIndex: number; clipIndex?: number; op: "trim_to" | "silence" | "gain" | "fade_in" | "fade_out"; startMs: number; endMs: number; gainDb?: number }): Promise<any> {
+    try {
+      const a = await this.readClipAudio(req.trackIndex, req.clipIndex ?? 0);
+      if (!a) return { success: false, error: "Select an audio clip (needs a sample file or renderable track)." };
+      const sr = a.sampleRate;
+      const s = Math.max(0, Math.floor((req.startMs / 1000) * sr));
+      const e = Math.min(a.samples.length, Math.floor((req.endMs / 1000) * sr));
+      if (e <= s) return { success: false, error: "end_ms must be after start_ms." };
+      let out: Float32Array;
+      const ramp = Math.floor(sr * 0.005);
+      if (req.op === "trim_to") out = fadeEdges(a.samples.slice(s, e), sr, 5, 5);
+      else {
+        out = a.samples.slice();
+        if (req.op === "silence") {
+          for (let i = s; i < e; i++) {
+            const edge = Math.min(i - s, e - 1 - i);
+            out[i] *= edge < ramp ? 1 - edge / ramp : 0;
+          }
+        } else if (req.op === "gain") {
+          const g = Math.pow(10, (req.gainDb ?? -6) / 20);
+          for (let i = s; i < e; i++) {
+            const edge = Math.min(i - s, e - 1 - i);
+            const w = edge < ramp ? edge / ramp : 1;
+            out[i] *= 1 + (g - 1) * w;
+          }
+        } else if (req.op === "fade_in") { for (let i = s; i < e; i++) out[i] *= (i - s) / (e - s); }
+        else if (req.op === "fade_out") { for (let i = s; i < e; i++) out[i] *= 1 - (i - s) / (e - s); }
+      }
+      const fin = await this.finishAudio(out, sr, "clipedit");
+      return { success: true, data: { source: a.name, op: req.op, regionMs: [Math.round(req.startMs), Math.round(req.endMs)], ...fin } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Audio convert / RMS normalize — real resampling and loudness math on the clip's audio.
+  async audioConvert(req: { trackIndex: number; clipIndex?: number; sampleRate?: number; gainDb?: number; normalizeDb?: number; ceilingDb?: number }): Promise<any> {
+    try {
+      const a = await this.readClipAudio(req.trackIndex, req.clipIndex ?? 0);
+      if (!a) return { success: false, error: "Select an audio clip (needs a sample file or renderable track)." };
+      let out = a.samples, sr = a.sampleRate, appliedGain = 0;
+      const beforeRms = Number(rmsDb(out).toFixed(2));
+      if (typeof req.normalizeDb === "number") {
+        const n = normalizeRms(out, req.normalizeDb, req.ceilingDb ?? -0.3);
+        out = n.out; appliedGain = n.gainDb;
+      } else if (typeof req.gainDb === "number" && req.gainDb !== 0) {
+        out = applyGainDb(out, req.gainDb); appliedGain = req.gainDb;
+      }
+      if (typeof req.sampleRate === "number" && req.sampleRate >= 8000 && req.sampleRate <= 192000 && req.sampleRate !== sr) {
+        out = resampleLinear(out, sr, req.sampleRate); sr = req.sampleRate;
+      }
+      const fin = await this.finishAudio(out, sr, "convert");
+      return { success: true, data: { source: a.name, fromSampleRate: a.sampleRate, toSampleRate: sr, beforeRmsDb: beforeRms, afterRmsDb: Number(rmsDb(out).toFixed(2)), appliedGainDb: appliedGain, bitDepth: 16, ...fin } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Extreme stretch — our own granular freeze engine (see core/audiotools.granularExtreme).
+  async extremeStretch(req: { trackIndex: number; clipIndex?: number; factor?: number; grainMs?: number; seed?: number }): Promise<any> {
+    try {
+      const a = await this.readClipAudio(req.trackIndex, req.clipIndex ?? 0);
+      if (!a) return { success: false, error: "Select an audio clip (needs a sample file or renderable track)." };
+      const factor = Math.max(2, Math.min(200, req.factor ?? 8));
+      const out = granularExtreme(a.samples, a.sampleRate, factor, req.grainMs ?? 220, req.seed ?? 7);
+      const fin = await this.finishAudio(out, a.sampleRate, "xstretch");
+      return { success: true, data: { source: a.name, factor, grainMs: req.grainMs ?? 220, fromSec: Number((a.samples.length / a.sampleRate).toFixed(3)), ...fin } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Reverse-reverb swell on EXISTING clip audio (unlike riser/reversesweep, which synthesize new material).
+  async reverseVerb(req: { trackIndex: number; clipIndex?: number; decaySec?: number; includeOriginal?: boolean }): Promise<any> {
+    try {
+      const a = await this.readClipAudio(req.trackIndex, req.clipIndex ?? 0);
+      if (!a) return { success: false, error: "Select an audio clip (needs a sample file or renderable track)." };
+      const decay = Math.max(0.3, Math.min(8, req.decaySec ?? 2.2));
+      const rev = a.samples.slice().reverse();
+      const wet = schroederReverb(rev, a.sampleRate, decay, 1);
+      const swell = wet.slice().reverse();
+      let out: Float32Array;
+      if (req.includeOriginal !== false) {
+        out = new Float32Array(swell.length + a.samples.length);
+        out.set(swell, 0); out.set(a.samples, swell.length);
+      } else out = swell;
+      const fin = await this.finishAudio(out, a.sampleRate, "revverb");
+      return { success: true, data: { source: a.name, decaySec: decay, swellSec: Number((swell.length / a.sampleRate).toFixed(3)), includesOriginal: req.includeOriginal !== false, ...fin } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Disintegrative iterations — feed the clip through a degrade chain N times.
+  async disintegrate(req: { trackIndex: number; clipIndex?: number; iterations?: number; process?: string; amount?: number; keepEvery?: number }): Promise<any> {
+    try {
+      const a = await this.readClipAudio(req.trackIndex, req.clipIndex ?? 0);
+      if (!a) return { success: false, error: "Select an audio clip (needs a sample file or renderable track)." };
+      const iters = Math.max(1, Math.min(50, req.iterations ?? 8));
+      const amt = Math.max(0, Math.min(100, req.amount ?? 35)) / 100;
+      const proc = req.process || "all";
+      const keepEvery = Math.max(0, Math.min(50, req.keepEvery ?? 0));
+      let cur: Float32Array = a.samples.slice();
+      const milestones: any[] = [];
+      for (let i = 1; i <= iters; i++) {
+        if (proc === "lofi" || proc === "all") cur = lofi(cur, 14 - amt * 8, 1 + amt * 3);
+        if (proc === "saturate" || proc === "all") cur = saturate(cur, amt * 0.5);
+        if (proc === "smear" || proc === "all") cur = smear(cur, a.sampleRate, 1.5 + amt * 6);
+        if (proc === "darken" || proc === "all") cur = onePoleLp(cur, a.sampleRate, 9000 - amt * 6500);
+        if (keepEvery > 0 && i < iters && i % keepEvery === 0) {
+          milestones.push({ pass: i, ...(await this.finishAudio(cur, a.sampleRate, `disint_p${i}`)) });
+        }
+      }
+      const fin = await this.finishAudio(cur, a.sampleRate, "disint_final");
+      return { success: true, data: { source: a.name, iterations: iters, process: proc, amount: Math.round(amt * 100), milestones, ...fin } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
+  }
+
+  // Section export — renders per cue-point range with REAL embedded RIFF INFO metadata.
+  async exportSections(req: { trackIndices?: number[]; sections?: string; namePattern?: string; normalizeRmsDb?: number; demo?: boolean }): Promise<any> {
+    try {
+      const tempo = this.song?.tempo || 120;
+      const cues = [...(this.song?.cuePoints || [])].sort((x: any, y: any) => x.time - y.time);
+      let sections: { name: string; startBeat: number; endBeat: number }[];
+      if (req.demo && !cues.length) {
+        sections = [{ name: "Intro", startBeat: 0, endBeat: 16 }, { name: "Drop", startBeat: 16, endBeat: 32 }];
+      } else {
+        if (!cues.length) return { success: false, error: "No cue points — add section markers first (arrangement__apply_cue_template)." };
+        sections = cues.map((c: any, i: number) => ({ name: c.name || `Section ${i + 1}`, startBeat: c.time, endBeat: i < cues.length - 1 ? cues[i + 1].time : c.time + 16 }));
+      }
+      if (req.sections) {
+        const want = String(req.sections).split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        sections = sections.filter((s) => want.includes(s.name.toLowerCase()));
+        if (!sections.length) return { success: false, error: "No sections matched that filter." };
+      }
+      const pattern = req.namePattern || "{section} - {name}";
+      const sanitize = (s: string) => String(s || "x").replace(/[^a-z0-9 _-]+/gi, "_").slice(0, 48);
+      const base = this.environment?.tempDirectory || join(tmpdir(), "live-studio");
+      const dir = join(base, "stem-exports", `sections_${Date.now()}`);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      const files: any[] = [];
+      const writeOne = (samples: Float32Array, sr: number, section: { name: string; startBeat: number; endBeat: number }, trackName: string, trackIdx: number) => {
+        let out = samples;
+        let gainApplied = 0;
+        if (typeof req.normalizeRmsDb === "number") { const n = normalizeRms(out, req.normalizeRmsDb); out = n.out; gainApplied = n.gainDb; }
+        const fileName = sanitize(pattern.replace("{section}", section.name).replace("{index}", String(trackIdx + 1).padStart(2, "0")).replace("{name}", trackName)) + ".wav";
+        const path = join(dir, fileName);
+        writeWavWithInfo(path, out, sr, { title: `${section.name} — ${trackName}`, artist: "Live Studio", comment: `Section: ${section.name} · Tempo: ${tempo} BPM · Beats ${section.startBeat}-${section.endBeat}` });
+        files.push({ section: section.name, track: trackName, file: path, fileName, normalizedGainDb: gainApplied || undefined, metadata: true });
+      };
+      if (req.demo) {
+        for (const sec of sections) {
+          const names = ["Kick", "Bass"];
+          names.forEach((n, i) => writeOne(synthPcm(44100, 1.2, [{ hz: 90 + i * 120, amp: 0.5 }]), 44100, sec, n, i));
+        }
+        return { success: true, data: { source: "demo", folder: dir, tempo, sections: sections.map((s) => s.name), count: files.length, files } };
+      }
+      if (!this.resources?.renderPreFxAudio) return { success: false, error: "Audio render is only available inside Live." };
+      const tracks = this.song?.tracks || [];
+      const idxs = req.trackIndices?.length ? req.trackIndices : tracks.map((_: any, i: number) => i);
+      let skippedMidi = 0;
+      for (const sec of sections) {
+        for (const i of idxs) {
+          const t = tracks[i];
+          if (!t) continue;
+          if (!("createAudioClip" in t)) { skippedMidi++; continue; }
+          try {
+            const wav: string = await this.resources.renderPreFxAudio(t, sec.startBeat, sec.endBeat);
+            const dec = decodeWav(readFileSync(wav));
+            writeOne(dec.samples, dec.sampleRate, sec, t.name, i);
+          } catch { /* skip render failures */ }
+        }
+      }
+      if (!files.length) return { success: false, error: skippedMidi ? "All requested tracks are MIDI — resample them to audio first." : "Nothing could be rendered." };
+      return { success: true, data: { source: "render", folder: dir, tempo, sections: sections.map((s) => s.name), count: files.length, skippedMidiRenders: skippedMidi || undefined, files } };
+    } catch (err: any) { return { success: false, error: err?.message || String(err) }; }
   }
 
   // Mix Coach: combines three already-real analyses (health__run_checks, the masking matrix,

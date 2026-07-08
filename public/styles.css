@@ -292,3 +292,11 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .lang-toggle { margin-left: auto; font-size: 10.5px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); background: var(--bg3); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; cursor: pointer; flex-shrink: 0; }
 .lang-toggle:hover { color: var(--txt); border-color: var(--accent); }
 #app.collapsed .lang-toggle { display: none; }
+
+/* Tester-reported: many rich panels set a fixed inline width (e.g. style="width:46px")
+   on their <input type="number">, sized for one bare digit — 2-digit values and decimals
+   (e.g. "0.08") get clipped under the browser's up/down spinner arrows. min-width always
+   wins over a smaller `width` in the CSS box-model resolution regardless of specificity/
+   origin, so this one rule widens every number input across every panel (present and
+   future) without editing each panel file's inline style. */
+input[type="number"] { min-width: 68px; padding-right: 4px; font-variant-numeric: tabular-nums; }
