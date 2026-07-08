@@ -188,14 +188,14 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"setlist",     label:"Setlist Manager", icon:"📋", description:"Create setlists for live shows, add songs, reorder and export.", registry: setlistTools() });
   m.addModule({ id:"grouprouting",label:"Group Routing", icon:"🔗", description:"Create groups, add tracks and configure their routing.", registry: groupRoutingTools() });
   m.addModule({ id:"trackmanager",label:"Bulk Track Manager", icon:"🗂️", description:"Bulk actions: mute/solo/arm/color/volume/duplicate.", registry: trackManagerTools() });
-  m.addModule({ id:"temposync",   label:"Tempo & Grid Sync", icon:"🕐", description:"Tempo, time sig, sync tracks, detect BPM and warp.", registry: tempoSyncTools() });
+  m.addModule({ id:"temposync",   label:"Tempo & Grid Sync", icon:"🕐", description:"Master tempo control and real grid/time-signature info.", registry: tempoSyncTools() });
 
   // --- Batch 9 (mixing / utilities / sequencing / restoration) ---
   m.addModule({ id:"mixscene",    label:"Mix Scene Saver", icon:"🎚️", description:"Save, recall and compare mixer states.", registry: mixSceneTools() });
   m.addModule({ id:"console",     label:"API Console", icon:"⌨️", description:"Scripting console for the Set — safe commands that mutate it, arbitrary JS via run_script, and save/load scripts that persist to storage.", registry: consoleTools() });
   m.addModule({ id:"clipversions",label:"Clip Versions", icon:"🕰️", description:"Clip version history: save, restore and diff.", registry: clipVersionsTools() });
   m.addModule({ id:"drummap",     label:"Drum Map Editor", icon:"🥁", description:"Map pads to MIDI notes, routing and drum map presets.", registry: drumMapTools() });
-  m.addModule({ id:"midigate",    label:"MIDI Gate", icon:"🚪", description:"MIDI gate on audio, gate patterns and render.", registry: midiGateTools() });
+  m.addModule({ id:"midigate",    label:"MIDI Gate", icon:"🚪", description:"Writes real MIDI gate-pattern clips (euclidean density, swing, accents) to sidechain a Gate device with.", registry: midiGateTools() });
   m.addModule({ id:"macros",      label:"Macro Mapper Pro", icon:"🎛️", description:"Macro mappings with curves, presets and batch.", registry: macrosTools() });
   m.addModule({ id:"stepseq",     label:"Step Sequencer", icon:"🔢", description:"Step sequencer: patterns, parameters and chains.", registry: stepSeqTools() });
 

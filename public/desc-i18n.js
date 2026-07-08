@@ -46,12 +46,12 @@ window.LiveStudioDescI18n = (function () {
     setlist: "Crea setlists para directo, añade canciones, reordena y exporta.",
     grouprouting: "Crea grupos, añade pistas y configura su ruteo.",
     trackmanager: "Acciones en lote: mute/solo/arm/color/volumen/duplicar.",
-    temposync: "Tempo, compás, sincroniza pistas, detecta BPM y warp.",
+    temposync: "Control del tempo maestro e info real de rejilla/compás.",
     mixscene: "Guarda, recupera y compara estados del mezclador.",
     console: "Consola de scripting para el Set — comandos seguros que lo mutan, JS arbitrario vía run_script, y guarda/carga scripts persistidos en almacenamiento.",
     clipversions: "Historial de versiones de clips: guarda, restaura y compara.",
     drummap: "Mapea pads a notas MIDI, ruteo y presets de drum map.",
-    midigate: "Gate MIDI sobre audio, patrones de gate y render.",
+    midigate: "Escribe clips reales de patrón de gate MIDI (densidad euclidiana, swing, acentos) para sidechainear un device Gate.",
     macros: "Mapeos de macro con curvas, presets y por lotes.",
     stepseq: "Secuenciador de pasos: patrones, parámetros y cadenas.",
     drumbus: "Compresión de bus, paralela, transient shaper y análisis.",
@@ -199,7 +199,7 @@ window.LiveStudioDescI18n = (function () {
 
     clips__get_clips: "Obtén todos los clips de la sesión",
     clips__create_launch_group: "Crea un grupo de disparo de clips (advisory — el SDK no tiene el concepto de launch-group / crossfade-group)",
-    clips__auto_tag_clips: "Auto-etiqueta los clips reales de una pista según sus notas/nombre reales",
+    clips__auto_tag_clips: "Analiza los clips reales de una pista y deriva etiquetas de sus notas/nombre — opcionalmente escribe las #etiquetas en el nombre de cada clip (escritura real de clip.name; Live no tiene campo de etiquetas)",
     clips__launch_scene: "Dispara una escena con todos sus clips (advisory — el SDK no tiene API de transporte/disparo de clip; esto solo confirma que la escena existe)",
 
     takes__prepare_recording: "Arma la pista para grabar (escritura real de track.arm); count-in/auto-punch son advisory — sin equivalente en el SDK",
@@ -242,7 +242,7 @@ window.LiveStudioDescI18n = (function () {
 
     organizer__get_session_summary: "Obtén un resumen completo de la sesión con recomendaciones de organización",
     organizer__auto_organize_tracks: "Renombra pistas por categoría (real). createFolders es advisory — el SDK no tiene API para crear grupos/carpetas de pistas.",
-    organizer__group_scenes: "Agrupa escenas en secciones lógicas (intro, verso, estribillo, etc.)",
+    organizer__group_scenes: "Clasifica escenas en secciones lógicas (intro, verso, estribillo…) y opcionalmente las renombra in situ con un prefijo [Sección] (escritura real de scene.name)",
     organizer__standardize_naming: "Aplica nombrado estandarizado a todas las pistas y escenas",
     organizer__analyze_session_structure: "Analiza la estructura de la sesión y ofrece sugerencias de optimización",
     organizer__create_session_template: "Crea una plantilla de sesión REAL y reutilizable basada en el género — persiste en disco y se puede aplicar de verdad vía templates__apply_template",
@@ -352,7 +352,6 @@ window.LiveStudioDescI18n = (function () {
 
     temposync__get_tempo_info: "Obtén el tempo actual e info de la rejilla",
     temposync__set_tempo: "Ajusta el tempo maestro",
-    temposync__sync_tracks_to_tempo: "Sincroniza todas las pistas al tempo maestro",
 
     mixscene__save_scene: "Guarda el estado actual del mezclador como escena (persiste en disco)",
     mixscene__recall_scene: "Recupera una escena de mezcla guardada, escribiendo volumen/pan/mute/solo/sends de vuelta en las pistas reales (deshacible)",
@@ -380,9 +379,8 @@ window.LiveStudioDescI18n = (function () {
     drummap__load_drum_map_preset: "Carga un preset estándar de drum map (advisory — el SDK no tiene API para cargar un archivo de preset de drum rack)",
 
     midigate__set_midi_gate: "Configura el efecto de gate MIDI en una pista de audio",
-    midigate__generate_gate_pattern: "Genera un patrón de gate MIDI en una pista",
-    midigate__set_gate_pattern: "Ajusta el patrón de gate a partir de una cadena binaria/hex",
-    midigate__gate_to_audio: "Aplica el efecto de gate y renderízalo a una pista de audio nueva",
+    midigate__generate_gate_pattern: "Escribe un clip REAL de patrón de gate MIDI (distribución euclidiana determinista por densidad, con swing y acentos) en una pista — deshacible",
+    midigate__set_gate_pattern: "Escribe un patrón de gate desde una cadena binaria (1/x = on, 0/./- = off) como clip MIDI REAL — deshacible",
 
     macros__create_macro_map: "Mapea un parámetro a una macro con curva/rango (advisory — el SDK no tiene API de mapeo MIDI; ajusta el valor de la macro directamente con set_macro)",
     macros__set_macro: "Ajusta la macro de un rack a un valor real (deshacible)",

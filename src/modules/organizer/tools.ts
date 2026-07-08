@@ -119,10 +119,11 @@ export function createToolRegistry(): ToolRegistry {
   );
 
   reg.register(
-    { name: "group_scenes", description: "Group scenes into logical sections (intro, verse, chorus, etc.)", category: "organization", parameters: { scene_indices: { type: "array", description: "Scene indices to group (empty = all scenes)", required: false }, grouping_strategy: { type: "string", description: "Grouping strategy (tempo, length, name_pattern)", required: false } } },
+    { name: "group_scenes", description: "Classify scenes into logical sections (intro, verse, chorus…) and optionally rename them in place with a [Section] prefix (real scene.name write)", category: "organization", parameters: { scene_indices: { type: "array", description: "Scene indices to group (empty = all scenes)", required: false }, grouping_strategy: { type: "string", description: "Grouping strategy (tempo, length, name_pattern)", required: false }, apply_names: { type: "boolean", description: "Rename each scene with its section prefix, e.g. \"[Chorus] Drop\" (default false — classify only)", required: false } } },
     async (args, song) => {
       const sceneIndices = args.scene_indices as number[] || [];
       const strategy = args.grouping_strategy as string || "tempo";
+      const applyNames = !!args.apply_names;
       const scenesToGroup = sceneIndices.length > 0
         ? sceneIndices.map(idx => sceneOrThrow(song, idx))
         : song.scenes;
@@ -136,12 +137,18 @@ export function createToolRegistry(): ToolRegistry {
         other: []
       };
 
+      let renamed = 0;
       for (const scene of scenesToGroup) {
         const group = determineSceneGroup(song, scene, strategy);
         groups[group].push(scene);
+        if (applyNames) {
+          const label = group.charAt(0).toUpperCase() + group.slice(1);
+          const base = String(scene.name || "").replace(/^\[[^\]]+\]\s*/, ""); // re-runs replace the old prefix
+          try { scene.name = `[${label}] ${base}`; renamed++; } catch { /* Scene.name not settable on this host */ }
+        }
       }
 
-      return { success: true, data: { groups } };
+      return { success: true, data: { groups, applied: applyNames, renamedScenes: renamed } };
     }
   );
 

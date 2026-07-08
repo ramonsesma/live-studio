@@ -6,13 +6,13 @@
 
 <p align="center">
   <b>A modular super-extension for Ableton Live.</b><br/>
-  132 modules · 382 tools · 83 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
+  132 modules · 380 tools · 83 quick actions · AI copilot · <code>⌘K</code> palette — all inside a single tabbed webview.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/modules-132-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-382-6cc6ff" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-380-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-83-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-115-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-292%20%E2%9C%93-2ea043" />
@@ -36,13 +36,13 @@ fighting for the same port — Live Studio **assembles** them under:
 
 ## ✨ Features
 
-- **132 modules** (all visible) with **382 real tools** across categories: music
+- **132 modules** (all visible) with **380 real tools** across categories: music
   generation, drums, mixing/mastering, EQ/analysis, synthesis, sampling, arrangement,
   performance/live, MIDI, hardware/control, project management, audio↔MIDI conversion and more.
 - **AI copilot** (OpenRouter / OpenAI / Gemini / NVIDIA NIM / OpenCode Zen) with a *tool-calling* loop: it discovers and
-  runs **any of the 382 tools** through a meta-toolkit (`find_tools` searches the whole suite,
+  runs **any of the 380 tools** through a meta-toolkit (`find_tools` searches the whole suite,
   `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
-- **Quick command palette** (`⌘K`): indexes the **382 tools** + **83 quick actions**
+- **Quick command palette** (`⌘K`): indexes the **380 tools** + **83 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
 - **115 curated rich panels** where the auto-generated form falls short: piano-roll, clip
   graph, mixer with faders/pan/sends, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
@@ -61,7 +61,7 @@ fighting for the same port — Live Studio **assembles** them under:
   module (tools + panel + registration + tests) in one command.
 - **Bilingual UI (EN/ES)**: the shell auto-detects the system language (with a manual toggle) —
   one shared codebase, no duplicated files, via a single string dictionary (`public/i18n.js`).
-  All 382 tool descriptions are translated too (`public/desc-i18n.js`), shown in the autoform,
+  All 380 tool descriptions are translated too (`public/desc-i18n.js`), shown in the autoform,
   the command palette and panel headers — the English text the AI copilot reads stays untouched.
 - **Lazy panel loading**: rich panels (~670 KB total) load on first visit to their module instead
   of all 115 upfront, so the UI shows up instantly.
@@ -86,7 +86,7 @@ fighting for the same port — Live Studio **assembles** them under:
   <tr>
     <td align="center">
       <img src="assets/screenshots/03-palette.svg" alt="Command palette" width="100%" /><br/>
-      <sub><b>⌘K command palette</b> — mixes 382 real tools and 83 quick actions in one search.</sub>
+      <sub><b>⌘K command palette</b> — mixes 380 real tools and 83 quick actions in one search.</sub>
     </td>
     <td align="center">
       <img src="assets/screenshots/04-mixconsole.svg" alt="Mix Console" width="100%" /><br/>

@@ -6,13 +6,13 @@
 
 <p align="center">
   <b>Una super-extensión modular para Ableton Live.</b><br/>
-  132 módulos · 382 tools · 83 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
+  132 módulos · 380 tools · 83 micro-acciones · copiloto IA · paleta <code>⌘K</code> — en un único webview por pestañas.
 </p>
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-132-ffb347" />
-  <img alt="tools" src="https://img.shields.io/badge/tools-382-6cc6ff" />
+  <img alt="tools" src="https://img.shields.io/badge/tools-380-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-83-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-115-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-292%20%E2%9C%93-2ea043" />
@@ -36,13 +36,13 @@ peleando por el mismo puerto— Live Studio las **ensambla** bajo:
 
 ## ✨ Características
 
-- **132 módulos** (todos visibles) con **382 tools reales** repartidos por categorías:
+- **132 módulos** (todos visibles) con **380 tools reales** repartidos por categorías:
   generación musical, drums, mezcla/mastering, EQ/análisis, síntesis, sampling, arreglo,
   performance/live, MIDI, hardware/control, gestión de proyectos, conversión audio↔MIDI y más.
 - **Copiloto IA** (OpenRouter / OpenAI / Gemini / NVIDIA NIM / OpenCode Zen) con loop de *tool-calling*: descubre y
-  ejecuta **cualquiera de los 382 tools** mediante un kit de meta-tools (`find_tools` busca en
+  ejecuta **cualquiera de los 380 tools** mediante un kit de meta-tools (`find_tools` busca en
   toda la suite, `list_modules` navega, `run_tool` ejecuta) — alcanza todo sin saturar al modelo.
-- **Paleta de comandos rápidos** (`⌘K`): indexa los **382 tools** + **83 quick actions**
+- **Paleta de comandos rápidos** (`⌘K`): indexa los **380 tools** + **83 quick actions**
   (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
 - **115 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
   grafo de clips, mixer con faders/pan/sends, rejillas de pasos y pads, mapa de drums, comping, curva EQ,
@@ -61,7 +61,7 @@ peleando por el mismo puerto— Live Studio las **ensambla** bajo:
   completo (tools + panel + registro + tests) en un comando.
 - **UI bilingüe (EN/ES)**: el shell detecta el idioma del sistema (con toggle manual) — un solo
   código compartido, sin archivos duplicados, vía un único diccionario (`public/i18n.js`).
-  Las descripciones de las 382 tools también están traducidas (`public/desc-i18n.js`), visibles
+  Las descripciones de las 380 tools también están traducidas (`public/desc-i18n.js`), visibles
   en el autoformulario, la paleta de comandos y las cabeceras de panel — el texto en inglés que
   lee el copiloto IA queda intacto.
 - **Carga perezosa de paneles**: los paneles ricos (~670 KB en total) se cargan al abrir cada

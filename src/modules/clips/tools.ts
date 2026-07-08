@@ -33,23 +33,30 @@ export function createToolRegistry() {
     async (args: any) => ({ success:true, data:{ advisory:true, note:"Live's launch groups / legato switching aren't exposed by the SDK — there's no API to create one. Set exclusive/legato launch groups from Live's clip view.", name:args.name, launchMode:args.launch_mode||"toggle", clips:args.clip_indices } })
   );
 
-  reg.register({ name:"auto_tag_clips", description:"Auto-tag a track's real clips based on their actual notes/name", category:"organization", parameters:{ track_index:{type:"number",description:"Track",required:true} } },
+  reg.register({ name:"auto_tag_clips", description:"Analyze a track's real clips and derive tags from their actual notes/name — optionally write the tags into each clip's name (real clip.name write; Live has no separate tag field)", category:"organization", parameters:{ track_index:{type:"number",description:"Track",required:true}, write_names:{type:"boolean",description:"Append #tags to each clip's name, e.g. \"Drums clip #drums #loop\" (default false — analyze only)",required:false} } },
     async (args: any, song: any) => {
       const track = song.tracks?.[args.track_index]; if (!track) return { success:false, error:"Track not found" };
       const clips: any[] = [];
       for (const slot of (track.clipSlots || [])) if (slot?.clip) clips.push(slot.clip);
       for (const c of (track.arrangementClips || [])) if (c) clips.push(c);
       if (!clips.length) return { success:false, error:"No clips on this track." };
+      const writeNames = !!args.write_names;
+      let renamed = 0;
       const tagged = clips.map((c: any) => {
         const tags: string[] = [];
         const notes = c.notes || [];
         if (c.looping) tags.push("loop");
         if (notes.length) { const pitches = notes.map((n: any) => n.pitch); if (pitches.every((p: number) => p >= 35 && p <= 59)) tags.push("drums"); if (notes.length / Math.max(1, c.duration || 4) > 3) tags.push("dense"); }
-        const nm = (c.name || "").toLowerCase();
+        const base = String(c.name || "").replace(/\s*(#[a-z]+\s*)+$/i, ""); // strip tags a previous run appended
+        const nm = base.toLowerCase();
         for (const kw of ["intro","verse","chorus","bridge","outro","fill"]) if (nm.includes(kw)) tags.push(kw);
-        return { clip:c.name, tags: [...new Set(tags)] };
+        const unique = [...new Set(tags)];
+        if (writeNames && unique.length) {
+          try { c.name = `${base} ${unique.map((t) => "#" + t).join(" ")}`; renamed++; } catch { /* name not settable */ }
+        }
+        return { clip:c.name, tags: unique };
       });
-      return { success:true, data:{ autoTagged:true, trackIndex:args.track_index, clips:tagged } };
+      return { success:true, data:{ analyzed:true, applied:writeNames, renamedClips:renamed, trackIndex:args.track_index, clips:tagged } };
     }
   );
 

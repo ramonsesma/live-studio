@@ -275,8 +275,25 @@ check("clipversions__save_version captura las notas reales", cvh.success && cvh.
 const rackSong: any = { tracks: [{ name: "Drums", devices: [{ name: "Drum Rack", chains: [{ receivingNote: 38 }, { receivingNote: 40 }] }] }] };
 const dmp = await reg.execute("drummap__set_drum_mapping", { track_index: 0, pad_index: 0, note: 36 }, rackSong);
 check("drummap__set_drum_mapping (real receivingNote write)", dmp.success && dmp.data.newNote === 36 && rackSong.tracks[0].devices[0].chains[0].receivingNote === 36);
-const mgt = await post("/api/execute", { name: "midigate__set_gate_pattern", args: { pattern: "1010100010101000" } });
-check("midigate__set_gate_pattern", mgt.success && mgt.data.resolvedSteps === 6);
+// Regresión de la auditoría de fakes: midigate ahora ESCRIBE notas reales (el stub viejo
+// devolvía un noteCount de Math.random sin escribir nada / creaba pistas vacías).
+const mgSong: any = { tempo: 120, tracks: [] as any[], async createMidiTrack() { const clip: any = { name: "", notes: [] as any[] }; const t = { name: "", clipSlots: [], async createMidiClip() { return clip; }, _clip: clip }; mgSong.tracks.push(t); return t; } };
+const mgt = await reg.execute("midigate__set_gate_pattern", { pattern: "1010100010101000" }, mgSong);
+check("midigate__set_gate_pattern", mgt.success && (mgt.data as any).resolvedSteps === 6);
+check("midigate__set_gate_pattern escribe notas REALES en el clip", mgSong.tracks.length === 1 && mgSong.tracks[0]._clip.notes.length === 6 && mgSong.tracks[0]._clip.notes[0].pitch === 60);
+const mgen = await reg.execute("midigate__generate_gate_pattern", { grid: "1/16", length: 1, density: 50, accent: 60 }, mgSong);
+check("midigate__generate_gate_pattern escribe un patrón determinista real", mgen.success && (mgen.data as any).noteCount === 8 && mgSong.tracks[1]._clip.notes.length === 8);
+const mgen2 = await reg.execute("midigate__generate_gate_pattern", { grid: "1/16", length: 1, density: 50, accent: 60 }, mgSong);
+check("midigate__generate_gate_pattern es determinista (sin RNG)", mgen2.success && JSON.stringify(mgSong.tracks[2]._clip.notes) === JSON.stringify(mgSong.tracks[1]._clip.notes));
+check("midigate__gate_to_audio eliminada (fake que creaba pistas vacías)", !allTools.some((t: any) => t.name === "midigate__gate_to_audio"));
+check("temposync__sync_tracks_to_tempo eliminada (fabricaba 'synced' por pista)", !allTools.some((t: any) => t.name === "temposync__sync_tracks_to_tempo"));
+// group_scenes / auto_tag_clips: la acción opcional ahora escribe nombres reales.
+const gsSong: any = { tempo: 120, tracks: [], scenes: [{ name: "Drop", tempo: 128, signatureNumerator: 4, signatureDenominator: 4 }] };
+const gsc = await reg.execute("organizer__group_scenes", { apply_names: true }, gsSong);
+check("organizer__group_scenes apply_names renombra escenas de verdad", gsc.success && (gsc.data as any).renamedScenes === 1 && /^\[[A-Z]/.test(gsSong.scenes[0].name));
+const atSong: any = { tracks: [{ name: "T", clipSlots: [{ clip: { name: "Drums clip", looping: true, duration: 4, notes: [{ pitch: 36, startTime: 0, duration: 1, velocity: 100 }] } }], arrangementClips: [] }] };
+const atc = await reg.execute("clips__auto_tag_clips", { track_index: 0, write_names: true }, atSong);
+check("clips__auto_tag_clips write_names escribe #tags en el nombre real", atc.success && (atc.data as any).renamedClips === 1 && atSong.tracks[0].clipSlots[0].clip.name.includes("#drums"));
 const stp = await post("/api/execute", { name: "stepseq__set_pattern", args: { track_index: 0, steps: 16 } });
 check("stepseq__set_pattern (16 pasos)", stp.success && stp.data.totalSteps === 16);
 

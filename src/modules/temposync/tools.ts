@@ -23,14 +23,9 @@ export function createToolRegistry() {
     async (args: any, song: any) => { song.tempo = args.bpm; return { success:true, data:{ tempo:song.tempo } }; }
   );
 
-  reg.register({ name:"sync_tracks_to_tempo", description:"Sync all tracks to master tempo", category:"sync", parameters:{ target_tempo:{type:"number",description:"Target BPM",required:false}, quantize:{type:"boolean",description:"Quantize clips",required:false} } },
-    async (args: any, song: any) => {
-      const targetTempo = args.target_tempo || song.tempo;
-      song.tempo = targetTempo;
-      const results = song.tracks.map((t: any, i: number) => ({ trackIndex:i, trackName:t.name, synced:true, newTempo:targetTempo }));
-      return { success:true, data:{ targetTempo, tracks:results } };
-    }
-  );
+  // sync_tracks_to_tempo was removed here: it set song.tempo (duplicating set_tempo) and then
+  // FABRICATED per-track "synced: true" results — no per-track sync operation exists in the
+  // SDK (warp/tempo-follow isn't writable), so there was nothing real behind the claim.
 
   
   
