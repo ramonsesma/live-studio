@@ -13,9 +13,9 @@
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="modules" src="https://img.shields.io/badge/modules-144-ffb347" />
   <img alt="tools" src="https://img.shields.io/badge/tools-414-6cc6ff" />
-  <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-83-5ad17a" />
+  <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-90-5ad17a" />
   <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-119-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-292%20%E2%9C%93-2ea043" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-325%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-840%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.es.md"><img alt="readme in Spanish" src="https://img.shields.io/badge/README-Espa%C3%B1ol-yellow" /></a>
@@ -64,11 +64,11 @@ fighting for the same port — Live Studio **assembles** them under:
   All 414 tool descriptions are translated too (`public/desc-i18n.js`), shown in the autoform,
   the command palette and panel headers — the English text the AI copilot reads stays untouched.
 - **Lazy panel loading**: rich panels (~670 KB total) load on first visit to their module instead
-  of all 115 upfront, so the UI shows up instantly.
+  of all 119 upfront, so the UI shows up instantly.
 - **Auto-generated UI** for everything else: any new module shows up with its form without
   writing HTML, reading its tool definitions.
 - **Lightweight**: ~840 KB bundle, no frontend frameworks.
-- **Tested**: 292 end-to-end smoke tests of the server + modules.
+- **Tested**: 325 end-to-end smoke tests of the server + modules.
 
 ## 📸 Screenshots
 
@@ -120,7 +120,7 @@ fighting for the same port — Live Studio **assembles** them under:
 - **Act** — turns each collision into a one-click corrective **move** (carve EQ, trim, pan) written back via `DeviceParameter.setValue`, all collapsed into a single undo (`withinTransaction`).
 - **Remember** — caches spectral fingerprints per project in `environment.storageDirectory`.
 
-The Mix Radar is the most elaborate of the 115.
+The Mix Radar is the most elaborate of the 119.
 
 ---
 
@@ -209,7 +209,7 @@ public/
 Create `public/panels/<id>.js` that registers `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`.
 No `index.html` edit needed — panels load lazily: `shell.js` fetches `/panels/<id>.js` the first
 time a module is opened (a 404 just falls back to the autoform), so nothing is downloaded until
-it's actually used. There are 115 already, including:
+it's actually used. There are 119 already, including:
 `organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (graph), `notation` (piano-roll), `takes`, `eq` (EQ curve), `midilfo` (LFO designer), `midigate` (trance gate), `synth` (patchbay), `genarranger` (arrangement timeline), `trackmanager` (track grid), `health` (session health), `mastering` (gain staging), `rackbuilder` (rack), `performance` (performance pad), `clipversions` (versions & snapshots), `resonance` (mix radar + masking matrix), `autogain` (auto gain-staging), `keyscale` (key detection), `genrhythm` (generative rhythm), `texturemap` (audio→MIDI), `spectrumcompare` (spectrum match), `projectsnapshot` (git for Live Sets), `scoreeditor` (notation + MusicXML), `clipvariations` (variation engine), `stemalign` (stem aligner), `samplebrain` (sample library brain), `macromorph` (macro snapshot morph), `loopdetect` (loop BPM), `warpcompare` (warp A/B), `paramdiff` (outlier QA), `phrasefinder` (MIDI phrase search), `saferandom` (safe randomizer), `groovetemplate` (groove extractor), `probabilitylab` (probability lab), `devremote` (remote-control any device, incl. Max for Live), `stemexport` (batch stem export), `mixcoach` (prioritized mix next-steps), `history` (undo/redo timeline), `templates` (genre starter kits), `mixscene` (mixer A/B recall), `tempotap` (tap tempo), `notes` (sticky notes), `sandbox` (live-coding REPL), `delaycalc` (delay time table), `setlist` (reorderable setlist), `fxpresets` (saved FX chains), `groove` (groove extractor/humanizer), `colorizer` (clip coloring by metric), `vocal` (vocal chain builder).
 
 ## 🛠️ Development
@@ -217,7 +217,7 @@ it's actually used. There are 115 already, including:
 ```bash
 npm run build         # compile (esbuild)
 npm run typecheck     # tsc --noEmit
-npm run test          # 292 smoke tests (server + modules, simulated song)
+npm run test          # 325 smoke tests (server + modules, simulated song)
 npm run package       # build + package .ablx with the UI
 npm run new:module     # scaffold a module: tools.ts + rich panel + registry + smoke-test entries, one command
 npm run gen:catalog    # regenerate docs/catalog.html — a static, searchable catalog of every module/tool
@@ -259,7 +259,7 @@ extends `test/smoke.ts` so the suite immediately covers it — no manual edits, 
 - **Arrangement & performance:** Arrangement & Navigation · Arrangement Sections · Generative Arranger · Performance & Looper · Takes & Comping · Clip Colorizer · Clip Versions · Clip Relation Graph · Clip Launch Quantizer · Setlist Manager
 - **Tempo & time:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator · Loop Length Detective
 - **Sound design:** Synth Patchbay · SFX & Textures · Vocal Chain & FX · Audio Texture Mapper · Stem Aligner · Warp Mode A/B Comparator
-- **Routing & dev:** Group Routing · API Console · Live Coding Sandbox · Edit History (undo/redo timeline) · Quick Actions (⌘K palette, 83 actions)
+- **Routing & dev:** Group Routing · API Console · Live Coding Sandbox · Edit History (undo/redo timeline) · Quick Actions (⌘K palette, 90 actions)
 
 > Modules that depended on capabilities the Live Extensions SDK doesn't expose (audio
 > DSP/analysis, transport/recording, hardware/controllers, file/library access, plugin

@@ -140,7 +140,7 @@ window.LiveStudioDescI18n = (function () {
     devremote: "Controla remotamente cada parámetro de cualquier device ya presente en una pista — incluyendo instrumentos Max for Live — con snapshots y undo.",
     stemexport: "Renderiza en lote cada pista de audio a un WAV real en disco con nombrado automático — las pistas MIDI se omiten, no se simulan.",
     mixcoach: "Combina análisis real de salud/masking/gain-staging en una única lista priorizada de próximos pasos concretos, cada uno con la tool exacta para ejecutarlo.",
-    quickactions: "83 presets curados de un clic que enrutan a tools reales — navega por grupo, o búscalas en la paleta Cmd-K.",
+    quickactions: "90 presets curados de un clic que enrutan a tools reales — navega por grupo, o búscalas en la paleta Cmd-K.",
     stripsilence: "Mapea el silencio real de un clip desde su envolvente RMS medida, y recorta inicio/cola o divide por región de sonido en archivos nuevos importados.",
     transients: "Detección real de transientes expuesta como tools: lista los transientes de un clip, trocea por golpe, o cuantiza el audio a la rejilla sin el motor Warp de Live.",
     clipeditor: "Ediciones de región a nivel de sample sobre el audio real de un clip (recorte/silencio/ganancia/fades) renderizadas a un archivo nuevo — el original queda intacto.",

@@ -305,7 +305,7 @@ export function createMasterRegistry(): MasterRegistry {
   m.addModule({ id:"mixcoach", label:"Mix Coach", icon:"🩺", description:"Combines real health/masking/gain-staging analysis into one prioritized list of concrete next steps, each with the exact tool to run it.", registry: mixCoachTools() });
 
   // --- Backend for the quick command palette (its UX is Cmd/Ctrl+K, plus its own launcher panel) ---
-  m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"83 curated one-click presets that route to real tools — browse by group, or search them in the Cmd-K palette.", registry: quickActionsTools() });
+  m.addModule({ id:"quickactions", label:"Quick Actions", icon:"⌘", description:"90 curated one-click presets that route to real tools — browse by group, or search them in the Cmd-K palette.", registry: quickActionsTools() });
 
   // --- Catalog-gap batch (v1.2.0): concepts validated by the external extensions catalog ---
   m.addModule({ id:"stripsilence", label:"Strip Silence", icon:"✂️", description:"Maps a clip's real silence from its measured RMS envelope, then trims lead/tail or splits per sound region into fresh imported files.", registry: stripSilenceTools() });

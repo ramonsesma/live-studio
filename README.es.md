@@ -11,11 +11,11 @@
 
 <p align="center">
   <a href="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ramonsesma/live-studio/actions/workflows/ci.yml/badge.svg" /></a>
-  <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-132-ffb347" />
+  <img alt="modules" src="https://img.shields.io/badge/m%C3%B3dulos-144-ffb347" />
   <img alt="tools" src="https://img.shields.io/badge/tools-414-6cc6ff" />
-  <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-83-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-115-9370db" />
-  <img alt="tests" src="https://img.shields.io/badge/tests-292%20%E2%9C%93-2ea043" />
+  <img alt="quick actions" src="https://img.shields.io/badge/micro--acciones-90-5ad17a" />
+  <img alt="rich panels" src="https://img.shields.io/badge/paneles%20ricos-119-9370db" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-325%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-840%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
   <a href="README.md"><img alt="readme in English" src="https://img.shields.io/badge/README-English-yellow" /></a>
@@ -65,11 +65,11 @@ peleando por el mismo puerto— Live Studio las **ensambla** bajo:
   en el autoformulario, la paleta de comandos y las cabeceras de panel — el texto en inglés que
   lee el copiloto IA queda intacto.
 - **Carga perezosa de paneles**: los paneles ricos (~670 KB en total) se cargan al abrir cada
-  módulo por primera vez en vez de los 115 de golpe, así la UI aparece al instante.
+  módulo por primera vez en vez de los 119 de golpe, así la UI aparece al instante.
 - **UI auto-generada** para el resto: cualquier módulo nuevo aparece con su formulario sin escribir
   HTML, leyendo las definiciones de sus tools.
 - **Ligero**: bundle de ~840 KB, sin frameworks de frontend.
-- **Probado**: 292 pruebas de humo end-to-end del servidor + módulos.
+- **Probado**: 325 pruebas de humo end-to-end del servidor + módulos.
 
 ## 📸 Vistas
 
@@ -97,7 +97,7 @@ peleando por el mismo puerto— Live Studio las **ensambla** bajo:
 - **Actuar** — convierte cada colisión en un **move** correctivo de un clic (tallar EQ, bajar, panear) escrito de vuelta con `DeviceParameter.setValue`, todo en un solo undo (`withinTransaction`).
 - **Recordar** — cachea huellas espectrales por proyecto en `environment.storageDirectory`.
 
-El Mix Radar es el más elaborado de los 115.
+El Mix Radar es el más elaborado de los 119.
 
 ## 🚀 Instalación
 
@@ -185,7 +185,7 @@ public/
 Crea `public/panels/<id>.js` que registre `window.LiveStudioPanels["<id>"] = (panel, helpers) => …`.
 No hace falta tocar `index.html` — los paneles cargan perezosos: `shell.js` pide `/panels/<id>.js`
 la primera vez que abres ese módulo (un 404 simplemente cae al autoform), así que nada se
-descarga hasta que de verdad se usa. Ya hay 115, entre ellos:
+descarga hasta que de verdad se usa. Ya hay 119, entre ellos:
 `organizer`, `fxchain`, `mixconsole`, `stepseq`, `chordpads`, `drums`, `drummap`, `clipgraph` (grafo), `notation` (piano-roll), `takes`, `eq` (curva EQ), `midilfo` (diseñador LFO), `midigate` (trance gate), `synth` (patchbay), `genarranger` (timeline de arreglo), `trackmanager` (rejilla de pistas), `health` (salud de sesión), `mastering` (gain staging), `rackbuilder` (rack), `performance` (pad de directo), `clipversions` (versiones y snapshots), `resonance` (mix radar + matriz de masking), `autogain` (auto gain-staging), `keyscale` (key detection), `genrhythm` (generative rhythm), `texturemap` (audio→MIDI), `spectrumcompare` (spectrum match), `projectsnapshot` (git for Live Sets), `scoreeditor` (notation + MusicXML), `clipvariations` (variation engine), `stemalign` (stem aligner), `samplebrain` (sample library brain), `macromorph` (macro snapshot morph), `loopdetect` (loop BPM), `warpcompare` (warp A/B), `paramdiff` (outlier QA), `phrasefinder` (MIDI phrase search), `saferandom` (safe randomizer), `groovetemplate` (groove extractor), `probabilitylab` (probability lab), `devremote` (control remoto de cualquier device, incl. Max for Live), `stemexport` (exportación de stems en lote), `mixcoach` (próximos pasos de mezcla priorizados), `history` (línea de tiempo undo/redo), `templates` (kits de género de un clic), `mixscene` (A/B de mezcla), `tempotap` (tap tempo), `notes` (notas persistentes), `sandbox` (REPL de live-coding), `delaycalc` (tabla de tiempos de delay), `setlist` (setlist reordenable), `fxpresets` (cadenas FX guardadas), `groove` (extractor/humanizador de groove), `colorizer` (coloreado de clips por métrica), `vocal` (constructor de cadena vocal).
 
 ## 🛠️ Desarrollo
@@ -193,7 +193,7 @@ descarga hasta que de verdad se usa. Ya hay 115, entre ellos:
 ```bash
 npm run build         # compila (esbuild)
 npm run typecheck     # tsc --noEmit
-npm run test          # 292 pruebas de humo (servidor + módulos, song simulado)
+npm run test          # 325 pruebas de humo (servidor + módulos, song simulado)
 npm run package       # build + empaqueta .ablx con la UI
 npm run new:module     # genera un módulo: tools.ts + panel rico + registro + entradas de test, en un comando
 npm run gen:catalog    # regenera docs/catalog.html — catálogo estático y buscable de todos los módulos/tools
@@ -217,7 +217,7 @@ olvidar ningún paso.
 - **Arreglo & performance:** Arreglo & Navegación · Secciones de Arreglo · Generative Arranger · Performance & Looper · Takes & Comping · Clip Colorizer · Clip Versions · Clip Relation Graph · Clip Launch Quantizer · Setlist Manager
 - **Tempo & tiempo:** Tempo & Grid Sync · Tempo Tapper · Time Signature · Delay Calculator · Loop Length Detective
 - **Diseño de sonido:** Synth Patchbay · SFX & Texturas · Vocal Chain & FX · Audio Texture Mapper · Stem Aligner · Warp Mode A/B Comparator
-- **Routing & dev:** Group Routing · API Console · Live Coding Sandbox · Edit History (línea de tiempo undo/redo) · Quick Actions (paleta ⌘K, 83 acciones)
+- **Routing & dev:** Group Routing · API Console · Live Coding Sandbox · Edit History (línea de tiempo undo/redo) · Quick Actions (paleta ⌘K, 90 acciones)
 
 > Los módulos que dependían de capacidades que el SDK de extensiones no expone (DSP/análisis
 > de audio, transporte/grabación, hardware/controladores, acceso a archivos/librería, escaneo
