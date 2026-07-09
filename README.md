@@ -14,7 +14,7 @@
   <img alt="modules" src="https://img.shields.io/badge/modules-144-ffb347" />
   <img alt="tools" src="https://img.shields.io/badge/tools-414-6cc6ff" />
   <img alt="quick actions" src="https://img.shields.io/badge/quick--actions-83-5ad17a" />
-  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-116-9370db" />
+  <img alt="rich panels" src="https://img.shields.io/badge/rich%20panels-119-9370db" />
   <img alt="tests" src="https://img.shields.io/badge/tests-292%20%E2%9C%93-2ea043" />
   <img alt="bundle" src="https://img.shields.io/badge/bundle-840%20KB-888" />
   <img alt="license" src="https://img.shields.io/badge/license-GPLv3-blue" />
@@ -44,7 +44,7 @@ fighting for the same port — Live Studio **assembles** them under:
   `list_modules` browses, `run_tool` executes) — reaching everything without flooding the model.
 - **Quick command palette** (`⌘K`): indexes the **414 tools** + **90 quick actions**
   (each one a shortcut that runs a real tool with preset args) and runs them with the keyboard.
-- **116 curated rich panels** where the auto-generated form falls short: piano-roll, clip
+- **119 curated rich panels** where the auto-generated form falls short: piano-roll, clip
   graph, mixer with faders/pan/sends, step grids, pad grids, drum map, comping, EQ curve, LFO designer,
   trance gate, synth patchbay, arrangement timeline, track grid, gain staging, rack builder,
   session health, performance pad, version diff…
@@ -194,7 +194,7 @@ src/
 └── modules/<id>/tools.ts # each module = its own toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + palette
-└── panels/<id>.js                        # 116 rich panels
+└── panels/<id>.js                        # 119 rich panels
 ```
 
 ### Adding a module (3 steps)

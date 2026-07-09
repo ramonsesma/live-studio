@@ -44,7 +44,7 @@ peleando por el mismo puerto— Live Studio las **ensambla** bajo:
   toda la suite, `list_modules` navega, `run_tool` ejecuta) — alcanza todo sin saturar al modelo.
 - **Paleta de comandos rápidos** (`⌘K`): indexa los **414 tools** + **90 quick actions**
   (cada una un atajo que ejecuta un tool real con args) y las ejecuta con teclado.
-- **116 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
+- **119 paneles ricos** curados donde el formulario automático se queda corto: piano-roll,
   grafo de clips, mixer con faders/pan/sends, rejillas de pasos y pads, mapa de drums, comping, curva EQ,
   diseñador de LFO, trance gate, synth patchbay, timeline de arreglo, rejilla de pistas, gain
   staging, rack builder, salud de sesión, pad de directo, diff de versiones…
@@ -170,7 +170,7 @@ src/
 └── modules/<id>/tools.ts # cada módulo = su toolRegistry
 public/
 ├── index.html · shell.js · styles.css   # shell + autoform + paleta
-└── panels/<id>.js                        # 116 paneles ricos
+└── panels/<id>.js                        # 119 paneles ricos
 ```
 
 ### Añadir un módulo (3 pasos)

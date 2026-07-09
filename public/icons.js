@@ -147,6 +147,19 @@ window.LiveStudioIcons = (function () {
     copilot: '<rect x="5" y="8" width="14" height="11" rx="3"/><circle cx="9.5" cy="13" r="1.3"/><circle cx="14.5" cy="13" r="1.3"/><path d="M12 5v3M9 19v2M15 19v2"/>',
     palette: '<path d="M9 7l-4 5 4 5M15 7l4 5-4 5"/>',
     quickactions: '<path d="M13 3L4 14h6l-1 7 9-11h-6z"/>',
+
+    stripsilence: '<path d="M2 12h3l1.5-6 2 12 2-9 1.5 5h9"/><path d="M9 5v14" stroke-dasharray="2 2"/>',
+    transients: '<path d="M2 12h4l1-7 2 14 2-11 1.5 4h9.5"/><circle cx="7" cy="5" r="1.1" fill="currentColor"/><circle cx="12" cy="19" r="1.1" fill="currentColor"/>',
+    clipeditor: '<path d="M3 12h5l1-6 2 12 2-9 1 3h7"/><path d="M8 5v14M15 5v14" stroke-dasharray="1.5 2"/>',
+    audioconvert: '<rect x="3" y="4" width="7" height="7" rx="1.3"/><path d="M14 7h7M14 7l-2.5-2.5M14 7l-2.5 2.5"/><rect x="14" y="13" width="7" height="7" rx="1.3"/><path d="M10 17H3M10 17l-2.5-2.5M10 17l-2.5 2.5"/>',
+    extremestretch: '<path d="M4 8v8M20 8v8"/><path d="M4 12h5M15 12h5"/><path d="M9 9l2 3-2 3M15 9l-2 3 2 3"/>',
+    reverseverb: '<path d="M3 17c3-8 6-8 9 0M12 17c1.5-3.4 3-3.4 4.5 0"/><path d="M17 6l3 3-3 3"/>',
+    iterate: '<circle cx="8" cy="8" r="4"/><circle cx="16" cy="16" r="5.3" stroke-dasharray="2.2 2.2"/><path d="M11 8h4M12 12v-3"/>',
+    retime: '<circle cx="12" cy="13" r="7"/><path d="M12 9v4l3 2"/><path d="M9 3h6M8 3l1 3M16 3l-1 3"/>',
+    linkedclips: '<rect x="2" y="4" width="6" height="6" rx="1.3"/><rect x="16" y="4" width="6" height="6" rx="1.3"/><rect x="9" y="14" width="6" height="6" rx="1.3"/><path d="M8 7h8M5 10v4a2 2 0 0 0 2 2h1M19 10v4a2 2 0 0 1-2 2h-1"/>',
+    drumextract: '<ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v3M19 6v3"/><rect x="3" y="13" width="5" height="6" rx="1"/><rect x="9.5" y="13" width="5" height="6" rx="1"/><rect x="16" y="13" width="5" height="6" rx="1"/>',
+    cuesheet: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M8.5 12h7M8.5 15h7M8.5 18h4"/>',
+    imagemidi: '<rect x="3" y="3" width="10" height="10" rx="1.5"/><circle cx="6.3" cy="6.3" r="1.3"/><path d="M4 12l2.5-3 2 2 2.5-3.5L13 12"/><path d="M16 5h5M16 9h5M16 13h5M16 17h5"/>',
     _default: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2" fill="currentColor"/>',
   };
 
@@ -162,6 +175,9 @@ window.LiveStudioIcons = (function () {
     synth: "#9d8cff", sfx: "#9d8cff", vocal: "#9d8cff", padengine: "#9d8cff", pluckengine: "#5ec4a8", acid303: "#e8617a", chordstab: "#b58ce0", fmbell: "#57c7e0", impact: "#9a9aa3", subbass: "#e0a23a", organ: "#6cc6ff", vocalchop: "#d4537e", instrumentrender: "#74b8e0", brass: "#e89a3a", wobble: "#7a4dff", choir: "#bc8df0", subdrop: "#74b8e0", pluckbass: "#5ec4a8", sawlead: "#f0a04b", reese: "#a04bff", marimba: "#c79568", glitch: "#e8e857", tapehiss: "#9a9a9a", trumpet: "#e89a3a", epiano: "#74c4e0", musicbox: "#f0c068", harp: "#79c5b0", whistle: "#a4d4ea", subwobble: "#5e4ac4", vocoder: "#d077a0", noisefx: "#b8b8c0", cymbal: "#d4b878", guitar: "#e8617a", sitar: "#c78d5e", steeldrum: "#8dd0d8", accordion: "#e0985e", theremin: "#9a8cd8", hihat808: "#e8617a", stabhit: "#e89a3a", glassbell: "#a8e0e8", subkick: "#e0a23a", reversesweep: "#c8c8d0", devremote: "#9a9aa3",
     grouprouting: "#9a9aa2", console: "#9a9aa2", sandbox: "#9a9aa2", history: "#9a9aa2", quickactions: "#f0a04b", stemexport: "#5ad17a", mixcoach: "#e24b4a",
     copilot: "#6cc6ff",
+
+    stripsilence: "#5ad17a", transients: "#5ad17a", clipeditor: "#5ad17a", audioconvert: "#5ad17a", extremestretch: "#9d8cff", reverseverb: "#9d8cff", iterate: "#9d8cff",
+    retime: "#b58ce0", linkedclips: "#82c98a", drumextract: "#e8617a", cuesheet: "#5ad17a", imagemidi: "#f0a04b",
   };
 
   function svg(id, opts) {
