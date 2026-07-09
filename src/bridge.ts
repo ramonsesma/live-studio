@@ -455,8 +455,7 @@ export class Bridge {
     return { file: served.file, audio: served.url, importedPath, durSec: Number((samples.length / sr).toFixed(3)) };
   }
 
-  // Strip Silence — the most-duplicated concept across the external extension catalog (5
-  // independent extensions). Real RMS-envelope silence map; trim or split, never fabricate.
+  // Strip Silence — real RMS-envelope silence map; trim or split, never fabricate.
   async stripSilence(req: { trackIndex: number; clipIndex?: number; thresholdDb?: number; minSilenceMs?: number; mode?: "lead_tail" | "split"; fadeMs?: number; analyzeOnly?: boolean }): Promise<any> {
     try {
       const a = await this.readClipAudio(req.trackIndex, req.clipIndex ?? 0);
